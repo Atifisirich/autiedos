@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ITEMS, LANGUAGES, LANGUAGE_NAMES, type Lang } from '@autoed/shared';
 import { useApp } from '@/lib/app';
-import { post, useApi } from '@/lib/api';
+import { getViewAs, post, setViewAs, useApi } from '@/lib/api';
 import { cx, Loading } from './ui';
 import { HelpBot } from './help-bot';
 
@@ -98,7 +98,15 @@ export function Shell({ children }: { children: ReactNode }) {
             {t('nav.signOut')}
           </button>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 p-3 sm:p-6">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 p-3 sm:p-6">
+          {getViewAs() && (
+            <div role="status" className="mb-3 flex items-center justify-between rounded-md border border-purple-200 bg-purple-50 p-2 text-sm text-purple-800">
+              <span>{t('admin.viewingAs', { org: me.org.name })}</span>
+              <button type="button" className="underline" onClick={() => (setViewAs(null), window.location.assign('/os/admin'))}>{t('admin.exitViewAs')}</button>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
       {on('help_bot') && <HelpBot />}
     </div>

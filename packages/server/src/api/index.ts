@@ -5,7 +5,7 @@
  */
 import { ZodError, z, type ZodTypeAny } from 'zod';
 import * as S from '@autoed/shared';
-import { UnauthorizedError, loadCtx, type Ctx } from '../core';
+import { UnauthorizedError, loadCtx, rank, type Ctx } from '../core';
 import { verifySession, issueSession, devLogin, verifySupabaseToken, endSession, rateLimit } from '../auth';
 import { asService, maybe } from '../db';
 import * as tasks from '../services/tasks';
@@ -408,6 +408,7 @@ r('POST', '/branding', ({ ctx, b }) => setup.updateBranding(ctx, b), z.object({ 
 r('POST', '/branch-settings', ({ ctx, b }) => setup.updateBranchSettings(ctx, b), z.object({ name: z.string().optional(), latitude: z.number().nullable().optional(), longitude: z.number().nullable().optional(), geofence_radius_m: z.number().int().min(20).max(5000).optional(), working_days: z.array(z.number().int().min(1).max(7)).optional(), settings: z.record(z.string(), z.any()).optional() }));
 r('POST', '/branches', ({ ctx, b }) => setup.addBranch(ctx, b), z.object({ name: z.string().min(2), code: z.string().min(1), preset_key: z.enum(['cbse', 'cambridge', 'dual']) }));
 r('POST', '/year-rollover', ({ ctx, b }) => setup.yearRollover(ctx, b), z.object({ name: z.string(), starts_on: S.isoDate, ends_on: S.isoDate }));
+r('GET', '/config-entities', async ({ ctx }) => Object.fromEntries(Object.entries(setup.CONFIG_ENTITIES).filter(([, v]) => rank(ctx, v.module, 'configure') > 0 || rank(ctx, 'setup', 'configure') > 0).map(([k, v]) => [k, { columns: v.columns, module: v.module, resettable: !!v.area }])));
 r('GET', '/config/:entity', ({ ctx, p }) => setup.listConfig(ctx, p.entity!));
 r('POST', '/config/:entity', ({ ctx, p, b }) => setup.saveConfig(ctx, p.entity!, b.id, b.data), S.configRowSchema);
 r('DELETE', '/config/:entity/:id', ({ ctx, p }) => setup.deleteConfig(ctx, p.entity!, p.id!));

@@ -21,10 +21,31 @@ export function setApiContext(b: string | null, l: string | null) {
   lang = l;
 }
 
+/** Support "view as" session id (super admin, read-only). Kept for this browser tab only. */
+export function getViewAs(): string | null {
+  try {
+    return typeof window === 'undefined' ? null : sessionStorage.getItem('os_view_as');
+  } catch {
+    return null;
+  }
+}
+export function setViewAs(id: string | null) {
+  try {
+    if (id) sessionStorage.setItem('os_view_as', id);
+    else sessionStorage.removeItem('os_view_as');
+  } catch {
+    /* storage blocked: view-as unavailable */
+  }
+}
+function ctxHeaders(): Record<string, string> {
+  const v = getViewAs();
+  return { ...(branchId ? { 'x-branch-id': branchId } : {}), ...(lang ? { 'x-lang': lang } : {}), ...(v ? { 'x-view-as': v } : {}) };
+}
+
 export async function api<T = any>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api/os${path}`, {
     method,
-    headers: { 'content-type': 'application/json', ...(branchId ? { 'x-branch-id': branchId } : {}), ...(lang ? { 'x-lang': lang } : {}) },
+    headers: { 'content-type': 'application/json', ...ctxHeaders() },
     body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
     credentials: 'same-origin',
   });
@@ -71,7 +92,7 @@ export function useApi<T = any>(path: string | null) {
 
 /** Downloads a binary export (xlsx/docx) through the API. */
 export async function download(path: string) {
-  const res = await fetch(`/api/os${path}`, { headers: { ...(branchId ? { 'x-branch-id': branchId } : {}), ...(lang ? { 'x-lang': lang } : {}) } });
+  const res = await fetch(`/api/os${path}`, { headers: ctxHeaders() });
   if (!res.ok) throw new ApiError(res.status, 'download_failed');
   const blob = await res.blob();
   const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'export';
