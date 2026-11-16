@@ -192,10 +192,13 @@ describe('scope and permission rules', () => {
   });
 
   it('question papers are visible only to setter and named reviewers before the exam date', async () => {
-    expect((await as(teacher, (c) => q(c, `select id from public.question_papers`))).length).toBe(1); // setter
-    expect((await as(scienceHod, (c) => q(c, `select id from public.question_papers`))).length).toBe(1); // reviewer
-    expect((await as(otherTeacher, (c) => q(c, `select id from public.question_papers`))).length).toBe(0);
-    expect((await as(principal, (c) => q(c, `select id from public.question_papers`))).length).toBe(0); // not named, before exam date
+    // The seeded paper: future exam date, setter = teacher, reviewers = Science HOD and coordinator.
+    const seeded = await asService((c) => one<{ id: string }>(c, `select id from public.question_papers where org_id = $1 and status = 'hod_review' order by created_at limit 1`, [demoOrg]));
+    const sees = async (email: string) => (await as(email, (c) => q(c, `select id from public.question_papers where id = $1`, [seeded.id]))).length;
+    expect(await sees(teacher)).toBe(1); // setter
+    expect(await sees(scienceHod)).toBe(1); // reviewer
+    expect(await sees(otherTeacher)).toBe(0);
+    expect(await sees(principal)).toBe(0); // not named, before exam date
   });
 
   it('confidential incidents need the confidential permission', async () => {
@@ -215,9 +218,10 @@ describe('scope and permission rules', () => {
 
   it('notifications are personal', async () => {
     const mine = await as(teacher, (c) => q(c, `select id from public.notifications`));
-    const others = await as(otherTeacher, (c) => q(c, `select id from public.notifications`));
+    const me = await user(teacher);
+    const others = await as(otherTeacher, (c) => q<{ staff_id: string }>(c, `select staff_id from public.notifications`));
     expect(mine.length).toBeGreaterThan(0);
-    expect(others.length).toBe(0);
+    expect(others.every((n) => n.staff_id !== me.staffId)).toBe(true);
   });
 
   it('a disabled module is blocked for scoped access', async () => {

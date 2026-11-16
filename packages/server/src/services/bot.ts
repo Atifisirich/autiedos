@@ -76,7 +76,35 @@ export async function addSop(ctx: Ctx, input: { title: string; body: string; lan
   });
 }
 
-const MIN_SCORE = 0.18;
+const MIN_SCORE = 0.05;
+
+/** Words that carry no topic; a question must share at least one other word with an article. */
+const STOP = new Set(
+  (
+  'a an the is are was were be to of in on at for from by with and or how do does did i my me we our you your can what where when who which why this that it its there here please tell show get about into out up today tomorrow ' +
+    'क्या कैसे कब कहाँ कौन है हैं था में से को का की के और या मैं मेरा मेरी हम आप यह वह पर लिए करें करूँ कर ' +
+    'ఎలా ఏమిటి ఎక్కడ ఎప్పుడు ఎవరు ఏది నేను నా మేము మీరు మీ ఇది అది కోసం లో మరియు లేదా చేయాలి చేయాలో'
+  ).split(' '),
+);
+
+function contentWords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .normalize('NFKC')
+    .split(/[^\p{L}\p{N}\p{M}]+/u)
+    .filter((w) => w.length > 1 && !STOP.has(w));
+}
+
+/** Shared content words, matching on word stems (first 4+ characters) so "leave"/"leaves" align. */
+function overlaps(question: string, article: string): number {
+  const a = contentWords(article);
+  let n = 0;
+  for (const w of new Set(contentWords(question))) {
+    const stem = w.slice(0, Math.max(4, Math.ceil(w.length * 0.7)));
+    if (a.some((x) => x === w || (stem.length >= 4 && x.startsWith(stem)))) n++;
+  }
+  return n;
+}
 
 interface Hit {
   article_id: string;
@@ -98,7 +126,7 @@ async function retrieve(c: Tx, ctx: Ctx, question: string, lang: Lang): Promise<
             ts_rank(k.tsv, plainto_tsquery('simple', $3)) as text_rank
      from public.kb_chunks k join public.kb_articles a on a.id = k.article_id
      where k.language = $1 and a.deleted_at is null and (a.org_id is null or a.org_id = $4)
-     order by (1 - (k.embedding <=> $2::vector)) + least(ts_rank(k.tsv, plainto_tsquery('simple', $3)), 0.3) desc limit 12`,
+     order by (1 - (k.embedding <=> $2::vector)) + least(ts_rank(k.tsv, plainto_tsquery('simple', $3)), 0.3) desc limit 40`,
     [lang, toVectorLiteral(embed(question)), question, ctx.orgId],
   );
   // Limit to features the user's role and the branch's enabled modules allow.
@@ -132,7 +160,11 @@ export async function askBot(ctx: Ctx, input: { conversation_id?: string | null;
     if (input.conversation_id && !conv) throw new NotFoundError();
     if (!conv) conv = await insert<{ id: string; messages: BotMessage[] }>(c, 'bot_conversations', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, language: ctx.lang, screen_path: input.screen_path ?? null, messages: [] });
     const hits = await retrieve(c, ctx, `${input.message}`, ctx.lang);
-    const relevant = hits.filter((h) => h.score >= MIN_SCORE && h.text_rank > 0).slice(0, 3);
+    const relevant = hits
+      .map((h) => ({ ...h, rel: overlaps(input.message, h.title) * 2 + overlaps(input.message, h.body) + h.score }))
+      .filter((h) => h.score >= MIN_SCORE && overlaps(input.message, `${h.title} ${h.body}`) >= 1)
+      .sort((a, b) => b.rel - a.rel)
+      .slice(0, 3);
     let answer: { answerable: boolean; steps: string[]; screen: string | null } = { answerable: false, steps: [], screen: null };
     if (relevant.length) {
       const gen = await sys(() =>

@@ -287,7 +287,7 @@ export async function applyArea(c: Tx, area: ConfigArea, orgId: string, branchId
       if (ex && !reset) return;
       if (ex) await c.query(`update public.plan_submission_rules set deleted_at = now() where org_id = $1`, [orgId]);
       await insert(c, 'plan_submission_rules', { org_id: orgId, level: 'weekly', name: 'Weekly plans due Friday 4 pm', due_weekday: 5, due_time: '16:00', days_before: 0, review_steps: ['hod', 'academic_coordinator'] });
-      await insert(c, 'plan_submission_rules', { org_id: orgId, level: 'daily', name: 'Daily plans due the day before, 4 pm', due_time: '16:00', days_before: 1, review_steps: ['hod'] });
+      await insert(c, 'plan_submission_rules', { org_id: orgId, level: 'daily', name: 'Daily plans due the day before, 4 pm', due_time: '16:00', days_before: 1, review_steps: ['hod', 'academic_coordinator'] });
       return;
     }
     case 'attendance_rules': {

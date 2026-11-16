@@ -552,7 +552,7 @@ export async function listPlans(ctx: Ctx, opts: { view: 'mine' | 'review' | 'ban
   return run(ctx, async (c) => {
     const params: unknown[] = [ctx.staffId];
     const p = (v: unknown) => (params.push(v), `$${params.length}`);
-    const where = ['lp.deleted_at is null', `lp.level in ('daily','unit','weekly','cover')`];
+    const where = ['lp.deleted_at is null', `lp.level in ('daily','unit','weekly','cover')`, '$1::uuid is not null'];
     if (opts.view === 'mine') where.push('lp.staff_id = $1');
     if (opts.view === 'review') where.push(`lp.status in ('submitted','in_review') and lp.staff_id <> $1`);
     if (opts.view === 'bank') where.push(`lp.in_bank`);

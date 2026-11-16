@@ -21,7 +21,7 @@ import { loadGlobalCurriculum } from '../curriculum';
 
 export const DEMO_PASSWORDLESS_NOTE = 'Local dev login uses email only (AUTH_PROVIDER=dev).';
 
-const today = process.env.SEED_TODAY ?? toLocal(new Date()).date;
+const today = process.env.SEED_TODAY || toLocal(new Date()).date;
 const yearStart = Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 4 ? 1 : 0);
 const AY_START = `${yearStart}-04-01`;
 const AY_END = `${yearStart + 1}-03-31`;

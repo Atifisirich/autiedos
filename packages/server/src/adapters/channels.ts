@@ -182,7 +182,7 @@ export function embed(text: string): number[] {
   const tokens = text
     .toLowerCase()
     .normalize('NFKC')
-    .split(/[^\p{L}\p{N}]+/u)
+    .split(/[^\p{L}\p{N}\p{M}]+/u)
     .filter((t) => t.length > 1);
   const grams = [...tokens, ...tokens.slice(1).map((t, i) => `${tokens[i]}_${t}`)];
   for (const g of grams) {

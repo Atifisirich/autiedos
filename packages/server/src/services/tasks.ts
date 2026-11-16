@@ -353,7 +353,7 @@ export async function taskAction(ctx: Ctx, id: string, input: TaskActionInput): 
     }
 
     const res = transition({ status: t.status, proofRequired: t.proof_required, verificationRequired: t.verification_required }, input.action as Parameters<typeof transition>[1], roles, { reason: input.reason, note: input.note, proofPath: input.proof_path });
-    if (!res.ok) throw new ValidationError(res.error);
+    if (!res.ok) throw res.error === 'not_allowed_for_role' ? new ForbiddenError(res.error) : new ValidationError(res.error);
     const patch: Record<string, unknown> = { status: res.status };
     if (input.action === 'complete') {
       patch.completed_at = (input.client_at ?? ctx.now.toISOString());

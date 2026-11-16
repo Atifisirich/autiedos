@@ -130,7 +130,7 @@ export const PRESET_ROLES: PresetRole[] = [
     key: 'academic_coordinator',
     name: 'Academic Coordinator',
     name_i18n: { hi: 'शैक्षणिक समन्वयक', te: 'అకడమిక్ కోఆర్డినేటర్' },
-    permissions: merge(BASE, TEACHING, LEADER('wing'), P('substitution', ['view', 'edit', 'assign', 'configure'], 'branch'), P('timetable', ['view', 'edit'], 'branch'), P('lesson_planner', ['view', 'approve', 'configure'], 'wing'), P('question_papers', ['view', 'approve'], 'wing'), P('exams', ['view', 'create', 'edit', 'assign'], 'branch'), P('duty_roster', ['view', 'create', 'edit', 'assign'], 'branch'), P('calendar', ['view', 'create'], 'branch')),
+    permissions: merge(BASE, TEACHING, LEADER('wing'), P('substitution', ['view', 'edit', 'assign', 'configure'], 'branch'), P('timetable', ['view', 'edit'], 'branch'), P('lesson_planner', ['view', 'approve', 'configure'], 'branch'), P('question_papers', ['view', 'approve'], 'wing'), P('exams', ['view', 'create', 'edit', 'assign'], 'branch'), P('duty_roster', ['view', 'create', 'edit', 'assign'], 'branch'), P('calendar', ['view', 'create'], 'branch')),
   },
   {
     key: 'hod',
