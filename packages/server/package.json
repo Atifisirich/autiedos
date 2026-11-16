@@ -17,10 +17,13 @@
     "seed": "tsx src/seed/run.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@autoed/shared": "workspace:*",
+    "docx": "9.1.0",
+    "exceljs": "4.4.0",
     "jose": "5.9.6",
     "pg": "8.13.1",
-    "zod": "3.24.1"
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",
