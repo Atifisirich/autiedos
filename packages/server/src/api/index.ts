@@ -434,7 +434,7 @@ async function lookups(ctx: Ctx) {
     staff: await q(c, `select id, full_name, department_id, wing_id, branch_id, is_teaching from public.staff where org_id = $1 and status in ('active','invited') and deleted_at is null order by full_name`, [ctx.orgId]),
     sections: await q(c, `select se.id, cl.name || ' ' || se.name as name, se.class_id, cl.wing_id from public.sections se join public.classes cl on cl.id = se.class_id where se.branch_id = $1 and se.deleted_at is null order by cl.seq, se.name`, [ctx.branchId]),
     classes: await q(c, `select id, name, wing_id, grade_level from public.classes where branch_id = $1 and deleted_at is null order by seq`, [ctx.branchId]),
-    subjects: await q(c, `select id, name, code, content_language, department_id from public.subjects where org_id = $1 and (branch_id is null or branch_id = $2) and deleted_at is null order by name`, [ctx.orgId, ctx.branchId]),
+    subjects: await q(c, `select id, name, code, content_language, department_id, curriculum_subject_id from public.subjects where org_id = $1 and (branch_id is null or branch_id = $2) and deleted_at is null order by name`, [ctx.orgId, ctx.branchId]),
     wings: await q(c, `select id, name, board from public.wings where branch_id = $1 and deleted_at is null order by seq`, [ctx.branchId]),
     departments: await q(c, `select id, name from public.departments where org_id = $1 and deleted_at is null order by name`, [ctx.orgId]),
     rooms: await q(c, `select id, name, room_type, capacity, qr_token from public.rooms where branch_id = $1 and deleted_at is null order by name`, [ctx.branchId]),
