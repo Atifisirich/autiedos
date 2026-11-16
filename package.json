@@ -1,0 +1,25 @@
+{
+  "name": "autoed-os",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "db:reset": "node scripts/db.mjs reset && pnpm --filter @autoed/server seed",
+    "db:migrate": "node scripts/db.mjs migrate",
+    "db:seed": "pnpm --filter @autoed/server seed",
+    "test:rls": "vitest run --config supabase/tests/vitest.config.mts",
+    "test": "pnpm -r --if-present test && pnpm test:rls",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "pnpm -r --if-present lint && node scripts/check-i18n.mjs",
+    "dev": "pnpm --filter @autoed/web dev"
+  },
+  "devDependencies": {
+    "pg": "^8.13.1",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
