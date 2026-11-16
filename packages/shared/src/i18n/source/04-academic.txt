@@ -1,0 +1,259 @@
+# Timetable
+timetable.grid | Timetable | समय सारणी | టైమ్‌టేబుల్
+timetable.versions | Versions | संस्करण | వెర్షన్లు
+timetable.version | Version | संस्करण | వెర్షన్
+timetable.current | Current published | वर्तमान प्रकाशित | ప్రస్తుత ప్రచురితం
+timetable.workload | Teacher workload | शिक्षक कार्यभार | ఉపాధ్యాయుల పనిభారం
+timetable.freeTeachers | Free teachers | खाली शिक्षक | ఖాళీగా ఉన్న ఉపాధ్యాయులు
+timetable.viewBy | View by | इसके अनुसार देखें | దీని ప్రకారం చూడండి
+timetable.by.section | Class section | कक्षा सेक्शन | తరగతి సెక్షన్
+timetable.by.teacher | Teacher | शिक्षक | ఉపాధ్యాయులు
+timetable.by.room | Room | कमरा | గది
+timetable.period | Period | पीरियड | పీరియడ్
+timetable.unplaced | {n} periods could not be placed | {n} पीरियड नहीं रखे जा सके | {n} పీరియడ్లు పెట్టలేకపోయాము
+timetable.unplacedCol | Not placed | नहीं रखे गए | పెట్టనివి
+timetable.dragHint | Drag a period to another slot. Clashes are checked before saving. | पीरियड को दूसरे स्थान पर खींचें। सहेजने से पहले टकराव जाँचे जाते हैं। | పీరియడ్‌ను వేరే స్లాట్‌కు లాగండి. సేవ్ చేసే ముందు ఘర్షణలు తనిఖీ చేస్తాము.
+timetable.lock | Lock | लॉक | లాక్
+timetable.unlock | Unlock | अनलॉक | అన్‌లాక్
+timetable.noVersion | No timetable published yet. Generate one from the Versions tab. | अभी कोई समय सारणी प्रकाशित नहीं। संस्करण टैब से बनाएँ। | ఇంకా టైమ్‌టేబుల్ ప్రచురించలేదు. వెర్షన్లు ట్యాబ్ నుండి తయారు చేయండి.
+timetable.newName | Name for the new version | नए संस्करण का नाम | కొత్త వెర్షన్ పేరు
+timetable.generate | Generate | बनाएँ | తయారు చేయండి
+timetable.generateHint | Locked periods from the selected version are kept. Generation runs in the background. | चुने संस्करण के लॉक पीरियड रखे जाते हैं। निर्माण पृष्ठभूमि में चलता है। | ఎంచుకున్న వెర్షన్‌లో లాక్ చేసిన పీరియడ్లు అలాగే ఉంటాయి. తయారీ బ్యాక్‌గ్రౌండ్‌లో జరుగుతుంది.
+timetable.effectiveFrom | Effective from | से लागू | నుండి అమలు
+timetable.revise | Make a revision | संशोधन बनाएँ | సవరణ చేయండి
+timetable.revision | revision | संशोधन | సవరణ
+timetable.publish | Publish | प्रकाशित करें | ప్రచురించండి
+timetable.publishHint | Everyone affected is notified. Older versions stay available. | सभी प्रभावित लोगों को सूचना जाती है। पुराने संस्करण उपलब्ध रहते हैं। | ప్రభావితులందరికీ తెలియజేస్తాము. పాత వెర్షన్లు అందుబాటులో ఉంటాయి.
+timetable.periodsWeek | Periods / week | पीरियड / सप्ताह | పీరియడ్లు / వారం
+timetable.maxDay | Most in a day | एक दिन में अधिकतम | ఒక రోజులో గరిష్ఠం
+timetable.periodsToday | Periods today | आज के पीरियड | ఈరోజు పీరియడ్లు
+timetable.clashes | Clashes found | टकराव मिले | ఘర్షణలు కనబడ్డాయి
+timetable.moveAnyway | Move anyway | फिर भी स्थानांतरित करें | అయినా మార్చండి
+clash.teacher | The teacher is already teaching then. | शिक्षक उस समय पहले से पढ़ा रहे हैं। | ఆ సమయంలో ఉపాధ్యాయులు ఇప్పటికే బోధిస్తున్నారు.
+clash.section | The class already has a period then. | कक्षा का उस समय पहले से पीरियड है। | ఆ సమయంలో తరగతికి ఇప్పటికే పీరియడ్ ఉంది.
+clash.room | The room is already in use then. | कमरा उस समय उपयोग में है। | ఆ సమయంలో గది వాడుకలో ఉంది.
+clash.teacher_day_limit | The teacher would exceed the daily limit. | शिक्षक की दैनिक सीमा पार होगी। | ఉపాధ్యాయుల రోజువారీ పరిమితి దాటుతుంది.
+clash.teacher_week_limit | The teacher would exceed the weekly limit. | शिक्षक की साप्ताहिक सीमा पार होगी। | ఉపాధ్యాయుల వారపు పరిమితి దాటుతుంది.
+clash.teacher_unavailable | The teacher is not available then. | शिक्षक उस समय उपलब्ध नहीं हैं। | ఆ సమయంలో ఉపాధ్యాయులు అందుబాటులో లేరు.
+# Substitution
+substitution.board | Today's board | आज का बोर्ड | ఈరోజు బోర్డు
+substitution.mine | My substitutions | मेरे प्रतिस्थापन | నా ప్రత్యామ్నాయ పీరియడ్లు
+substitution.reports | Reports | रिपोर्ट | నివేదికలు
+substitution.markAbsent | Mark a teacher absent | शिक्षक को अनुपस्थित करें | ఉపాధ్యాయుణ్ని గైర్హాజరుగా గుర్తించండి
+substitution.createSlots | Find substitutes | प्रतिस्थापक खोजें | ప్రత్యామ్నాయులను వెతకండి
+substitution.absent | Absent teacher | अनुपस्थित शिक्षक | గైర్హాజరైన ఉపాధ్యాయులు
+substitution.substitute | Substitute | प्रतिस्थापक | ప్రత్యామ్నాయం
+substitution.assign | Assign | सौंपें | అప్పగించండి
+substitution.load | today {today}, this week {week} | आज {today}, इस सप्ताह {week} | ఈరోజు {today}, ఈ వారం {week}
+substitution.cover | Cover material | कवर सामग्री | కవర్ సామగ్రి
+substitution.coverReady | Cover plan ready | कवर योजना तैयार | కవర్ ప్రణాళిక సిద్ధం
+substitution.fairness | Fairness (substitutions taken) | निष्पक्षता (लिए गए प्रतिस्थापन) | న్యాయం (తీసుకున్న ప్రత్యామ్నాయ పీరియడ్లు)
+substitution.count | Count | संख्या | సంఖ్య
+substitution.register | Register | रजिस्टर | రిజిస్టర్
+resolution.substitute | Substitute | प्रतिस्थापक | ప్రత్యామ్నాయం
+resolution.combine | Combine classes | कक्षाएँ मिलाएँ | తరగతులు కలపండి
+resolution.library | Library | पुस्तकालय | గ్రంథాలయం
+resolution.games | Games | खेल | ఆటలు
+resolution.supervision | Supervision | निगरानी | పర్యవేక్షణ
+# Duty roster
+duty.generate | Generate fair rotation | निष्पक्ष रोटेशन बनाएँ | న్యాయమైన రొటేషన్ తయారు చేయండి
+duty.weekFrom | Week starting | सप्ताह की शुरुआत | వారం ప్రారంభం
+duty.duty | Duty | ड्यूटी | డ్యూటీ
+duty.manual | changed by hand | हाथ से बदला | చేతితో మార్చారు
+duty.swap | Duty swap | ड्यूटी बदलाव | డ్యూటీ మార్పిడి
+duty.swapWith | Swap with… | किससे बदलें… | ఎవరితో మార్చాలి…
+duty.requestSwap | Request swap | बदलाव का अनुरोध | మార్పిడి అభ్యర్థించండి
+duty.override | Change directly | सीधे बदलें | నేరుగా మార్చండి
+duty.overrideHint | As a manager you can change the person directly, without approval. | प्रबंधक के रूप में आप बिना अनुमोदन सीधे बदल सकते हैं। | మేనేజర్‌గా మీరు ఆమోదం లేకుండా నేరుగా మార్చవచ్చు.
+duty.done | Done | पूरा | పూర్తి
+duty.missed | Missed | छूट गया | తప్పిపోయింది
+# Lesson plans
+plans.new | New plan | नई योजना | కొత్త ప్రణాళిక
+plans.mine | My plans | मेरी योजनाएँ | నా ప్రణాళికలు
+plans.weekly | This week | इस सप्ताह | ఈ వారం
+plans.weekOf | Week of | सप्ताह | వారం
+plans.review | To review | समीक्षा हेतु | సమీక్షించవలసినవి
+plans.bank | Plan bank | योजना बैंक | ప్రణాళిక బ్యాంక్
+plans.annual | Annual plan | वार्षिक योजना | వార్షిక ప్రణాళిక
+plans.library | Library | पुस्तकालय | గ్రంథాలయం
+plans.topic | Topic | विषय-वस्तु | అంశం
+plans.chapter | Chapter | अध्याय | అధ్యాయం
+plans.plan | Plan | योजना | ప్రణాళిక
+plans.missing | No plan yet | अभी योजना नहीं | ఇంకా ప్రణాళిక లేదు
+plans.level | Level | स्तर | స్థాయి
+plans.rating | Rating | रेटिंग | రేటింగ్
+planLevel.daily | Daily | दैनिक | రోజువారీ
+planLevel.unit | Unit | इकाई | యూనిట్
+planLevel.weekly | Weekly | साप्ताहिक | వారపు
+planLevel.cover | Cover | कवर | కవర్
+planLevel.annual | Annual | वार्षिक | వార్షిక
+plans.multiSectionHint | Hold Ctrl (or ⌘) to pick several sections of the same class. | एक ही कक्षा के कई सेक्शन चुनने के लिए Ctrl (या ⌘) दबाए रखें। | ఒకే తరగతి సెక్షన్లు ఎంచుకోవడానికి Ctrl (లేదా ⌘) పట్టుకోండి.
+plans.noCurriculum | No curriculum map found for this class and subject. Ask your coordinator to add it. | इस कक्षा और विषय का पाठ्यक्रम मानचित्र नहीं मिला। समन्वयक से जोड़ने को कहें। | ఈ తరగతి, సబ్జెక్టుకు పాఠ్యప్రణాళిక మ్యాప్ లేదు. కోఆర్డినేటర్‌ను జోడించమనండి.
+plans.periods | Periods | पीरियड | పీరియడ్లు
+plans.periodsN | {n} periods | {n} पीरियड | {n} పీరియడ్లు
+plans.minutes | Minutes per period | प्रति पीरियड मिनट | ఒక్కో పీరియడ్ నిమిషాలు
+plans.model | Teaching model | शिक्षण मॉडल | బోధనా నమూనా
+plans.abilityMix | Class profile | कक्षा प्रोफ़ाइल | తరగతి స్వరూపం
+plans.language | Plan language | योजना की भाषा | ప్రణాళిక భాష
+plans.notes | Notes for the AI | AI के लिए टिप्पणी | AI కోసం గమనికలు
+plans.notesHint | For example: students struggled with balancing equations last time. Do not include student names. | उदाहरण: पिछली बार छात्रों को समीकरण संतुलित करने में कठिनाई हुई। छात्रों के नाम न लिखें। | ఉదా: గతసారి విద్యార్థులు సమీకరణాల సమతుల్యతలో ఇబ్బంది పడ్డారు. విద్యార్థుల పేర్లు రాయకండి.
+plans.generate | Generate plan | योजना बनाएँ | ప్రణాళిక తయారు చేయండి
+plans.generating | Preparing… | तैयार हो रहा है… | తయారవుతోంది…
+plans.aiAction | AI help… | AI सहायता… | AI సహాయం…
+plans.onePerLine | One per line | हर पंक्ति में एक | ప్రతి పంక్తికి ఒకటి
+plans.sectionComment | Comment on this section | इस खंड पर टिप्पणी | ఈ భాగంపై వ్యాఖ్య
+plans.confirm | I have read and checked this plan | मैंने यह योजना पढ़ और जाँच ली है | ఈ ప్రణాళిక చదివి తనిఖీ చేశాను
+plans.confirmHint | AI drafts must be read by you before they can be submitted. | AI मसौदे जमा करने से पहले आपको पढ़ने होंगे। | AI డ్రాఫ్ట్‌లను సమర్పించే ముందు మీరు చదవాలి.
+plans.submit | Submit for review | समीक्षा के लिए जमा करें | సమీక్షకు సమర్పించండి
+plans.deliver | Mark as taught | पढ़ाया गया चिह्नित करें | బోధించినట్లు గుర్తించండి
+plans.reflection | Reflection | चिंतन | ప్రతిబింబం
+plans.saveReflection | Save reflection | चिंतन सहेजें | ప్రతిబింబం సేవ్ చేయండి
+plans.addToBank | Add to plan bank | योजना बैंक में जोड़ें | ప్రణాళిక బ్యాంకుకు జోడించండి
+plans.rate | Rate | रेटिंग दें | రేటింగ్ ఇవ్వండి
+plans.reuse | Reuse for my classes | मेरी कक्षाओं के लिए फिर उपयोग करें | నా తరగతులకు మళ్లీ వాడండి
+plans.companions | Make materials | सामग्री बनाएँ | సామగ్రి తయారు చేయండి
+plans.reviews | Review comments | समीक्षा टिप्पणियाँ | సమీక్ష వ్యాఖ్యలు
+plans.versions | Versions | संस्करण | వెర్షన్లు
+plans.noAnnual | There is no annual plan for this class and subject yet. | इस कक्षा और विषय की वार्षिक योजना अभी नहीं है। | ఈ తరగతి, సబ్జెక్టుకు ఇంకా వార్షిక ప్రణాళిక లేదు.
+plans.useAi | Use AI to balance chapters (uses credits) | अध्याय संतुलित करने के लिए AI का उपयोग करें (क्रेडिट लगेंगे) | అధ్యాయాల సమతుల్యతకు AI వాడండి (క్రెడిట్లు వాడతాయి)
+plans.generateAnnual | Create annual plan | वार्षिक योजना बनाएँ | వార్షిక ప్రణాళిక సృష్టించండి
+plans.start | Start | शुरुआत | ప్రారంభం
+plans.end | End | समाप्ति | ముగింపు
+plans.publishAnnual | Publish annual plan | वार्षिक योजना प्रकाशित करें | వార్షిక ప్రణాళిక ప్రచురించండి
+teachingModel.5E | 5E (Engage, Explore, Explain, Elaborate, Evaluate) | 5E (जुड़ना, खोजना, समझाना, विस्तार, मूल्यांकन) | 5E (ఆకర్షణ, అన్వేషణ, వివరణ, విస్తరణ, మూల్యాంకనం)
+teachingModel.gradual_release | I do, we do, you do | मैं करूँ, हम करें, तुम करो | నేను చేస్తా, మనం చేద్దాం, మీరు చేయండి
+teachingModel.experiential | Experiential | अनुभवात्मक | అనుభవాత్మక
+teachingModel.inquiry | Inquiry based | जिज्ञासा आधारित | విచారణ ఆధారిత
+teachingModel.direct | Direct instruction | प्रत्यक्ष शिक्षण | ప్రత్యక్ష బోధన
+teachingModel.flipped | Flipped classroom | फ़्लिप्ड कक्षा | ఫ్లిప్డ్ తరగతి
+teachingModel.school | School's own model | स्कूल का अपना मॉडल | పాఠశాల స్వంత నమూనా
+abilityMix.mixed | Mixed ability | मिश्रित क्षमता | మిశ్రమ సామర్థ్యం
+abilityMix.mostly_strong | Mostly strong | अधिकतर सक्षम | ఎక్కువగా ప్రతిభావంతులు
+abilityMix.mostly_support | Mostly need support | अधिकतर को सहायता चाहिए | ఎక్కువ మందికి సహాయం అవసరం
+resource.smart_board | Smart board | स्मार्ट बोर्ड | స్మార్ట్ బోర్డు
+resource.lab | Lab | प्रयोगशाला | ప్రయోగశాల
+resource.projector | Projector | प्रोजेक्टर | ప్రొజెక్టర్
+sectionAction.regenerate | Rewrite this section | यह खंड फिर से लिखें | ఈ భాగాన్ని మళ్లీ రాయండి
+sectionAction.more_hands_on | More hands-on | अधिक व्यावहारिक | మరింత ప్రయోగాత్మకం
+sectionAction.simplify | Simplify | सरल करें | సరళం చేయండి
+sectionAction.add_unplugged_activity | Add an activity without devices | बिना उपकरण की गतिविधि जोड़ें | పరికరాలు లేని కార్యకలాపం జోడించండి
+sectionAction.shorten | Shorten | छोटा करें | చిన్నది చేయండి
+sectionAction.add_questions | Add questions | प्रश्न जोड़ें | ప్రశ్నలు జోడించండి
+sectionAction.translate | Translate | अनुवाद करें | అనువదించండి
+companion.worksheet | Worksheet | वर्कशीट | వర్క్‌షీట్
+companion.quiz | Quiz | प्रश्नोत्तरी | క్విజ్
+companion.exit_ticket | Exit ticket | एग्ज़िट टिकट | ఎగ్జిట్ టికెట్
+companion.homework | Homework | गृहकार्य | హోంవర్క్
+companion.slides | Slide outline | स्लाइड रूपरेखा | స్లైడ్ రూపురేఖ
+companion.activities | Activities | गतिविधियाँ | కార్యకలాపాలు
+companion.rubric | Rubric | रूब्रिक | రూబ్రిక్
+companion.remedial | Remedial sheet | उपचारात्मक शीट | పరిహార షీట్
+companion.enrichment | Enrichment sheet | संवर्धन शीट | సుసంపన్న షీట్
+companion.cover_plan | Cover plan | कवर योजना | కవర్ ప్రణాళిక
+# Plan content fields (planField.*)
+planField.objectives | Learning objectives | अधिगम उद्देश्य | అభ్యసన లక్ష్యాలు
+planField.text | Text | पाठ | వచనం
+planField.bloom | Bloom level | ब्लूम स्तर | బ్లూమ్ స్థాయి
+planField.outcome_codes | Outcome codes | परिणाम कोड | ఫలిత కోడ్‌లు
+planField.board_elements | Board elements | बोर्ड तत्व | బోర్డు అంశాలు
+planField.competencies | Competencies | दक्षताएँ | సామర్థ్యాలు
+planField.nep_elements | NEP elements | NEP तत्व | NEP అంశాలు
+planField.key_vocabulary | Key vocabulary | मुख्य शब्दावली | ముఖ్య పదజాలం
+planField.success_criteria | Success criteria | सफलता के मानदंड | విజయ ప్రమాణాలు
+planField.assessment_objectives | Assessment objectives | मूल्यांकन उद्देश्य | మూల్యాంకన లక్ష్యాలు
+planField.prior_knowledge | Prior knowledge check | पूर्व ज्ञान जाँच | ముందస్తు జ్ఞాన పరీక్ష
+planField.materials | Materials | सामग्री | సామగ్రి
+planField.flow | Lesson flow | पाठ का क्रम | పాఠ క్రమం
+planField.phase | Phase | चरण | దశ
+planField.minutes | Minutes | मिनट | నిమిషాలు
+planField.teacher_activity | Teacher does | शिक्षक करेंगे | ఉపాధ్యాయులు చేసేది
+planField.student_activity | Students do | छात्र करेंगे | విద్యార్థులు చేసేది
+planField.differentiation | Differentiation | विभेदन | వైవిధ్యీకరణ
+planField.support | Support | सहायता | సహాయం
+planField.core | Core | मुख्य | ముఖ్యం
+planField.extension | Extension | विस्तार | విస్తరణ
+planField.questions | Questions | प्रश्न | ప్రశ్నలు
+planField.level | Level | स्तर | స్థాయి
+planField.competency | Competency based | दक्षता आधारित | సామర్థ్య ఆధారిత
+planField.exit_ticket | Exit ticket | एग्ज़िट टिकट | ఎగ్జిట్ టికెట్
+planField.question | Question | प्रश्न | ప్రశ్న
+planField.answer | Answer | उत्तर | సమాధానం
+planField.homework | Homework | गृहकार्य | హోంవర్క్
+planField.description | Description | विवरण | వివరణ
+planField.links | Links | लिंक | లింకులు
+planField.board_work | Board work | बोर्ड कार्य | బోర్డు పని
+planField.bilingual_notes | Bilingual notes | द्विभाषी टिप्पणी | ద్విభాషా గమనికలు
+planField.reflection | Reflection | चिंतन | ప్రతిబింబం
+planField.title | Title | शीर्षक | శీర్షిక
+planField.items | Items | बिंदु | అంశాలు
+planField.instructions | Instructions | निर्देश | సూచనలు
+planField.options | Options | विकल्प | ఎంపికలు
+planField.marks | Marks | अंक | మార్కులు
+planField.criteria | Criteria | मानदंड | ప్రమాణాలు
+planField.steps | Steps | चरण | దశలు
+planField.weeks | Weeks | सप्ताह | వారాలు
+planField.summary | Summary | सारांश | సారాంశం
+planField.slides | Slides | स्लाइड | స్లైడ్‌లు
+planField.notes | Notes | टिप्पणियाँ | గమనికలు
+planField.extra_periods | Extra periods | अतिरिक्त पीरियड | అదనపు పీరియడ్లు
+planField.plan | Plan | योजना | ప్రణాళిక
+planField.highlights | Highlights | मुख्य बातें | ముఖ్యాంశాలు
+planField.concerns | Concerns | चिंताएँ | ఆందోళనలు
+planField.actions | Suggested actions | सुझाए गए कदम | సూచించిన చర్యలు
+# Library and curriculum
+library.documents | School documents | स्कूल दस्तावेज़ | పాఠశాల పత్రాలు
+library.curriculum | Curriculum maps | पाठ्यक्रम मानचित्र | పాఠ్యప్రణాళిక మ్యాప్‌లు
+library.upload | Upload | अपलोड करें | అప్‌లోడ్ చేయండి
+library.file | File | फ़ाइल | ఫైల్
+library.uploadHint | Textbooks, year plans and SOPs are used to ground AI drafts in your school's material. | पाठ्यपुस्तकें, वार्षिक योजनाएँ और SOP AI मसौदों को आपके स्कूल की सामग्री पर आधारित करती हैं। | పాఠ్యపుస్తకాలు, వార్షిక ప్రణాళికలు, SOPలు AI డ్రాఫ్ట్‌లను మీ పాఠశాల సామగ్రిపై ఆధారపడేలా చేస్తాయి.
+library.search | Search the library | पुस्तकालय में खोजें | గ్రంథాలయంలో వెతకండి
+library.chunks | Indexed parts | अनुक्रमित भाग | సూచిక భాగాలు
+library.board | Board | बोर्ड | బోర్డు
+library.schoolCopy | school copy | स्कूल प्रति | పాఠశాల కాపీ
+library.clone | Make a school copy to edit | संपादन के लिए स्कूल प्रति बनाएँ | సవరించడానికి పాఠశాల కాపీ చేయండి
+library.cloneHint | The master map is updated by AutoEd each year. Your school copy can be edited. | मुख्य मानचित्र हर साल AutoEd अपडेट करता है। आपकी स्कूल प्रति बदली जा सकती है। | ప్రధాన మ్యాప్‌ను AutoEd ఏటా నవీకరిస్తుంది. మీ పాఠశాల కాపీని సవరించవచ్చు.
+docKind.textbook | Textbook | पाठ्यपुस्तक | పాఠ్యపుస్తకం
+docKind.year_plan | Year plan | वार्षिक योजना | వార్షిక ప్రణాళిక
+docKind.lesson_plan | Lesson plan | पाठ योजना | పాఠ ప్రణాళిక
+docKind.worksheet | Worksheet | वर्कशीट | వర్క్‌షీట్
+docKind.sop | SOP | SOP | SOP
+docKind.other | Other | अन्य | ఇతర
+# Coverage
+coverage.pct | Covered | पूरा | పూర్తయింది
+coverage.noPlan | No annual plan | वार्षिक योजना नहीं | వార్షిక ప్రణాళిక లేదు
+coverage.aheadBehind | Ahead / behind | आगे / पीछे | ముందు / వెనుక
+coverage.ahead | {n} periods ahead | {n} पीरियड आगे | {n} పీరియడ్లు ముందు
+coverage.behind | {n} periods behind | {n} पीरियड पीछे | {n} పీరియడ్లు వెనుక
+coverage.projected | Projected finish | अनुमानित समापन | అంచనా ముగింపు
+coverage.wontFinish | Will not finish in time | समय पर पूरा नहीं होगा | సమయానికి పూర్తి కాదు
+coverage.nextExam | Next exam | अगली परीक्षा | తదుపరి పరీక్ష
+coverage.daysLate | {n} days late | {n} दिन देर | {n} రోజులు ఆలస్యం
+coverage.recovery | Recovery plan | पुनर्प्राप्ति योजना | పునరుద్ధరణ ప్రణాళిక
+coverage.status.on_track | On track | सही राह पर | సరైన దారిలో
+coverage.status.at_risk | At risk | जोखिम में | ప్రమాదంలో
+coverage.status.critical | Critical | गंभीर | తీవ్రం
+# Class log
+classLog.log | Log a period | पीरियड दर्ज करें | పీరియడ్ నమోదు చేయండి
+classLog.add | What was taught | क्या पढ़ाया गया | ఏమి బోధించారు
+classLog.asPlanned | Taught as planned | योजना अनुसार पढ़ाया | ప్రణాళిక ప్రకారం బోధించారు
+classLog.taughtAsPlanned | Taught as planned | योजना अनुसार पढ़ाया | ప్రణాళిక ప్రకారం బోధించారు
+classLog.topicText | Topic taught | पढ़ाया गया विषय | బోధించిన అంశం
+classLog.classwork | Classwork | कक्षा कार्य | తరగతి పని
+classLog.remarks | Remarks | टिप्पणी | వ్యాఖ్యలు
+classLog.giveHomework | Give homework | गृहकार्य दें | హోంవర్క్ ఇవ్వండి
+classLog.minutes | Minutes | मिनट | నిమిషాలు
+classLog.saved | Saved. | सहेजा गया। | సేవ్ అయింది.
+classLog.recent | Recent entries | हाल की प्रविष्टियाँ | ఇటీవలి నమోదులు
+classLog.pickSection | Choose a section to see its log. | लॉग देखने के लिए सेक्शन चुनें। | లాగ్ చూడడానికి సెక్షన్ ఎంచుకోండి.
+classLog.homework | Homework due | नियत गृहकार्य | ఇవ్వవలసిన హోంవర్క్
+classLog.homeworkLoad | Homework load | गृहकार्य भार | హోంవర్క్ భారం
+classLog.over | Over the limit | सीमा से अधिक | పరిమితి దాటింది
+classLog.notebooks | Notebook checks | कॉपी जाँच | నోట్‌బుక్ తనిఖీలు
+classLog.addCheck | Record a notebook check | कॉपी जाँच दर्ज करें | నోట్‌బుక్ తనిఖీ నమోదు చేయండి
+classLog.checkedBy | Checked by | जाँचकर्ता | తనిఖీ చేసినవారు
+classLog.scores | Scores | अंक | స్కోర్లు
+notebookKind.cycle | Regular cycle | नियमित चक्र | క్రమ చక్రం
+notebookKind.spot_check | Spot check | आकस्मिक जाँच | ఆకస్మిక తనిఖీ
+notebook.neatness | Neatness | स्वच्छता | శుభ్రత
+notebook.completion | Completion | पूर्णता | పూర్తి
+notebook.correction | Correction | सुधार | దిద్దుబాటు

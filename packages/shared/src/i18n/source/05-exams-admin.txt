@@ -1,0 +1,322 @@
+# Exams and question papers
+exams.new | New exam | नई परीक्षा | కొత్త పరీక్ష
+exams.papers | Question papers | प्रश्न पत्र | ప్రశ్నాపత్రాలు
+exams.blueprints | Blueprints | ब्लूप्रिंट | బ్లూప్రింట్లు
+exams.scheduled | Papers scheduled | निर्धारित पत्र | షెడ్యూల్ అయిన పత్రాలు
+exams.dateSheet | Date sheet | डेट शीट | తేదీల పట్టిక
+exams.start | Start | शुरुआत | ప్రారంభం
+exams.end | End | समाप्ति | ముగింపు
+exams.rooms | Rooms | कमरे | గదులు
+exams.room | Room | कमरा | గది
+exams.addPaper | Add to date sheet | डेट शीट में जोड़ें | తేదీల పట్టికకు జోడించండి
+exams.invigilation | Invigilation | निरीक्षण ड्यूटी | ఇన్విజిలేషన్
+exams.allocate | Allocate fairly | निष्पक्ष रूप से बाँटें | న్యాయంగా కేటాయించండి
+exams.swapRequest | Invigilation swap | निरीक्षण ड्यूटी बदलाव | ఇన్విజిలేషన్ మార్పిడి
+exams.seating | Seating plans | बैठक व्यवस्था | సీటింగ్ ప్రణాళికలు
+exams.generateSeating | Generate seating | बैठक व्यवस्था बनाएँ | సీటింగ్ తయారు చేయండి
+exams.generatePaper | Generate a paper | प्रश्न पत्र बनाएँ | ప్రశ్నాపత్రం తయారు చేయండి
+exams.paperSecurity | Papers are visible only to the setter and reviewers. Every view and download is logged and watermarked. | प्रश्न पत्र केवल निर्माता और समीक्षकों को दिखते हैं। हर दृश्य और डाउनलोड दर्ज और वॉटरमार्क होता है। | ప్రశ్నాపత్రాలు తయారీదారు, సమీక్షకులకే కనిపిస్తాయి. ప్రతి వీక్షణ, డౌన్‌లోడ్ నమోదు అవుతుంది, వాటర్‌మార్క్ ఉంటుంది.
+exams.set | Set | सेट | సెట్
+exams.sets | Sets | सेट | సెట్లు
+exams.setter | Setter | निर्माता | తయారీదారు
+exams.blueprint | Blueprint | ब्लूप्रिंट | బ్లూప్రింట్
+exams.source | Questions from | प्रश्न स्रोत | ప్రశ్నలు ఎక్కడి నుండి
+exams.reviewers | Reviewers | समीक्षक | సమీక్షకులు
+exams.marksOf | {n} of {total} marks | {total} में से {n} अंक | {total}లో {n} మార్కులు
+exams.exportPaper | Download paper | प्रश्न पत्र डाउनलोड करें | ప్రశ్నాపత్రం డౌన్‌లోడ్
+exams.exportScheme | Download marking scheme | अंक योजना डाउनलोड करें | మార్కింగ్ స్కీమ్ డౌన్‌లోడ్
+exams.questions | Questions | प्रश्न | ప్రశ్నలు
+exams.markingScheme | Answer and marking scheme | उत्तर और अंक योजना | సమాధానం, మార్కింగ్ స్కీమ్
+exams.replace | Replace this question | यह प्रश्न बदलें | ఈ ప్రశ్న మార్చండి
+exams.blueprintCheck | Blueprint table | ब्लूप्रिंट तालिका | బ్లూప్రింట్ పట్టిక
+exams.reviewComments | Review comments | समीक्षा टिप्पणियाँ | సమీక్ష వ్యాఖ్యలు
+exams.accessLog | Access log | पहुँच लॉग | యాక్సెస్ లాగ్
+exams.section | Section | खंड | విభాగం
+exams.sections | Sections | खंड | విభాగాలు
+exams.difficulty | Difficulty | कठिनाई | కఠినత
+exams.marks | Marks | अंक | మార్కులు
+exams.newBlueprint | New blueprint | नया ब्लूप्रिंट | కొత్త బ్లూప్రింట్
+exams.totalMarks | Total marks | कुल अंक | మొత్తం మార్కులు
+exams.duration | Duration (minutes) | अवधि (मिनट) | వ్యవధి (నిమిషాలు)
+exams.count | Questions | प्रश्न | ప్రశ్నలు
+exams.marksEach | Marks each | प्रत्येक के अंक | ఒక్కోదానికి మార్కులు
+exams.weightage | Chapter weightage (marks) | अध्याय भार (अंक) | అధ్యాయ ప్రాధాన్యం (మార్కులు)
+exams.competencyPct | Competency-based % | दक्षता आधारित % | సామర్థ్య ఆధారిత %
+exams.instructions | Instructions | निर्देश | సూచనలు
+exams.isTemplate | Save as a template others can use | दूसरों के लिए टेम्पलेट के रूप में सहेजें | ఇతరులు వాడగల టెంప్లేట్‌గా సేవ్ చేయండి
+paperSource.mixed | Bank first, then AI | पहले बैंक, फिर AI | ముందు బ్యాంక్, తర్వాత AI
+paperSource.bank | Question bank only | केवल प्रश्न बैंक | ప్రశ్నల బ్యాంక్ మాత్రమే
+paperSource.ai | AI only | केवल AI | AI మాత్రమే
+questionType.mcq | Multiple choice | बहुविकल्पीय | బహుళ ఎంపిక
+questionType.very_short | Very short answer | अति लघु उत्तर | అతి చిన్న సమాధానం
+questionType.short | Short answer | लघु उत्तर | చిన్న సమాధానం
+questionType.long | Long answer | दीर्घ उत्तर | దీర్ఘ సమాధానం
+questionType.case_based | Case based | केस आधारित | కేసు ఆధారిత
+questionType.assertion_reason | Assertion and reason | अभिकथन और कारण | ప్రతిపాదన, కారణం
+# Observation and appraisal
+observation.schedule | Schedule observation | अवलोकन निर्धारित करें | పరిశీలన షెడ్యూల్ చేయండి
+observation.appraisal | Appraisal | मूल्यांकन | మూల్యాంకనం
+observation.teacher | Teacher | शिक्षक | ఉపాధ్యాయులు
+observation.observer | Observer | पर्यवेक्षक | పరిశీలకులు
+observation.overall | Overall | कुल | మొత్తం
+observation.rubric | Rubric | रूब्रिक | రూబ్రిక్
+observation.announced | Announced in advance | पहले से सूचित | ముందుగా తెలియజేశారు
+observation.evidence | Evidence (what you saw) | प्रमाण (आपने क्या देखा) | ఆధారం (మీరు చూసింది)
+observation.feedback | Feedback | प्रतिक्रिया | అభిప్రాయం
+observation.actions | Agreed actions | सहमत कदम | అంగీకరించిన చర్యలు
+observation.shareNow | Share with the teacher now | अभी शिक्षक के साथ साझा करें | ఇప్పుడే ఉపాధ్యాయులతో పంచుకోండి
+observation.acknowledge | Acknowledge | स्वीकार करें | అంగీకరించండి
+appraisal.scorecards | Scorecards | स्कोरकार्ड | స్కోర్‌కార్డులు
+appraisal.trainings | Training records | प्रशिक्षण रिकॉर्ड | శిక్షణ రికార్డులు
+appraisal.cycle | Appraisal cycle | मूल्यांकन चक्र | మూల్యాంకన చక్రం
+appraisal.compute | Recalculate from system data | सिस्टम डेटा से फिर गणना करें | సిస్టమ్ డేటా నుండి మళ్లీ లెక్కించండి
+appraisal.total | Total | कुल | మొత్తం
+appraisal.managerRating | Manager rating | प्रबंधक रेटिंग | మేనేజర్ రేటింగ్
+appraisal.hint | Scores come from tasks, attendance, plans, coverage, class logs, observations and training. Staff see their own card only after release. | अंक कार्य, उपस्थिति, योजना, प्रगति, कक्षा लॉग, अवलोकन और प्रशिक्षण से आते हैं। स्टाफ अपना कार्ड जारी होने के बाद ही देखते हैं। | స్కోర్లు పనులు, హాజరు, ప్రణాళికలు, పురోగతి, తరగతి లాగ్‌లు, పరిశీలనలు, శిక్షణ నుండి వస్తాయి. విడుదలైన తర్వాతే సిబ్బంది తమ కార్డు చూస్తారు.
+appraisal.addTraining | Add training | प्रशिक्षण जोड़ें | శిక్షణ జోడించండి
+appraisal.myself | Myself | स्वयं | నేనే
+appraisal.provider | Provider | प्रदाता | నిర్వాహకులు
+appraisal.hours | Hours | घंटे | గంటలు
+appraisal.certificate | Certificate | प्रमाणपत्र | సర్టిఫికెట్
+appraisal.component.observation | Observation | अवलोकन | పరిశీలన
+appraisal.component.task_on_time | Tasks on time | समय पर कार्य | సమయానికి పనులు
+appraisal.component.plan_timeliness | Plans on time | समय पर योजनाएँ | సమయానికి ప్రణాళికలు
+appraisal.component.syllabus_coverage | Syllabus coverage | पाठ्यक्रम प्रगति | సిలబస్ పురోగతి
+appraisal.component.class_log_compliance | Class log | कक्षा लॉग | తరగతి లాగ్
+appraisal.component.punctuality | Punctuality | समयपालन | సమయపాలన
+appraisal.component.training_hours | Training hours | प्रशिक्षण घंटे | శిక్షణ గంటలు
+appraisal.component.self_appraisal | Self appraisal | स्व-मूल्यांकन | స్వీయ మూల్యాంకనం
+appraisal.component.manager_rating | Manager rating | प्रबंधक रेटिंग | మేనేజర్ రేటింగ్
+# Helpdesk
+helpdesk.raise | Raise a ticket | टिकट बनाएँ | టికెట్ పెట్టండి
+helpdesk.raisedByMe | Raised by me | मेरे द्वारा बनाए | నేను పెట్టినవి
+helpdesk.assignedToMe | Assigned to me | मुझे सौंपे | నాకు అప్పగించినవి
+helpdesk.location | Location | स्थान | స్థలం
+helpdesk.room | Room | कमरा | గది
+helpdesk.photo | Photo | फ़ोटो | ఫోటో
+helpdesk.voice | Voice note | आवाज़ संदेश | వాయిస్ నోట్
+helpdesk.note | Note | टिप्पणी | గమనిక
+helpdesk.assign | Assign | सौंपें | అప్పగించండి
+helpdesk.start | Start work | काम शुरू करें | పని ప్రారంభించండి
+helpdesk.wait | Waiting for parts / vendor | पुर्ज़े / विक्रेता की प्रतीक्षा | విడిభాగాలు / విక్రేత కోసం వేచి ఉంది
+helpdesk.resolve | Mark resolved | हल हुआ चिह्नित करें | పరిష్కరించినట్లు గుర్తించండి
+helpdesk.close | Close | बंद करें | మూసివేయండి
+helpdesk.reopen | Reopen | फिर खोलें | మళ్లీ తెరవండి
+helpdesk.vendor | Vendor | विक्रेता | విక్రేత
+helpdesk.cost | Cost (₹) | लागत (₹) | ఖర్చు (₹)
+helpdesk.parts | Parts used | प्रयुक्त पुर्ज़े | వాడిన విడిభాగాలు
+helpdesk.saveCosts | Save costs | लागत सहेजें | ఖర్చు సేవ్ చేయండి
+helpdesk.byCategory | By category | श्रेणी अनुसार | వర్గం వారీగా
+helpdesk.byLocation | By location | स्थान अनुसार | స్థలం వారీగా
+helpdesk.repeats | Repeat problems | बार-बार की समस्याएँ | మళ్లీ మళ్లీ వచ్చే సమస్యలు
+helpdesk.tickets | Tickets | टिकट | టికెట్లు
+helpdesk.avgHours | Avg hours | औसत घंटे | సగటు గంటలు
+helpdesk.breaches | Late | देर से | ఆలస్యం
+helpdesk.times | Times | बार | సార్లు
+ticketEvent.created | Raised | बनाया | పెట్టారు
+ticketEvent.assign | Assigned | सौंपा | అప్పగించారు
+ticketEvent.start | Work started | काम शुरू | పని ప్రారంభం
+ticketEvent.wait | Waiting | प्रतीक्षा | వేచి ఉంది
+ticketEvent.resolve | Resolved | हल | పరిష్కరించారు
+ticketEvent.close | Closed | बंद | మూసివేశారు
+ticketEvent.reopen | Reopened | फिर खोला | మళ్లీ తెరిచారు
+ticketEvent.update_costs | Costs updated | लागत अपडेट | ఖర్చులు నవీకరించారు
+ticketEvent.cost_approved | Cost approved | लागत स्वीकृत | ఖర్చు ఆమోదం
+ticketEvent.cost_rejected | Cost rejected | लागत अस्वीकृत | ఖర్చు తిరస్కరణ
+ticketEvent.escalated | Escalated | आगे बढ़ाया | పై స్థాయికి పంపారు
+# Circulars
+circulars.new | New circular | नया परिपत्र | కొత్త సర్క్యులర్
+circulars.important | Important | महत्वपूर्ण | ముఖ్యమైనది
+circulars.from | From | प्रेषक | పంపినవారు
+circulars.sent | Sent | भेजा | పంపారు
+circulars.tags | Tags | टैग | ట్యాగ్‌లు
+circulars.read | Read | पढ़ा | చదివారు
+circulars.unread | Unread | अपठित | చదవలేదు
+circulars.acknowledged | Acknowledged | स्वीकार किया | అంగీకరించారు
+circulars.reach | Read / sent | पढ़ा / भेजा | చదివినవి / పంపినవి
+circulars.body | Message | संदेश | సందేశం
+circulars.audience | Who should receive it | किसे मिलना चाहिए | ఎవరికి అందాలి
+circulars.audienceHint | Leave everything empty to send to the whole branch. Choices are combined. | पूरी शाखा को भेजने के लिए सब खाली छोड़ें। चुनाव आपस में जुड़ते हैं। | మొత్తం శాఖకు పంపడానికి అన్నీ ఖాళీగా వదలండి. ఎంపికలు కలుస్తాయి.
+circulars.responseMode | Response needed | प्रतिक्रिया आवश्यक | అవసరమైన స్పందన
+circulars.schedule | Send later at | बाद में भेजें | తర్వాత పంపండి
+circulars.reminderHours | Remind after (hours) | इतने घंटे बाद याद दिलाएँ | ఇన్ని గంటల తర్వాత గుర్తు చేయండి
+circulars.question | Question | प्रश्न | ప్రశ్న
+circulars.options | Answer options | उत्तर विकल्प | సమాధాన ఎంపికలు
+circulars.optionsHint | Separate with commas | अल्पविराम से अलग करें | కామాలతో వేరు చేయండి
+circulars.attachments | Attachments | संलग्नक | జోడింపులు
+circulars.markImportant | Mark as important (sends WhatsApp too) | महत्वपूर्ण चिह्नित करें (WhatsApp भी जाएगा) | ముఖ్యమైనదిగా గుర్తించండి (WhatsApp కూడా వెళ్తుంది)
+circulars.send | Send now | अभी भेजें | ఇప్పుడే పంపండి
+circulars.scheduleSend | Schedule | निर्धारित करें | షెడ్యూల్ చేయండి
+circulars.acknowledge | I acknowledge | मैं स्वीकार करता/करती हूँ | నేను అంగీకరిస్తున్నాను
+circulars.answer | Your answer | आपका उत्तर | మీ సమాధానం
+circulars.youAcknowledged | You acknowledged this circular. | आपने यह परिपत्र स्वीकार किया। | మీరు ఈ సర్క్యులర్‌ను అంగీకరించారు.
+circulars.youReplied | You answered: {choice} | आपका उत्तर: {choice} | మీ సమాధానం: {choice}
+circulars.receipts | Read by {read} of {total} | {total} में से {read} ने पढ़ा | {total}లో {read} మంది చదివారు
+responseMode.read | Just read | केवल पढ़ना | చదవడం మాత్రమే
+responseMode.acknowledge | Acknowledge | स्वीकार करना | అంగీకరించడం
+responseMode.reply | Reply to a question | प्रश्न का उत्तर | ప్రశ్నకు సమాధానం
+# Calendar
+calendar.add | Add to calendar | कैलेंडर में जोड़ें | క్యాలెండర్‌కు జోడించండి
+calendar.month | Month | महीना | నెల
+calendar.previous | Previous month | पिछला महीना | గత నెల
+calendar.next | Next month | अगला महीना | వచ్చే నెల
+calendar.layer | Type | प्रकार | రకం
+calendar.groupLevel | For all branches | सभी शाखाओं के लिए | అన్ని శాఖలకు
+layer.holiday | Holiday | छुट्टी | సెలవు
+layer.exam | Exam | परीक्षा | పరీక్ష
+layer.event | Event | कार्यक्रम | కార్యక్రమం
+layer.ptm | Parent-teacher meeting | अभिभावक-शिक्षक बैठक | తల్లిదండ్రులు-ఉపాధ్యాయుల సమావేశం
+layer.staff_meeting | Staff meeting | स्टाफ बैठक | సిబ్బంది సమావేశం
+layer.training | Training | प्रशिक्षण | శిక్షణ
+layer.deadline | Deadline | अंतिम तिथि | చివరి తేదీ
+# Meetings
+meetings.new | New meeting | नई बैठक | కొత్త సమావేశం
+meetings.agenda | Agenda | कार्यसूची | ఎజెండా
+meetings.attendees | Attendees | उपस्थित सदस्य | హాజరయ్యేవారు
+meetings.repeat | Repeats | दोहराएँ | పునరావృతం
+meetings.once | Once | एक बार | ఒకసారి
+meetings.weekly | Weekly | साप्ताहिक | వారానికోసారి
+meetings.monthly | Monthly | मासिक | నెలకోసారి
+meetings.occurrences | How many times | कितनी बार | ఎన్నిసార్లు
+meetings.previousActions | Actions from last meeting | पिछली बैठक के कदम | గత సమావేశపు చర్యలు
+meetings.minutes | Minutes | कार्यवृत्त | సమావేశ వివరాలు
+meetings.actions | Action items | कार्य बिंदु | చర్య అంశాలు
+meetings.addAction | Add action | कदम जोड़ें | చర్య జోడించండి
+meetings.actionsHint | Each action becomes a task for its owner. | हर कदम उसके ज़िम्मेदार के लिए कार्य बन जाता है। | ప్రతి చర్య దాని బాధ్యులకు పనిగా మారుతుంది.
+meetings.attendance | Attendance | उपस्थिति | హాజరు
+meetings.close | Save and close meeting | सहेजें और बैठक बंद करें | సేవ్ చేసి సమావేశం ముగించండి
+# Events
+events.new | New event | नया कार्यक्रम | కొత్త కార్యక్రమం
+events.template | Template | टेम्पलेट | టెంప్లేట్
+events.blank | Blank event | खाली कार्यक्रम | ఖాళీ కార్యక్రమం
+events.owner | Event owner | कार्यक्रम प्रभारी | కార్యక్రమ బాధ్యులు
+events.templateHint | A template creates the task list, committees and budget lines automatically. | टेम्पलेट कार्य सूची, समितियाँ और बजट अपने आप बनाता है। | టెంప్లేట్ పనుల జాబితా, కమిటీలు, బడ్జెట్‌ను స్వయంగా సృష్టిస్తుంది.
+events.readiness | Readiness | तैयारी | సన్నద్ధత
+events.budget | Budget | बजट | బడ్జెట్
+events.budgetApproval | Budget approval | बजट अनुमोदन | బడ్జెట్ ఆమోదం
+events.committees | Committees | समितियाँ | కమిటీలు
+events.line | Item | मद | అంశం
+events.review | After-event review | कार्यक्रम के बाद समीक्षा | కార్యక్రమం తర్వాత సమీక్ష
+events.wentWell | What went well | क्या अच्छा रहा | ఏది బాగా జరిగింది
+events.improve | What to improve | क्या सुधारें | ఏమి మెరుగుపరచాలి
+events.attendance | Attendance | उपस्थिति | హాజరు
+# Incidents
+incidents.log | Log an incident | घटना दर्ज करें | సంఘటన నమోదు చేయండి
+incidents.list | Incidents | घटनाएँ | సంఘటనలు
+incidents.severity | Severity | गंभीरता | తీవ్రత
+incidents.students | Students | छात्र | విద్యార్థులు
+incidents.confidential | Confidential | गोपनीय | రహస్యం
+incidents.actionTaken | Action taken | की गई कार्रवाई | తీసుకున్న చర్య
+incidents.autoOwner | Wing head (automatic) | विंग प्रमुख (स्वतः) | వింగ్ అధిపతి (స్వయంచాలకం)
+incidents.followUps | Follow-up tasks | अनुवर्ती कार्य | ఫాలో-అప్ పనులు
+incidents.close | Close incident | घटना बंद करें | సంఘటన మూసివేయండి
+incidents.reportedBy | Reported by {name} | {name} द्वारा दर्ज | {name} నమోదు చేశారు
+incidents.byType | By type | प्रकार अनुसार | రకం వారీగా
+incidents.byHour | By time of day | समय अनुसार | సమయం వారీగా
+incidents.byClass | By class | कक्षा अनुसार | తరగతి వారీగా
+incidents.repeat | Students with repeat incidents | बार-बार घटनाओं वाले छात्र | మళ్లీ మళ్లీ సంఘటనలు ఉన్న విద్యార్థులు
+incidents.count | Count | संख्या | సంఖ్య
+incidents.hour | Hour | घंटा | గంట
+incidentType.discipline | Discipline | अनुशासन | క్రమశిక్షణ
+incidentType.injury | Injury | चोट | గాయం
+incidentType.parent_complaint | Parent complaint | अभिभावक शिकायत | తల్లిదండ్రుల ఫిర్యాదు
+incidentType.safety | Safety | सुरक्षा | భద్రత
+incidentType.property | Property damage | संपत्ति नुकसान | ఆస్తి నష్టం
+incidentType.ptm_note | Parent meeting note | अभिभावक बैठक टिप्पणी | తల్లిదండ్రుల సమావేశ గమనిక
+# Compliance
+compliance.add | Add item | मद जोड़ें | అంశం జోడించండి
+compliance.readiness | Inspection readiness | निरीक्षण तैयारी | తనిఖీ సన్నద్ధత
+compliance.expires | Expires | समाप्ति | గడువు
+compliance.issued | Issued | जारी | జారీ
+compliance.documents | Documents | दस्तावेज़ | పత్రాలు
+compliance.addDocument | Add a document | दस्तावेज़ जोड़ें | పత్రం జోడించండి
+compliance.days | {n} days | {n} दिन | {n} రోజులు
+compliance.status.valid | Valid | वैध | చెల్లుబాటు
+compliance.status.expiring | Expiring soon | जल्द समाप्त | త్వరలో గడువు
+compliance.status.overdue | Expired | समाप्त | గడువు ముగిసింది
+compliance.status.missing | No expiry date | समाप्ति तिथि नहीं | గడువు తేదీ లేదు
+# Inbox, AI credits, settings
+inbox.unread | Unread | अपठित | చదవనివి
+inbox.markAllRead | Mark all read | सभी पढ़ा चिह्नित करें | అన్నీ చదివినట్లు గుర్తించండి
+inbox.empty | You are all caught up. | सब पढ़ लिया गया है। | అన్నీ చూసేశారు.
+ai.balance | Balance | शेष | మిగులు
+ai.granted | This month | इस महीने | ఈ నెల
+ai.used | Used | उपयोग | వాడినవి
+ai.myUse | My use | मेरा उपयोग | నా వాడకం
+ai.byFeature | By feature | सुविधा अनुसार | ఫీచర్ వారీగా
+ai.byTeacher | By teacher | शिक्षक अनुसार | ఉపాధ్యాయుల వారీగా
+ai.feature | Feature | सुविधा | ఫీచర్
+ai.uses | Uses | उपयोग | వాడకాలు
+ai.credits | Credits | क्रेडिट | క్రెడిట్లు
+ai.ledger | Ledger | खाता | ఖాతా
+ai.topups | Top-up requests | टॉप-अप अनुरोध | టాప్-అప్ అభ్యర్థనలు
+ai.requestTopup | Request top-up | टॉप-अप माँगें | టాప్-అప్ అభ్యర్థించండి
+ai.quote | This will use about {credits} credits. Branch balance: {balance}. | इसमें लगभग {credits} क्रेडिट लगेंगे। शाखा शेष: {balance}। | దీనికి సుమారు {credits} క్రెడిట్లు వాడతాయి. శాఖ మిగులు: {balance}.
+ai.creditsUsed | {n} credits | {n} क्रेडिट | {n} క్రెడిట్లు
+ai.privacyNote | AI never sees student names, phone numbers or staff personal details. | AI को छात्रों के नाम, फ़ोन नंबर या स्टाफ की निजी जानकारी कभी नहीं दिखती। | AIకి విద్యార్థుల పేర్లు, ఫోన్ నంబర్లు, సిబ్బంది వ్యక్తిగత వివరాలు ఎప్పుడూ కనిపించవు.
+aiAction.daily_plan | Daily lesson plan | दैनिक पाठ योजना | రోజువారీ పాఠ ప్రణాళిక
+aiAction.section_rewrite | Rewrite a plan section | योजना खंड फिर से लिखना | ప్రణాళిక భాగం మళ్లీ రాయడం
+aiAction.companion | Worksheet / quiz / materials | वर्कशीट / प्रश्नोत्तरी / सामग्री | వర్క్‌షీట్ / క్విజ్ / సామగ్రి
+aiAction.unit_plan | Unit plan | इकाई योजना | యూనిట్ ప్రణాళిక
+aiAction.annual_plan | Annual plan | वार्षिक योजना | వార్షిక ప్రణాళిక
+aiAction.question_paper | Question paper | प्रश्न पत्र | ప్రశ్నాపత్రం
+aiAction.recovery_plan | Recovery plan | पुनर्प्राप्ति योजना | పునరుద్ధరణ ప్రణాళిక
+aiAction.weekly_insight | Weekly insight | साप्ताहिक जानकारी | వారపు సమాచారం
+aiAction.ask_question | Ask a question | प्रश्न पूछें | ప్రశ్న అడగండి
+aiAction.help_bot | Help bot | सहायता बॉट | సహాయ బాట్
+ledgerKind.allowance | Monthly allowance | मासिक कोटा | నెలవారీ కోటా
+ledgerKind.usage | Used | उपयोग | వాడకం
+ledgerKind.topup | Top-up | टॉप-अप | టాప్-అప్
+ledgerKind.adjustment | Adjustment | समायोजन | సర్దుబాటు
+ledgerKind.expiry | Expired | समाप्त | గడువు ముగిసింది
+settings.display | Display | प्रदर्शन | ప్రదర్శన
+settings.language | Language | भाषा | భాష
+settings.largeText | Large text | बड़ा अक्षर | పెద్ద అక్షరాలు
+settings.simplifiedHome | Simple home screen | सरल होम स्क्रीन | సరళ హోమ్ స్క్రీన్
+settings.calendarFeed | Calendar feed | कैलेंडर फ़ीड | క్యాలెండర్ ఫీడ్
+settings.calendarFeedHint | Add this link to Google or Outlook calendar to see your timetable, duties and meetings. Keep it private. | अपनी समय सारणी, ड्यूटी और बैठकें देखने के लिए यह लिंक Google या Outlook कैलेंडर में जोड़ें। इसे निजी रखें। | మీ టైమ్‌టేబుల్, డ్యూటీలు, సమావేశాలు చూడడానికి ఈ లింక్‌ను Google లేదా Outlook క్యాలెండర్‌కు జోడించండి. దీన్ని గోప్యంగా ఉంచండి.
+settings.showLink | Show my link | मेरा लिंक दिखाएँ | నా లింక్ చూపండి
+settings.notifications | Notifications | सूचनाएँ | నోటిఫికేషన్లు
+settings.notificationsHint | Urgent and required notifications cannot be switched off. | अत्यावश्यक और आवश्यक सूचनाएँ बंद नहीं की जा सकतीं। | అత్యవసర, తప్పనిసరి నోటిఫికేషన్లు ఆపలేము.
+settings.event | Event | घटना | సంఘటన
+settings.channels | Channels | माध्यम | మార్గాలు
+settings.receive | Receive | प्राप्त करें | అందుకోండి
+settings.required | Always on | हमेशा चालू | ఎల్లప్పుడూ ఆన్
+settings.devices | Signed-in devices | साइन-इन डिवाइस | సైన్-ఇన్ పరికరాలు
+settings.device | Device | डिवाइस | పరికరం
+settings.platform | Platform | प्लेटफ़ॉर्म | ప్లాట్‌ఫారమ్
+settings.lastSeen | Last used | अंतिम उपयोग | చివరి వాడకం
+settings.browserSession | Browser session | ब्राउज़र सत्र | బ్రౌజర్ సెషన్
+settings.signOutDevice | Sign out | साइन आउट | సైన్ అవుట్
+settings.signedOut | Signed out | साइन आउट हो गया | సైన్ అవుట్ అయింది
+settings.supportAccess | AutoEd support access | AutoEd सहायता पहुँच | AutoEd సపోర్ట్ యాక్సెస్
+settings.supportPerson | Support person | सहायता व्यक्ति | సపోర్ట్ వ్యక్తి
+settings.until | Until | तक | వరకు
+event.task.assigned | Task assigned to me | मुझे कार्य सौंपा गया | నాకు పని అప్పగించారు
+event.task.assigned_urgent | Urgent task assigned | अत्यावश्यक कार्य सौंपा गया | అత్యవసర పని అప్పగించారు
+event.task.requested | Task request | कार्य अनुरोध | పని అభ్యర్థన
+event.task.comment | Comments on my tasks | मेरे कार्यों पर टिप्पणी | నా పనులపై వ్యాఖ్యలు
+event.task.status | Task status changes | कार्य स्थिति बदलाव | పని స్థితి మార్పులు
+event.task.reminder | Task reminders | कार्य अनुस्मारक | పని రిమైండర్లు
+event.task.escalation | Task escalations | कार्य वृद्धि सूचना | పని పెంపు సమాచారం
+event.task.day_close | Day close reminder | दिन बंद अनुस्मारक | రోజు ముగింపు రిమైండర్
+event.substitution.assigned | Substitution assigned | प्रतिस्थापन सौंपा गया | ప్రత్యామ్నాయ పీరియడ్ అప్పగించారు
+event.substitution.uncovered | Uncovered periods | बिना व्यवस्था पीरियड | ఏర్పాటు లేని పీరియడ్లు
+event.leave.decision | Leave decisions | अवकाश निर्णय | సెలవు నిర్ణయాలు
+event.approval.pending | Approvals waiting for me | मेरी प्रतीक्षा में अनुमोदन | నా కోసం ఆమోదాలు
+event.approval.decision | Decisions on my requests | मेरे अनुरोधों पर निर्णय | నా అభ్యర్థనలపై నిర్ణయాలు
+event.attendance.unmarked | Attendance not marked | उपस्थिति नहीं लगी | హాజరు వేయలేదు
+event.checklist.missed | Checklist missed | चेकलिस्ट छूटी | చెక్‌లిస్టు తప్పిపోయింది
+event.circular.new | New circulars | नए परिपत्र | కొత్త సర్క్యులర్లు
+event.circular.important | Important circulars | महत्वपूर्ण परिपत्र | ముఖ్యమైన సర్క్యులర్లు
+event.incident.critical | Serious incidents | गंभीर घटनाएँ | తీవ్ర సంఘటనలు
+event.digest.daily | Daily digest | दैनिक सारांश | రోజువారీ సారాంశం
+event.coverage.at_risk | Syllabus at risk | पाठ्यक्रम जोखिम में | సిలబస్ ప్రమాదంలో
+event.plan.review | Plans to review | समीक्षा हेतु योजनाएँ | సమీక్షించవలసిన ప్రణాళికలు
+event.compliance.reminder | Compliance reminders | अनुपालन अनुस्मारक | నిబంధనల రిమైండర్లు
+event.duty.reminder | Duty reminders | ड्यूटी अनुस्मारक | డ్యూటీ రిమైండర్లు
+event.ticket.update | Ticket updates | टिकट अपडेट | టికెట్ నవీకరణలు
+event.meeting.scheduled | Meeting invitations | बैठक निमंत्रण | సమావేశ ఆహ్వానాలు
+event.observation.shared | Observation feedback | अवलोकन प्रतिक्रिया | పరిశీలన అభిప్రాయం
+event.credits.warning | AI credit warnings | AI क्रेडिट चेतावनी | AI క్రెడిట్ హెచ్చరికలు
+event.paper.review | Question papers to review | समीक्षा हेतु प्रश्न पत्र | సమీక్షించవలసిన ప్రశ్నాపత్రాలు

@@ -1,0 +1,590 @@
+# Reports
+reports.tab.dashboard | Dashboard | डैशबोर्ड | డాష్‌బోర్డ్
+reports.tab.catalogue | Reports | रिपोर्ट | నివేదికలు
+reports.tab.builder | Build a report | रिपोर्ट बनाएँ | నివేదిక తయారు చేయండి
+reports.tab.ask | Ask a question | प्रश्न पूछें | ప్రశ్న అడగండి
+reports.tab.digest | Daily digest | दैनिक सारांश | రోజువారీ సారాంశం
+reports.metric | Figure | आँकड़ा | గణాంకం
+reports.value | Value | मान | విలువ
+reports.saved | Saved reports | सहेजी रिपोर्ट | సేవ్ చేసిన నివేదికలు
+reports.dataset | Data | डेटा | డేటా
+reports.columns | Columns | कॉलम | కాలమ్‌లు
+reports.column | Column | कॉलम | కాలమ్
+reports.operator | Condition | शर्त | షరతు
+reports.groupBy | Group by | समूह बनाएँ | గుంపుగా చూపండి
+reports.noGrouping | No grouping | कोई समूह नहीं | గుంపు లేదు
+reports.filters | Filters | फ़िल्टर | ఫిల్టర్లు
+reports.addFilter | Add filter | फ़िल्टर जोड़ें | ఫిల్టర్ జోడించండి
+reports.run | Run | चलाएँ | నడపండి
+reports.saveAs | Save as | इस नाम से सहेजें | ఈ పేరుతో సేవ్ చేయండి
+reports.ask | Ask | पूछें | అడగండి
+reports.askPlaceholder | For example: who has the most overdue tasks? | उदाहरण: किसके सबसे अधिक कार्य बाकी हैं? | ఉదా: ఎవరికి ఎక్కువ గడువు దాటిన పనులు ఉన్నాయి?
+reports.askHint | Answers come from your school's data using fixed, safe queries. Credits are used. | उत्तर आपके स्कूल के डेटा से तय सुरक्षित प्रश्नों द्वारा आते हैं। क्रेडिट लगते हैं। | సమాధానాలు మీ పాఠశాల డేటా నుండి నిర్దిష్ట సురక్షిత ప్రశ్నల ద్వారా వస్తాయి. క్రెడిట్లు వాడతాయి.
+reports.cannotAnswer | I cannot answer that from the data yet. Try one of the reports. | मैं अभी डेटा से इसका उत्तर नहीं दे सकता। कोई रिपोर्ट आज़माएँ। | ఆ ప్రశ్నకు డేటా నుండి ఇంకా సమాధానం ఇవ్వలేను. ఏదైనా నివేదిక ప్రయత్నించండి.
+reports.digestFor | Digest for {date} | {date} का सारांश | {date} సారాంశం
+reports.weeklyInsight | Weekly insight | साप्ताहिक जानकारी | వారపు సమాచారం
+reports.noInsight | The weekly insight is prepared on Monday mornings. | साप्ताहिक जानकारी सोमवार सुबह तैयार होती है। | వారపు సమాచారం సోమవారం ఉదయం తయారవుతుంది.
+reports.schedule | Email me this regularly | इसे नियमित रूप से भेजें | దీన్ని క్రమంగా పంపండి
+reports.frequency | How often | कितनी बार | ఎంత తరచుగా
+reports.weekday | Day | दिन | రోజు
+reports.channel | Send by | किससे भेजें | ఎలా పంపాలి
+reports.recipients | Recipients | प्राप्तकर्ता | స్వీకర్తలు
+dashboard.principal | Today in school | आज स्कूल में | ఈరోజు పాఠశాలలో
+dashboard.coordinator | Academics | शैक्षणिक | విద్యా వ్యవహారాలు
+dashboard.hod | My department | मेरा विभाग | నా విభాగం
+dashboard.teacher | My work | मेरा काम | నా పని
+dashboard.admin | Administration | प्रशासन | నిర్వహణ
+dashboard.group | All branches | सभी शाखाएँ | అన్ని శాఖలు
+dashboard.comparison | Branch comparison | शाखा तुलना | శాఖల పోలిక
+dashboard.exceptions | Needs attention | ध्यान दें | శ్రద్ధ అవసరం
+metric.staff_present | Staff present | उपस्थित स्टाफ | హాజరైన సిబ్బంది
+metric.staff_late | Staff late | देर से आए स्टाफ | ఆలస్యంగా వచ్చిన సిబ్బంది
+metric.staff_on_leave | On leave | अवकाश पर | సెలవులో
+metric.staff_absent | Absent without leave | बिना अवकाश अनुपस्थित | సెలవు లేకుండా గైర్హాజరు
+metric.substitutions_today | Substitutions today | आज के प्रतिस्थापन | ఈరోజు ప్రత్యామ్నాయాలు
+metric.substitutions_uncovered | Periods not covered | बिना व्यवस्था पीरियड | ఏర్పాటు లేని పీరియడ్లు
+metric.sections_unmarked | Sections not marked | उपस्थिति बिना सेक्शन | హాజరు వేయని సెక్షన్లు
+metric.students_absent | Students absent | अनुपस्थित छात्र | గైర్హాజరైన విద్యార్థులు
+metric.tasks_overdue | Overdue tasks | समय सीमा पार कार्य | గడువు దాటిన పనులు
+metric.my_tasks_overdue | My overdue tasks | मेरे बाकी कार्य | నా గడువు దాటిన పనులు
+metric.approvals_pending_me | Waiting for my approval | मेरे अनुमोदन की प्रतीक्षा | నా ఆమోదం కోసం
+metric.approvals_pending | Approvals pending | लंबित अनुमोदन | పెండింగ్ ఆమోదాలు
+metric.tickets_critical | Urgent tickets | अत्यावश्यक टिकट | అత్యవసర టికెట్లు
+metric.tickets_open | Open tickets | खुले टिकट | తెరిచి ఉన్న టికెట్లు
+metric.tickets_by_owner | Tickets by owner | ज़िम्मेदार अनुसार टिकट | బాధ్యుల వారీగా టికెట్లు
+metric.compliance_expiring | Compliance expiring | समाप्ति निकट अनुपालन | గడువు దగ్గరి నిబంధనలు
+metric.plans_awaiting_review | Plans to review | समीक्षा हेतु योजनाएँ | సమీక్షించవలసిన ప్రణాళికలు
+metric.my_plans_pending | My plans due | मेरी बाकी योजनाएँ | నా బాకీ ప్రణాళికలు
+metric.class_logs_missing | Class logs missing | छूटे कक्षा लॉग | లేని తరగతి లాగ్‌లు
+metric.my_logs_missing | My class logs missing | मेरे छूटे कक्षा लॉग | నా లేని తరగతి లాగ్‌లు
+metric.observations_due | Observations due | बाकी अवलोकन | బాకీ పరిశీలనలు
+metric.papers_in_review | Papers in review | समीक्षा में प्रश्न पत्र | సమీక్షలో ప్రశ్నాపత్రాలు
+metric.coverage_at_risk | Syllabus at risk | जोखिम में पाठ्यक्रम | ప్రమాదంలో సిలబస్
+metric.regularisations_pending | Attendance corrections pending | लंबित उपस्थिति सुधार | పెండింగ్ హాజరు సవరణలు
+metric.checklists_missed | Checklists missed | छूटी चेकलिस्ट | తప్పిన చెక్‌లిస్టులు
+metric.department_tasks_open | Department tasks open | विभाग के खुले कार्य | విభాగపు తెరిచి ఉన్న పనులు
+report.task_performance | Task performance | कार्य प्रदर्शन | పనుల పనితీరు
+report.task_performance.desc | Completion, on-time rate and overdue work per person | प्रति व्यक्ति पूर्णता, समय पर दर और बाकी काम | ప్రతి వ్యక్తికి పూర్తి, సమయానికి రేటు, బాకీ పని
+report.task_not_done_reasons | Why tasks were not done | कार्य क्यों नहीं हुए | పనులు ఎందుకు జరగలేదు
+report.task_not_done_reasons.desc | Reasons given at day close | दिन बंद पर दिए कारण | రోజు ముగింపులో చెప్పిన కారణాలు
+report.workload | Workload | कार्यभार | పనిభారం
+report.workload.desc | Teaching periods, substitutions, duties, tasks and meetings per person | प्रति व्यक्ति पीरियड, प्रतिस्थापन, ड्यूटी, कार्य और बैठकें | ప్రతి వ్యక్తికి పీరియడ్లు, ప్రత్యామ్నాయాలు, డ్యూటీలు, పనులు, సమావేశాలు
+report.plan_compliance | Lesson plan compliance | पाठ योजना अनुपालन | పాఠ ప్రణాళిక పాటింపు
+report.plan_compliance.desc | Plans on time, late, missing and returned | समय पर, देर से, छूटी और लौटाई योजनाएँ | సమయానికి, ఆలస్యం, లేని, తిరిగి వచ్చిన ప్రణాళికలు
+report.syllabus_coverage | Syllabus coverage | पाठ्यक्रम प्रगति | సిలబస్ పురోగతి
+report.syllabus_coverage.desc | Planned against taught, with projected finish | योजना बनाम पढ़ाया, अनुमानित समापन सहित | ప్రణాళిక వర్సెస్ బోధన, అంచనా ముగింపుతో
+report.class_log | Class log compliance | कक्षा लॉग अनुपालन | తరగతి లాగ్ పాటింపు
+report.class_log.desc | Periods logged, taught as planned and homework | दर्ज पीरियड, योजना अनुसार और गृहकार्य | నమోదైన పీరియడ్లు, ప్రణాళిక ప్రకారం, హోంవర్క్
+report.staff_attendance | Staff attendance | स्टाफ उपस्थिति | సిబ్బంది హాజరు
+report.staff_attendance.desc | Present, late, half days and absences | उपस्थित, देर, आधे दिन और अनुपस्थिति | హాజరు, ఆలస్యం, అర్ధ రోజులు, గైర్హాజరు
+report.substitution | Substitutions | प्रतिस्थापन | ప్రత్యామ్నాయాలు
+report.substitution.desc | Who covered, who was absent, fairness | किसने व्यवस्था की, कौन अनुपस्थित, निष्पक्षता | ఎవరు కవర్ చేశారు, ఎవరు లేరు, న్యాయం
+report.absence_by_weekday | Absence by weekday | सप्ताह के दिन अनुसार अनुपस्थिति | వారం రోజు వారీగా గైర్హాజరు
+report.absence_by_weekday.desc | Which days staff are most often away | स्टाफ किन दिनों सबसे अधिक अनुपस्थित रहते हैं | సిబ్బంది ఏ రోజుల్లో ఎక్కువగా ఉండరు
+report.leave_use | Leave use | अवकाश उपयोग | సెలవుల వాడకం
+report.leave_use.desc | Days taken by leave type | अवकाश प्रकार अनुसार लिए दिन | సెలవు రకం వారీగా తీసుకున్న రోజులు
+report.student_attendance | Student attendance | छात्र उपस्थिति | విద్యార్థుల హాజరు
+report.student_attendance.desc | Attendance % by section | सेक्शन अनुसार उपस्थिति % | సెక్షన్ వారీగా హాజరు %
+report.observation | Classroom observation | कक्षा अवलोकन | తరగతి పరిశీలన
+report.observation.desc | Observations and average scores per teacher | प्रति शिक्षक अवलोकन और औसत अंक | ప్రతి ఉపాధ్యాయునికి పరిశీలనలు, సగటు స్కోర్లు
+report.helpdesk | Helpdesk | हेल्पडेस्क | హెల్ప్‌డెస్క్
+report.helpdesk.desc | Tickets, turnaround, SLA breaches and cost | टिकट, समाधान समय, SLA उल्लंघन और लागत | టికెట్లు, పరిష్కార సమయం, SLA ఉల్లంఘనలు, ఖర్చు
+report.checklists | Checklists | चेकलिस्ट | చెక్‌లిస్టులు
+report.checklists.desc | Runs, misses and failed items | रन, छूटे और असफल बिंदु | రన్‌లు, తప్పినవి, విఫలమైన అంశాలు
+report.approvals | Approvals | अनुमोदन | ఆమోదాలు
+report.approvals.desc | Pending requests and how long they wait | लंबित अनुरोध और प्रतीक्षा समय | పెండింగ్ అభ్యర్థనలు, వేచి ఉన్న సమయం
+report.compliance | Compliance | अनुपालन | నిబంధనల పాటింపు
+report.compliance.desc | Licences and certificates by expiry | समाप्ति अनुसार लाइसेंस और प्रमाणपत्र | గడువు వారీగా లైసెన్సులు, సర్టిఫికెట్లు
+report.ai_usage | AI usage | AI उपयोग | AI వాడకం
+report.ai_usage.desc | Credits used by feature | सुविधा अनुसार उपयोग क्रेडिट | ఫీచర్ వారీగా వాడిన క్రెడిట్లు
+dataset.tasks | Tasks | कार्य | పనులు
+dataset.staff_attendance | Staff attendance | स्टाफ उपस्थिति | సిబ్బంది హాజరు
+dataset.student_attendance | Student attendance | छात्र उपस्थिति | విద్యార్థుల హాజరు
+dataset.lesson_plans | Lesson plans | पाठ योजनाएँ | పాఠ ప్రణాళికలు
+dataset.tickets | Helpdesk tickets | हेल्पडेस्क टिकट | హెల్ప్‌డెస్క్ టికెట్లు
+dataset.leave | Leave | अवकाश | సెలవు
+dataset.substitutions | Substitutions | प्रतिस्थापन | ప్రత్యామ్నాయాలు
+dataset.checklists | Checklists | चेकलिस्ट | చెక్‌లిస్టులు
+dataset.approvals | Approvals | अनुमोदन | ఆమోదాలు
+askFn.overdue_tasks_by_person | Overdue tasks by person | व्यक्ति अनुसार बाकी कार्य | వ్యక్తి వారీగా గడువు దాటిన పనులు
+askFn.leave_by_type | Leave by type | प्रकार अनुसार अवकाश | రకం వారీగా సెలవులు
+askFn.late_staff | Staff who came late | देर से आए स्टाफ | ఆలస్యంగా వచ్చిన సిబ్బంది
+askFn.plan_compliance_by_teacher | Plan compliance by teacher | शिक्षक अनुसार योजना अनुपालन | ఉపాధ్యాయుల వారీగా ప్రణాళిక పాటింపు
+askFn.open_tickets_by_category | Open tickets by category | श्रेणी अनुसार खुले टिकट | వర్గం వారీగా తెరిచి ఉన్న టికెట్లు
+askFn.coverage_by_class | Coverage by class | कक्षा अनुसार प्रगति | తరగతి వారీగా పురోగతి
+# Column names (col.*) used by report tables and the settings editor
+col.name | Name | नाम | పేరు
+col.full_name | Staff | स्टाफ | సిబ్బంది
+col.staff | Staff | स्टाफ | సిబ్బంది
+col.staff_name | Teacher | शिक्षक | ఉపాధ్యాయులు
+col.teacher | Teacher | शिक्षक | ఉపాధ్యాయులు
+col.department | Department | विभाग | విభాగం
+col.wing | Wing | विंग | వింగ్
+col.branch | Branch | शाखा | శాఖ
+col.section | Section | सेक्शन | సెక్షన్
+col.class | Class | कक्षा | తరగతి
+col.subject | Subject | विषय | సబ్జెక్టు
+col.title | Title | शीर्षक | శీర్షిక
+col.status | Status | स्थिति | స్థితి
+col.priority | Priority | प्राथमिकता | ప్రాధాన్యం
+col.category | Category | श्रेणी | వర్గం
+col.type | Type | प्रकार | రకం
+col.owner | Owner | ज़िम्मेदार | బాధ్యులు
+col.applicant | Applicant | आवेदक | దరఖాస్తుదారు
+col.date | Date | तारीख | తేదీ
+col.due_at | Due | नियत | గడువు
+col.created_at | Created | बनाया | సృష్టించారు
+col.scheduled_at | Scheduled | निर्धारित | షెడ్యూల్
+col.plan_date | Plan date | योजना तारीख | ప్రణాళిక తేదీ
+col.run_date | Run date | रन तारीख | రన్ తేదీ
+col.start_date | From | से | నుండి
+col.end_date | To | तक | వరకు
+col.from | From | से | నుండి
+col.to | To | तक | వరకు
+col.assigned | Assigned | सौंपे | అప్పగించినవి
+col.completed | Completed | पूरे | పూర్తయినవి
+col.completion_pct | Completion % | पूर्णता % | పూర్తి %
+col.on_time_pct | On-time % | समय पर % | సమయానికి %
+col.overdue | Overdue | बाकी | గడువు దాటినవి
+col.unplanned_pct | Unplanned % | अनियोजित % | ప్రణాళిక లేని %
+col.unplanned | Unplanned | अनियोजित | ప్రణాళిక లేనిది
+col.not_done | Not done | नहीं हुए | చేయనివి
+col.reason | Reason | कारण | కారణం
+col.count | Count | संख्या | సంఖ్య
+col.n | Count | संख्या | సంఖ్య
+col.teaching_periods | Teaching periods / week | शिक्षण पीरियड / सप्ताह | బోధనా పీరియడ్లు / వారం
+col.substitutions | Substitutions taken | लिए गए प्रतिस्थापन | తీసుకున్న ప్రత్యామ్నాయాలు
+col.substitute | Substitute | प्रतिस्थापक | ప్రత్యామ్నాయం
+col.duties | Duties | ड्यूटी | డ్యూటీలు
+col.tasks | Tasks | कार्य | పనులు
+col.meetings | Meetings | बैठकें | సమావేశాలు
+col.on_time | On time | समय पर | సమయానికి
+col.late | Late | देर से | ఆలస్యం
+col.late_minutes | Late (min) | देर (मिनट) | ఆలస్యం (నిమి)
+col.missing | Missing | छूटे | లేనివి
+col.returned | Returned | लौटाए | తిరిగి వచ్చినవి
+col.review_hours | Review hours (avg) | समीक्षा घंटे (औसत) | సమీక్ష గంటలు (సగటు)
+col.pct_covered | % covered | % पूरा | % పూర్తి
+col.periods_ahead | Periods ahead (−behind) | पीरियड आगे (−पीछे) | పీరియడ్లు ముందు (−వెనుక)
+col.projected_completion | Projected completion | अनुमानित समापन | అంచనా ముగింపు
+col.next_exam | Next exam | अगली परीक्षा | తదుపరి పరీక్ష
+col.days_late_for_exam | Days late for exam | परीक्षा हेतु दिन देर | పరీక్షకు ఆలస్య రోజులు
+col.logs | Periods logged | दर्ज पीरियड | నమోదైన పీరియడ్లు
+col.as_planned_pct | Taught as planned % | योजना अनुसार % | ప్రణాళిక ప్రకారం %
+col.homework_minutes | Homework minutes | गृहकार्य मिनट | హోంవర్క్ నిమిషాలు
+col.notebook_cycles | Notebook cycles | कॉपी जाँच चक्र | నోట్‌బుక్ తనిఖీ చక్రాలు
+col.present | Present | उपस्थित | హాజరు
+col.half_day | Half days | आधे दिन | అర్ధ రోజులు
+col.absent | Absent | अनुपस्थित | గైర్హాజరు
+col.avg_late_minutes | Avg late (min) | औसत देर (मिनट) | సగటు ఆలస్యం (నిమి)
+col.weekday | Weekday | सप्ताह का दिन | వారం రోజు
+col.absences | Absences | अनुपस्थितियाँ | గైర్హాజరులు
+col.leave_type | Leave type | अवकाश प्रकार | సెలవు రకం
+col.days | Days | दिन | రోజులు
+col.requests | Requests | अनुरोध | అభ్యర్థనలు
+col.sessions | Days marked | दर्ज दिन | నమోదైన రోజులు
+col.attendance_pct | Attendance % | उपस्थिति % | హాజరు %
+col.observations | Observations | अवलोकन | పరిశీలనలు
+col.avg_score | Average % | औसत % | సగటు %
+col.latest | Latest | नवीनतम | తాజాది
+col.tickets | Tickets | टिकट | టికెట్లు
+col.avg_hours | Avg turnaround (h) | औसत समाधान (घं) | సగటు పరిష్కారం (గం)
+col.breaches | SLA breaches | SLA उल्लंघन | SLA ఉల్లంఘనలు
+col.cost | Cost (₹) | लागत (₹) | ఖర్చు (₹)
+col.runs | Runs | रन | రన్‌లు
+col.missed | Missed | छूटे | తప్పినవి
+col.failed_items | Failed items | असफल बिंदु | విఫల అంశాలు
+col.pending | Pending | लंबित | పెండింగ్
+col.oldest_pending_hours | Oldest pending (h) | सबसे पुराना लंबित (घं) | పాతది పెండింగ్ (గం)
+col.expires_on | Expires | समाप्ति | గడువు
+col.action | Feature | सुविधा | ఫీచర్
+col.credits | Credits | क्रेडिट | క్రెడిట్లు
+col.uses | Uses | उपयोग | వాడకాలు
+col.check_in_at | Checked in | चेक-इन | చెక్-ఇన్
+col.class_teacher | Class teacher | कक्षा शिक्षक | తరగతి ఉపాధ్యాయులు
+col.roll_no | Roll no. | रोल नं. | రోల్ నం.
+col.period_seq | Period | पीरियड | పీరియడ్
+col.seq | Order | क्रम | క్రమం
+col.open | Open | खुले | తెరిచినవి
+col.done | Done | पूरे | పూర్తయినవి
+col.level | Level | स्तर | స్థాయి
+col.room | Room | कमरा | గది
+col.resolution | Resolution | समाधान | పరిష్కారం
+col.source | Source | स्रोत | మూలం
+col.checklist | Checklist | चेकलिस్ట | చెక్‌లిస్టు
+col.org | School | स्कूल | పాఠశాల
+col.plan | Plan | योजना | ప్లాన్
+col.granted | Granted | दिए गए | ఇచ్చినవి
+col.used | Used | उपयोग | వాడినవి
+col.messages | Messages | संदेश | సందేశాలు
+col.units | Units | इकाइयाँ | యూనిట్లు
+col.reason_text | Reason | कारण | కారణం
+col.question | Question | प्रश्न | ప్రశ్న
+col.comment | Comment | टिप्पणी | వ్యాఖ్య
+col.key | Key | कुंजी | కీ
+col.syllabus_year | Syllabus year | पाठ्यक्रम वर्ष | సిలబస్ సంవత్సరం
+col.is_latest | Latest | नवीनतम | తాజాది
+col.versions | Versions | संस्करण | వెర్షన్లు
+col.slug | Article | लेख | వ్యాసం
+col.languages | Languages | भाषाएँ | భాషలు
+col.expires_at | Until | तक | వరకు
+col.starts_at | Starts | शुरू | ప్రారంభం
+col.ends_at | Ends | समाप्त | ముగింపు
+col.monthly_credits | Monthly credits | मासिक क्रेडिट | నెలవారీ క్రెడిట్లు
+col.carry_forward | Carry forward | आगे ले जाएँ | ముందుకు తీసుకెళ్లండి
+col.whatsapp_included | WhatsApp included | WhatsApp शामिल | WhatsApp చేరింది
+col.staff_attendance_pct | Staff attendance % | स्टाफ उपस्थिति % | సిబ్బంది హాజరు %
+col.task_on_time_pct | Tasks on time % | समय पर कार्य % | సమయానికి పనులు %
+col.coverage_on_track_pct | Coverage on track % | प्रगति सही राह % | పురోగతి సరైన దారి %
+col.plan_compliance_pct | Plan compliance % | योजना अनुपालन % | ప్రణాళిక పాటింపు %
+col.week | Week | सप्ताह | వారం
+col.extra_periods | Extra periods | अतिरिक्त पीरियड | అదనపు పీరియడ్లు
+col.accrual | Accrual | संचय | జమ
+col.active | Active | सक्रिय | క్రియాశీలం
+col.board | Board | बोर्ड | బోర్డు
+col.branch_id | Branch | शाखा | శాఖ
+col.budget_lines | Budget lines | बजट मद | బడ్జెట్ అంశాలు
+col.capacity | Capacity | क्षमता | సామర్థ్యం
+col.carry_forward_max | Carry forward limit | आगे ले जाने की सीमा | ముందుకు తీసుకెళ్లే పరిమితి
+col.channels | Channels | माध्यम | మార్గాలు
+col.checkin_cutoff | Check-in cut-off | चेक-इन अंतिम समय | చెక్-ఇన్ చివరి సమయం
+col.class_id | Class | कक्षा | తరగతి
+col.class_teacher_id | Class teacher | कक्षा शिक्षक | తరగతి ఉపాధ్యాయులు
+col.code | Code | कोड | కోడ్
+col.color | Colour | रंग | రంగు
+col.committees | Committees | समितियाँ | కమిటీలు
+col.content_language | Teaching language | शिक्षण भाषा | బోధనా భాష
+col.cost_approval_limit | Cost needing approval (₹) | अनुमोदन योग्य लागत (₹) | ఆమోదం అవసరమైన ఖర్చు (₹)
+col.data | Details | विवरण | వివరాలు
+col.days_before | Days before | पहले के दिन | ముందు రోజులు
+col.default_proof | Default proof | डिफ़ॉल्ट प्रमाण | డిఫాల్ట్ రుజువు
+col.default_role_id | Default role | डिफ़ॉल्ट भूमिका | డిఫాల్ట్ పాత్ర
+col.default_teaching_model | Default teaching model | डिफ़ॉल्ट शिक्षण मॉडल | డిఫాల్ట్ బోధనా నమూనా
+col.default_verification | Needs verification by default | डिफ़ॉल्ट रूप से सत्यापन | డిఫాల్ట్‌గా ధృవీకరణ అవసరం
+col.department_id | Department | विभाग | విభాగం
+col.doc_required_after_days | Document needed after (days) | इतने दिन बाद दस्तावेज़ | ఇన్ని రోజుల తర్వాత పత్రం అవసరం
+col.domains | Domains | क्षेत्र | విభాగాలు
+col.double_periods | Double periods | दोहरे पीरियड | డబుల్ పీరియడ్లు
+col.due_time | Due time | नियत समय | గడువు సమయం
+col.due_weekday | Due weekday | नियत दिन | గడువు రోజు
+col.early_exit_minutes | Early exit (min) | जल्दी जाना (मिनट) | ముందుగా వెళ్లడం (నిమి)
+col.enabled | On | चालू | ఆన్
+col.ends_on | Ends | समाप्त | ముగింపు
+col.entity | Applies to | लागू | వర్తించేది
+col.escalation_rule_id | Escalation rule | वृद्धि नियम | పెంపు నియమం
+col.event_key | Event | घटना | సంఘటన
+col.field_type | Field type | फ़ील्ड प्रकार | ఫీల్డ్ రకం
+col.grace_minutes | Grace (min) | छूट (मिनट) | సడలింపు (నిమి)
+col.grade_level | Grade | ग्रेड | గ్రేడ్
+col.half_day_after_minutes | Half day after (min late) | इतनी देर पर आधा दिन (मिनट) | ఇంత ఆలస్యమైతే అర్ధ రోజు (నిమి)
+col.half_day_allowed | Half days allowed | आधा दिन अनुमत | అర్ధ రోజు అనుమతి
+col.head_staff_id | Head | प्रमुख | అధిపతి
+col.header | Header | शीर्ष भाग | శీర్షిక భాగం
+col.homework_limit_minutes | Daily homework limit (min) | दैनिक गृहकार्य सीमा (मिनट) | రోజువారీ హోంవర్క్ పరిమితి (నిమి)
+col.is_core | Core subject | मुख्य विषय | ప్రధాన సబ్జెక్టు
+col.is_default | Default | डिफ़ॉल्ट | డిఫాల్ట్
+col.is_working_day | Working day | कार्य दिवस | పని దినం
+col.kind | Kind | प्रकार | రకం
+col.label | Label | लेबल | లేబుల్
+col.layer | Type | प्रकार | రకం
+col.location | Location | स्थान | స్థలం
+col.name_i18n | Name in Hindi / Telugu | हिन्दी / तेलुगु में नाम | హిందీ / తెలుగులో పేరు
+col.label_i18n | Label in Hindi / Telugu | हिन्दी / तेलुगु में लेबल | హిందీ / తెలుగులో లేబుల్
+col.notice_days | Notice (days) | पूर्व सूचना (दिन) | ముందస్తు సమాచారం (రోజులు)
+col.notify_assigner_after_working_minutes | Tell assigner after (working minutes) | इतने कार्य मिनट बाद सौंपने वाले को बताएँ | ఇన్ని పని నిమిషాల తర్వాత అప్పగించినవారికి తెలపండి
+col.notify_manager_after_working_days | Tell manager after (working days) | इतने कार्य दिवस बाद प्रबंधक को बताएँ | ఇన్ని పని దినాల తర్వాత మేనేజర్‌కు తెలపండి
+col.notify_owner_at_due | Tell owner at due time | नियत समय पर ज़िम्मेदार को बताएँ | గడువు సమయంలో బాధ్యులకు తెలపండి
+col.optional | Can be switched off | बंद किया जा सकता है | ఆపవచ్చు
+col.options | Options | विकल्प | ఎంపికలు
+col.overlaps_period_seq | Clashes with period | पीरियड से टकराव | పీరియడ్‌తో ఘర్షణ
+col.owner_role_id | Owner role | ज़िम्मेदार भूमिका | బాధ్యుల పాత్ర
+col.owner_staff_id | Owner | ज़िम्मेदार | బాధ్యులు
+col.paid | Paid | सवेतन | జీతంతో
+col.parent_absent_alert | Alert parents of absence | अभिभावक को अनुपस्थिति सूचना | గైర్హాజరు గురించి తల్లిదండ్రులకు తెలపండి
+col.periods_per_week | Periods / week | पीरियड / सप्ताह | పీరియడ్లు / వారం
+col.position_id | Position | पद | హోదా
+col.profile | Profile | प्रोफ़ाइल | స్వరూపం
+col.rank | Rank | वरिष्ठता | స్థాయి
+col.recipients | Recipients | प्राप्तकर्ता | స్వీకర్తలు
+col.remind_before_minutes | Remind before (min) | पहले याद दिलाएँ (मिनट) | ముందుగా గుర్తు చేయండి (నిమి)
+col.required | Required | आवश्यक | తప్పనిసరి
+col.review_steps | Review steps | समीक्षा चरण | సమీక్ష దశలు
+col.room_id | Room | कमरा | గది
+col.room_type | Room type | कमरा प्रकार | గది రకం
+col.sandwich_rule | Count holidays in between | बीच की छुट्टियाँ गिनें | మధ్య సెలవులను లెక్కించండి
+col.scale | Scale | पैमाना | స్కేలు
+col.sections | Sections | खंड | భాగాలు
+col.selfie_retention_days | Keep selfies for (days) | सेल्फ़ी रखें (दिन) | సెల్ఫీలు ఉంచండి (రోజులు)
+col.shift_end | Shift ends | पाली समाप्त | షిఫ్ట్ ముగింపు
+col.shift_start | Shift starts | पाली शुरू | షిఫ్ట్ ప్రారంభం
+col.sla_hours | Fix within (hours) | इतने घंटे में ठीक करें | ఇన్ని గంటల్లో సరిచేయండి
+col.staff_needed | Staff needed | आवश्यक स्टाफ | కావలసిన సిబ్బంది
+col.starts_on | Starts | शुरू | ప్రారంభం
+col.strength | Students | छात्र | విద్యార్థులు
+col.student_attendance_mode | Student attendance | छात्र उपस्थिति | విద్యార్థుల హాజరు
+col.student_cutoff | Student attendance by | छात्र उपस्थिति अंतिम समय | విద్యార్థుల హాజరు చివరి సమయం
+col.student_edit_window_minutes | Edit window (min) | संपादन समय (मिनट) | సవరణ సమయం (నిమి)
+col.student_threshold_pct | Attendance alert below % | इससे कम % पर चेतावनी | ఈ % కంటే తక్కువైతే హెచ్చరిక
+col.subject_id | Subject | विषय | సబ్జెక్టు
+col.task_pack | Task list | कार्य सूची | పనుల జాబితా
+col.term_key | Term | शब्द | పదం
+col.unit | Unit | इकाई | యూనిట్
+col.urgent | Urgent | अत्यावश्यक | అత్యవసరం
+col.urgent_factor | Urgent time factor | अत्यावश्यक समय गुणक | అత్యవసర సమయ గుణకం
+col.value | Value | मान | విలువ
+col.whatsapp_template | WhatsApp template | WhatsApp टेम्पलेट | WhatsApp టెంప్లేట్
+col.wing_id | Wing | विंग | వింగ్
+col.yearly_quota | Days per year | प्रति वर्ष दिन | సంవత్సరానికి రోజులు
+# Setup
+setup.complete | Setup complete | सेटअप पूरा | సెటప్ పూర్తయింది
+setup.progress | Step {n} of {total} | चरण {n} / {total} | దశ {n} / {total}
+setup.configuration | Settings lists | सेटिंग सूचियाँ | సెట్టింగ్ జాబితాలు
+setup.configHint | Everything specific to your school is a list you can edit here. | आपके स्कूल से जुड़ी हर चीज़ यहाँ बदली जा सकने वाली सूची है। | మీ పాఠశాలకు సంబంధించినవన్నీ ఇక్కడ సవరించగల జాబితాలు.
+setup.modulesBranches | Modules and branches | मॉड्यूल और शाखाएँ | మాడ్యూల్స్, శాఖలు
+setup.step.profile | School profile | स्कूल प्रोफ़ाइल | పాఠశాల ప్రొఫైల్
+setup.step.year | Year and bells | वर्ष और घंटियाँ | సంవత్సరం, గంటలు
+setup.step.structure | Wings, classes, sections | विंग, कक्षाएँ, सेक्शन | వింగ్‌లు, తరగతులు, సెక్షన్లు
+setup.step.subjects | Subjects | विषय | సబ్జెక్టులు
+setup.step.staff | Staff | स्टाफ | సిబ్బంది
+setup.step.org_chart | Who reports to whom | कौन किसे रिपोर्ट करता है | ఎవరు ఎవరికి రిపోర్ట్ చేస్తారు
+setup.step.roles | Roles and permissions | भूमिकाएँ और अनुमतियाँ | పాత్రలు, అనుమతులు
+setup.step.modules | Switch on modules | मॉड्यूल चालू करें | మాడ్యూల్స్ ఆన్ చేయండి
+setup.count.years | Years | वर्ष | సంవత్సరాలు
+setup.count.wings | Wings | विंग | వింగ్‌లు
+setup.count.sections | Sections | सेक्शन | సెక్షన్లు
+setup.count.subjects | Subjects | विषय | సబ్జెక్టులు
+setup.count.staff | Staff | स्टाफ | సిబ్బంది
+setup.count.reporting | With a manager | प्रबंधक सहित | మేనేజర్ ఉన్నవారు
+setup.count.bells | Bell schedules | घंटी समय सारणी | గంటల షెడ్యూల్
+setup.finish | Finish setup | सेटअप पूरा करें | సెటప్ ముగించండి
+setup.schoolName | School name | स्कूल का नाम | పాఠశాల పేరు
+setup.preset | Starting template | प्रारंभिक टेम्पलेट | ప్రారంభ టెంప్లేట్
+setup.presetHint | The template only fills starting lists. Everything can be changed later. | टेम्पलेट केवल शुरुआती सूचियाँ भरता है। बाद में सब बदला जा सकता है। | టెంప్లేట్ ప్రారంభ జాబితాలు మాత్రమే నింపుతుంది. తర్వాత అన్నీ మార్చవచ్చు.
+setup.branchName | Branch name | शाखा का नाम | శాఖ పేరు
+setup.branchCode | Branch code | शाखा कोड | శాఖ కోడ్
+setup.address | Address | पता | చిరునామా
+setup.latitude | Latitude | अक्षांश | అక్షాంశం
+setup.longitude | Longitude | देशांतर | రేఖాంశం
+setup.radius | Check-in radius (metres) | चेक-इन दायरा (मीटर) | చెక్-ఇన్ పరిధి (మీటర్లు)
+setup.workingDays | Working days | कार्य दिवस | పని దినాలు
+setup.terms | Terms | सत्र | టర్మ్‌లు
+setup.bellSchedule | Bell schedule | घंटी समय सारणी | గంటల షెడ్యూల్
+setup.defaultBell | Main schedule | मुख्य समय सारणी | ప్రధాన షెడ్యూల్
+periodKind.period | Period | पीरियड | పీరియడ్
+periodKind.break | Break | अवकाश | విరామం
+periodKind.assembly | Assembly | प्रार्थना सभा | ప్రార్థన
+setup.structureCount | {wings} wings, {sections} sections so far | अब तक {wings} विंग, {sections} सेक्शन | ఇప్పటివరకు {wings} వింగ్‌లు, {sections} సెక్షన్లు
+setup.sectionsPerClass | Sections per class | प्रति कक्षा सेक्शन | ఒక్కో తరగతికి సెక్షన్లు
+setup.applyPreset | Create from template | टेम्पलेट से बनाएँ | టెంప్లేట్ నుండి సృష్టించండి
+setup.orImport | Or import your own list from Excel: | या Excel से अपनी सूची आयात करें: | లేదా Excel నుండి మీ జాబితా దిగుమతి చేయండి:
+setup.students | Students (optional) | छात्र (वैकल्पिक) | విద్యార్థులు (ఐచ్ఛికం)
+setup.allocations | Teacher allocations | शिक्षक आवंटन | ఉపాధ్యాయుల కేటాయింపులు
+setup.subjectsCount | {n} subjects | {n} विषय | {n} సబ్జెక్టులు
+setup.editSubjects | Edit subjects | विषय बदलें | సబ్జెక్టులు సవరించండి
+setup.editClassSubjects | Periods per class | प्रति कक्षा पीरियड | తరగతి వారీ పీరియడ్లు
+setup.staffCount | {n} staff | {n} स्टाफ | {n} సిబ్బంది
+setup.manageStaff | Manage staff | स्टाफ प्रबंधन | సిబ్బంది నిర్వహణ
+setup.reportingCount | {n} of {total} have a manager set | {total} में से {n} के प्रबंधक तय | {total}లో {n} మందికి మేనేజర్ ఉన్నారు
+setup.openOrgChart | Open the org chart | संगठन चार्ट खोलें | సంస్థాగత చార్ట్ తెరవండి
+setup.rolesHint | Roles come pre-filled for schools like yours. Adjust what each role can see and do. | आप जैसे स्कूलों के लिए भूमिकाएँ पहले से भरी हैं। हर भूमिका क्या देखे और करे, बदलें। | మీలాంటి పాఠశాలలకు పాత్రలు ముందే నింపబడ్డాయి. ప్రతి పాత్ర ఏమి చూడాలి, చేయాలి మార్చండి.
+setup.openRoles | Open roles and permissions | भूमिकाएँ और अनुमतियाँ खोलें | పాత్రలు, అనుమతులు తెరవండి
+setup.modulesHint | Switch modules on or off for each branch. | हर शाखा के लिए मॉड्यूल चालू या बंद करें। | ప్రతి శాఖకు మాడ్యూల్స్ ఆన్ లేదా ఆఫ్ చేయండి.
+setup.downloadTemplate | Download template | टेम्पलेट डाउनलोड करें | టెంప్లేట్ డౌన్‌లోడ్
+setup.chooseFile | Choose file | फ़ाइल चुनें | ఫైల్ ఎంచుకోండి
+setup.rowsRead | {n} rows read | {n} पंक्तियाँ पढ़ी | {n} వరుసలు చదివారు
+setup.fixErrors | {n} problems to fix. Nothing was imported. | {n} समस्याएँ ठीक करें। कुछ आयात नहीं हुआ। | {n} సమస్యలు సరిచేయాలి. ఏమీ దిగుమతి కాలేదు.
+setup.row | Row | पंक्ति | వరుస
+setup.problem | Problem | समस्या | సమస్య
+setup.dryRunOk | Check passed: {created} new, {updated} updated. | जाँच सफल: {created} नए, {updated} अपडेट। | తనిఖీ సరే: {created} కొత్తవి, {updated} నవీకరించినవి.
+setup.importNow | Import now | अभी आयात करें | ఇప్పుడే దిగుమతి
+setup.imported | Imported: {created} new, {updated} updated. | आयात हुआ: {created} नए, {updated} अपडेट। | దిగుమతి అయింది: {created} కొత్తవి, {updated} నవీకరించినవి.
+setup.staff | Staff | स्टाफ | సిబ్బంది
+setup.import | Import from Excel | Excel से आयात | Excel నుండి దిగుమతి
+setup.invite | Invite staff | स्टाफ आमंत्रित करें | సిబ్బందిని ఆహ్వానించండి
+setup.sendInvite | Send invite | आमंत्रण भेजें | ఆహ్వానం పంపండి
+setup.allBranches | All branches | सभी शाखाएँ | అన్ని శాఖలు
+setup.code | Code | कोड | కోడ్
+setup.email | Email | ईमेल | ఈమెయిల్
+setup.phone | Phone | फ़ोन | ఫోన్
+setup.position | Position | पद | హోదా
+setup.reportsTo | Reports to | रिपोर्ट करते हैं | రిపోర్ట్ చేసేది
+setup.maxDay | Max periods / day | अधिकतम पीरियड / दिन | గరిష్ఠ పీరియడ్లు / రోజు
+setup.maxWeek | Max periods / week | अधिकतम पीरियड / सप्ताह | గరిష్ఠ పీరియడ్లు / వారం
+setup.isTeaching | Teaches classes | कक्षाएँ पढ़ाते हैं | తరగతులు బోధిస్తారు
+setup.roles | Roles | भूमिकाएँ | పాత్రలు
+setup.saveRoles | Save roles | भूमिकाएँ सहेजें | పాత్రలు సేవ్ చేయండి
+setup.deactivate | Deactivate | निष्क्रिय करें | నిష్క్రియం చేయండి
+setup.deactivateHint | Open tasks, plans and duties move to their manager. History is kept. | खुले कार्य, योजनाएँ और ड्यूटी प्रबंधक को जाती हैं। इतिहास रहता है। | తెరిచి ఉన్న పనులు, ప్రణాళికలు, డ్యూటీలు మేనేజర్‌కు వెళ్తాయి. చరిత్ర ఉంటుంది.
+setup.deactivateConfirm | Deactivate {name}? | {name} को निष्क्रिय करें? | {name}ను నిష్క్రియం చేయాలా?
+setup.rolesMatrix | Roles and permissions | भूमिकाएँ और अनुमतियाँ | పాత్రలు, అనుమతులు
+setup.newRole | New role | नई भूमिका | కొత్త పాత్ర
+setup.matrixHint | Pick how far each permission reaches: own work, team, department, wing, branch or the whole group. | चुनें कि हर अनुमति कहाँ तक लागू हो: अपना काम, टीम, विभाग, विंग, शाखा या पूरा समूह। | ప్రతి అనుమతి ఎంత వరకు: స్వంత పని, బృందం, విభాగం, వింగ్, శాఖ లేదా మొత్తం గ్రూప్.
+setup.module | Module | मॉड्यूल | మాడ్యూల్
+setup.copyFrom | Copy permissions from | अनुमतियाँ यहाँ से कॉपी करें | అనుమతులు ఇక్కడి నుండి కాపీ చేయండి
+setup.orgChart | Org chart | संगठन चार्ट | సంస్థాగత చార్ట్
+setup.orgChartHint | Drag a person onto their new manager. | व्यक्ति को उनके नए प्रबंधक पर खींचें। | వ్యక్తిని వారి కొత్త మేనేజర్‌పైకి లాగండి.
+setup.dropTop | Drop here to make someone top level | शीर्ष स्तर के लिए यहाँ छोड़ें | అగ్ర స్థాయికి ఇక్కడ వదలండి
+setup.tab.modules | Modules | मॉड्यूल | మాడ్యూల్స్
+setup.tab.branding | Branding | ब्रांडिंग | బ్రాండింగ్
+setup.tab.branches | Branches and year | शाखाएँ और वर्ष | శాఖలు, సంవత్సరం
+setup.tab.rules | Who can assign to whom | कौन किसे सौंप सकता है | ఎవరు ఎవరికి అప్పగించగలరు
+setup.tab.delegations | Delegations | प्रतिनिधित्व | ప్రతినిధులు
+setup.modulesNote | Switching a module off hides it for that branch. Data is kept. | मॉड्यूल बंद करने से वह शाखा के लिए छिप जाता है। डेटा रहता है। | మాడ్యూల్ ఆపితే ఆ శాఖకు దాగిపోతుంది. డేటా ఉంటుంది.
+setup.primaryColour | Main colour | मुख्य रंग | ప్రధాన రంగు
+setup.accentColour | Accent colour | सहायक रंग | అదనపు రంగు
+setup.logo | Logo | लोगो | లోగో
+setup.brandingHint | Used on screens and on exported Word and Excel files. | स्क्रीन और निर्यात की गई Word और Excel फ़ाइलों पर उपयोग होता है। | స్క్రీన్‌లపై, ఎగుమతి చేసిన Word, Excel ఫైళ్లపై వాడతాం.
+setup.addBranch | Add branch | शाखा जोड़ें | శాఖ జోడించండి
+setup.yearRollover | New academic year | नया शैक्षणिक वर्ष | కొత్త విద్యా సంవత్సరం
+setup.rolloverHint | Copies structure, subjects and settings into the new year. Old years stay read-only. | संरचना, विषय और सेटिंग नए वर्ष में कॉपी होती हैं। पुराने वर्ष केवल पढ़ने हेतु रहते हैं। | నిర్మాణం, సబ్జెక్టులు, సెట్టింగ్‌లు కొత్త సంవత్సరంలోకి కాపీ అవుతాయి. పాత సంవత్సరాలు చదవడానికి మాత్రమే.
+setup.rollover | Start new year | नया वर्ष शुरू करें | కొత్త సంవత్సరం ప్రారంభించండి
+setup.rolloverConfirm | Start the new academic year now? | अभी नया शैक्षणिक वर्ष शुरू करें? | ఇప్పుడే కొత్త విద్యా సంవత్సరం ప్రారంభించాలా?
+setup.rulesHint | Assign: the task goes straight to them. Request: they must accept it. | सौंपें: कार्य सीधे उन्हें जाता है। अनुरोध: उन्हें स्वीकार करना होगा। | అప్పగించు: పని నేరుగా వారికి వెళ్తుంది. అభ్యర్థన: వారు అంగీకరించాలి.
+setup.fromRole | From role | इस भूमिका से | ఈ పాత్ర నుండి
+setup.toRole | To role | इस भूमिका को | ఈ పాత్రకు
+setup.rule | Rule | नियम | నియమం
+assignRule.assign | Can assign | सौंप सकते हैं | అప్పగించవచ్చు
+assignRule.request | Can request | अनुरोध कर सकते हैं | అభ్యర్థించవచ్చు
+assignRule.none | Cannot | नहीं कर सकते | చేయలేరు
+assignRule.default | Use default (by seniority) | डिफ़ॉल्ट (वरिष्ठता अनुसार) | డిఫాల్ట్ (సీనియారిటీ ప్రకారం)
+setup.delegate | Delegate | प्रतिनिधि | ప్రతినిధి
+setup.delegationHint | While someone is away, their approvals and tasks go to the delegate. | किसी की अनुपस्थिति में उनके अनुमोदन और कार्य प्रतिनिधि को जाते हैं। | ఎవరైనా లేనప్పుడు వారి ఆమోదాలు, పనులు ప్రతినిధికి వెళ్తాయి.
+config.allBranches | All branches | सभी शाखाएँ | అన్ని శాఖలు
+config.history | Change history | बदलाव इतिहास | మార్పుల చరిత్ర
+config.change | Change | बदलाव | మార్పు
+config.reset | Reset to template | टेम्पलेट पर लौटाएँ | టెంప్లేట్‌కు రీసెట్
+config.resetConfirm | Replace this list with the template values? Your changes stay in the history. | इस सूची को टेम्पलेट मानों से बदलें? आपके बदलाव इतिहास में रहेंगे। | ఈ జాబితాను టెంప్లేట్ విలువలతో మార్చాలా? మీ మార్పులు చరిత్రలో ఉంటాయి.
+config.deleteConfirm | Remove this item? | यह मद हटाएँ? | ఈ అంశాన్ని తీసివేయాలా?
+config.jsonHint | Advanced: structured value. | उन्नत: संरचित मान। | అధునాతనం: నిర్మాణాత్మక విలువ.
+configOp.insert | Added | जोड़ा | జోడించారు
+configOp.update | Changed | बदला | మార్చారు
+configOp.delete | Removed | हटाया | తీసివేశారు
+config.task_categories | Task categories | कार्य श्रेणियाँ | పని వర్గాలు
+config.escalation_rules | Escalation rules | वृद्धि नियम | పెంపు నియమాలు
+config.leave_types | Leave types | अवकाश प्रकार | సెలవు రకాలు
+config.ticket_categories | Helpdesk categories | हेल्पडेस्क श्रेणियाँ | హెల్ప్‌డెస్క్ వర్గాలు
+config.duty_types | Duty types | ड्यूटी प्रकार | డ్యూటీ రకాలు
+config.exam_types | Exam types | परीक्षा प्रकार | పరీక్ష రకాలు
+config.event_templates | Event templates | कार्यक्रम टेम्पलेट | కార్యక్రమ టెంప్లేట్లు
+config.observation_rubrics | Observation rubrics | अवलोकन रूब्रिक | పరిశీలన రూబ్రిక్‌లు
+config.notification_rules | Notification rules | सूचना नियम | నోటిఫికేషన్ నియమాలు
+config.attendance_rules | Attendance rules | उपस्थिति नियम | హాజరు నియమాలు
+config.plan_submission_rules | Plan submission rules | योजना जमा नियम | ప్రణాళిక సమర్పణ నియమాలు
+config.lesson_plan_templates | Lesson plan templates | पाठ योजना टेम्पलेट | పాఠ ప్రణాళిక టెంప్లేట్లు
+config.custom_fields | Custom fields | कस्टम फ़ील्ड | కస్టమ్ ఫీల్డ్‌లు
+config.terminology | Terminology | शब्दावली | పదజాలం
+config.departments | Departments | विभाग | విభాగాలు
+config.positions | Positions | पद | హోదాలు
+config.rooms | Rooms | कमरे | గదులు
+config.wings | Wings | विंग | వింగ్‌లు
+config.classes | Classes | कक्षाएँ | తరగతులు
+config.sections | Sections | सेक्शन | సెక్షన్లు
+config.subjects | Subjects | विषय | సబ్జెక్టులు
+config.class_subjects | Subjects per class | प्रति कक्षा विषय | తరగతి వారీ సబ్జెక్టులు
+config.calendar_holidays | Holidays | छुट्टियाँ | సెలవులు
+config.timetable_constraints | Timetable rules | समय सारणी नियम | టైమ్‌టేబుల్ నియమాలు
+importError.required | This value is required | यह मान आवश्यक है | ఈ విలువ తప్పనిసరి
+importError.cannot_report_to_self | A person cannot report to themselves | कोई स्वयं को रिपोर्ट नहीं कर सकता | ఎవరూ తమకే రిపోర్ట్ చేయలేరు
+importError.email_already_used | Email already used by another person | ईमेल किसी और का है | ఈమెయిల్ ఇప్పటికే వేరొకరిది
+importError.email_or_phone_required | Email or phone needed | ईमेल या फ़ोन आवश्यक | ఈమెయిల్ లేదా ఫోన్ అవసరం
+importError.invalid_email | Not a valid email | मान्य ईमेल नहीं | చెల్లని ఈమెయిల్
+importError.invalid_grade | Not a valid grade | मान्य ग्रेड नहीं | చెల్లని గ్రేడ్
+importError.invalid_number | Not a valid number | मान्य संख्या नहीं | చెల్లని సంఖ్య
+importError.invalid_phone | Not a valid phone number | मान्य फ़ोन नंबर नहीं | చెల్లని ఫోన్ నంబర్
+importError.must_be_CBSE_CAMBRIDGE_or_BOTH | Must be CBSE, CAMBRIDGE or BOTH | CBSE, CAMBRIDGE या BOTH होना चाहिए | CBSE, CAMBRIDGE లేదా BOTH కావాలి
+importError.must_be_en_hi_te_or_other | Must be en, hi, te or other | en, hi, te या other होना चाहिए | en, hi, te లేదా other కావాలి
+importError.must_be_positive_integer | Must be a whole number above zero | शून्य से बड़ी पूर्ण संख्या चाहिए | సున్నా కంటే పెద్ద పూర్ణ సంఖ్య కావాలి
+importError.unknown_branch | Branch not found | शाखा नहीं मिली | శాఖ కనబడలేదు
+importError.unknown_class | Class not found | कक्षा नहीं मिली | తరగతి కనబడలేదు
+importError.unknown_class_section | Class and section not found | कक्षा और सेक्शन नहीं मिले | తరగతి, సెక్షన్ కనబడలేదు
+importError.unknown_department | Department not found | विभाग नहीं मिला | విభాగం కనబడలేదు
+importError.unknown_employee_code | Employee code not found | कर्मचारी कोड नहीं मिला | ఉద్యోగి కోడ్ కనబడలేదు
+importError.unknown_position | Position not found | पद नहीं मिला | హోదా కనబడలేదు
+importError.unknown_subject | Subject not found | विषय नहीं मिला | సబ్జెక్టు కనబడలేదు
+importError.unknown_wing | Wing not found | विंग नहीं मिला | వింగ్ కనబడలేదు
+importError.reporting_cycle_detected | The reporting lines form a loop | रिपोर्टिंग क्रम एक चक्र बनाता है | రిపోర్టింగ్ వరుసలు వలయంగా మారాయి
+# AutoEd console (super admin)
+admin.title | AutoEd console | AutoEd कंसोल | AutoEd కన్సోల్
+admin.period | Period {period} | अवधि {period} | కాలం {period}
+admin.tab.schools | Schools | स्कूल | పాఠశాలలు
+admin.tab.credits | Credits and messages | क्रेडिट और संदेश | క్రెడిట్లు, సందేశాలు
+admin.tab.support | Support | सहायता | సపోర్ట్
+admin.tab.bot | Help bot quality | सहायता बॉट गुणवत्ता | సహాయ బాట్ నాణ్యత
+admin.tab.pricing | Plans and costs | योजनाएँ और लागत | ప్లాన్లు, ఖర్చులు
+admin.tab.content | Curriculum and help | पाठ्यक्रम और सहायता | పాఠ్యప్రణాళిక, సహాయం
+admin.schools | Schools | स्कूल | పాఠశాలలు
+admin.school | School | स्कूल | పాఠశాల
+admin.slug | Short name | छोटा नाम | చిన్న పేరు
+admin.branches | Branches | शाखाएँ | శాఖలు
+admin.activeStaff | Active staff | सक्रिय स्टाफ | క్రియాశీల సిబ్బంది
+admin.setupStep | Setup step | सेटअप चरण | సెటప్ దశ
+admin.viewAs | View as school (read-only) | स्कूल के रूप में देखें (केवल पढ़ें) | పాఠశాలగా చూడండి (చదవడానికి మాత్రమే)
+admin.viewAsHint | The school can see every support view, with your reason and time. | स्कूल हर सहायता दृश्य को आपके कारण और समय सहित देख सकता है। | ప్రతి సపోర్ట్ వీక్షణను మీ కారణం, సమయంతో పాఠశాల చూడగలదు.
+admin.viewAsLog | Support views | सहायता दृश्य | సపోర్ట్ వీక్షణలు
+admin.viewingAs | You are viewing {org} as support (read-only). | आप {org} को सहायता के रूप में देख रहे हैं (केवल पढ़ें)। | మీరు {org}ను సపోర్ట్‌గా చూస్తున్నారు (చదవడానికి మాత్రమే).
+admin.exitViewAs | Exit | बाहर निकलें | నిష్క్రమించండి
+admin.minutes | Minutes | मिनट | నిమిషాలు
+admin.start | Start | शुरू करें | ప్రారంభించండి
+admin.newSchool | Add a school | स्कूल जोड़ें | పాఠశాల జోడించండి
+admin.field.name | School name | स्कूल का नाम | పాఠశాల పేరు
+admin.field.slug | Short name | छोटा नाम | చిన్న పేరు
+admin.field.branch_name | First branch | पहली शाखा | మొదటి శాఖ
+admin.field.branch_code | Branch code | शाखा कोड | శాఖ కోడ్
+admin.field.admin_name | Admin name | एडमिन का नाम | అడ్మిన్ పేరు
+admin.field.admin_email | Admin email | एडमिन ईमेल | అడ్మిన్ ఈమెయిల్
+admin.plan | Plan | योजना | ప్లాన్
+admin.create | Create school | स्कूल बनाएँ | పాఠశాల సృష్టించండి
+admin.credits | Credits by branch | शाखा अनुसार क्रेडिट | శాఖ వారీగా క్రెడిట్లు
+admin.topups | Top-up requests | टॉप-अप अनुरोध | టాప్-అప్ అభ్యర్థనలు
+admin.grant | Grant | दें | ఇవ్వండి
+admin.whatsapp | WhatsApp usage | WhatsApp उपयोग | WhatsApp వాడకం
+admin.support | Open support tickets | खुले सहायता टिकट | తెరిచి ఉన్న సపోర్ట్ టికెట్లు
+admin.unanswered | Unanswered questions | अनुत्तरित प्रश्न | సమాధానం లేని ప్రశ్నలు
+admin.question | Question | प्रश्न | ప్రశ్న
+admin.poorlyRated | Poorly rated answers | कम रेटिंग वाले उत्तर | తక్కువ రేటింగ్ సమాధానాలు
+admin.plans | Plans | योजनाएँ | ప్లాన్లు
+admin.costs | Credit cost per action | प्रति कार्य क्रेडिट लागत | చర్యకు క్రెడిట్ ఖర్చు
+admin.fairUse | Daily fair use | दैनिक उचित उपयोग | రోజువారీ న్యాయ వినియోగం
+admin.curriculum | Master curriculum maps | मुख्य पाठ्यक्रम मानचित्र | ప్రధాన పాఠ్యప్రణాళిక మ్యాప్‌లు
+admin.pushCurriculum | Publish curriculum update | पाठ्यक्रम अपडेट प्रकाशित करें | పాఠ్యప్రణాళిక నవీకరణ ప్రచురించండి
+admin.kb | Help articles | सहायता लेख | సహాయ వ్యాసాలు
+# Notifications sent by the server (translated per recipient)
+notif.task.assigned | New task from {from}: {title} | {from} से नया कार्य: {title} | {from} నుండి కొత్త పని: {title}
+notif.task.requested | {from} asks you to do: {title} | {from} आपसे अनुरोध करते हैं: {title} | {from} మిమ్మల్ని అడుగుతున్నారు: {title}
+notif.task.awaitingVerification | {who} finished "{title}" — please verify | {who} ने "{title}" पूरा किया — कृपया सत्यापित करें | {who} "{title}" పూర్తి చేశారు — దయచేసి ధృవీకరించండి
+notif.task.bulkAssigned | {count} tasks were reassigned to you | {count} कार्य आपको फिर से सौंपे गए | {count} పనులు మీకు మళ్లీ అప్పగించారు
+notif.task.dayClose | You have {count} open tasks. Close your day. | आपके {count} कार्य खुले हैं। अपना दिन बंद करें। | మీకు {count} పనులు తెరిచి ఉన్నాయి. మీ రోజు ముగించండి.
+notif.task.delegated | {from} delegated a task to you: {title} | {from} ने आपको कार्य सौंपा: {title} | {from} మీకు పని అప్పగించారు: {title}
+notif.task.dueChanged | Due date changed: {title} | नियत तारीख बदली: {title} | గడువు తేదీ మారింది: {title}
+notif.task.extension | {who} asks for more time on "{title}" | {who} ने "{title}" के लिए और समय माँगा | {who} "{title}"కు ఇంకా సమయం అడిగారు
+notif.approval.pending | {who} needs your approval: {title} | {who} को आपका अनुमोदन चाहिए: {title} | {who}కు మీ ఆమోదం కావాలి: {title}
+notif.approval.escalated | Approval waiting too long: {title} | अनुमोदन बहुत देर से लंबित: {title} | ఆమోదం చాలాసేపు పెండింగ్: {title}
+notif.attendance.unmarked | Attendance not marked for {section} | {section} की उपस्थिति नहीं लगी | {section} హాజరు వేయలేదు
+notif.attendance.unmarkedCoordinator | {section} attendance still not marked | {section} की उपस्थिति अभी भी नहीं लगी | {section} హాజరు ఇంకా వేయలేదు
+notif.checklist.missed | Checklist missed: {name} | चेकलिस्ट छूटी: {name} | చెక్‌లిస్టు తప్పిపోయింది: {name}
+notif.circular.new | New circular: {title} | नया परिपत्र: {title} | కొత్త సర్క్యులర్: {title}
+notif.circular.reminder | Please read: {title} | कृपया पढ़ें: {title} | దయచేసి చదవండి: {title}
+notif.classLog.missing | {count} class periods not logged yesterday | कल {count} पीरियड दर्ज नहीं हुए | నిన్న {count} పీరియడ్లు నమోదు కాలేదు
+notif.classLog.repeated | Class logs missed repeatedly: {names} | बार-बार कक्षा लॉग छूटे: {names} | మళ్లీ మళ్లీ తరగతి లాగ్ తప్పింది: {names}
+notif.compliance.overdue | Expired: {name} | समाप्त: {name} | గడువు ముగిసింది: {name}
+notif.compliance.reminder | {name} expires in {days} days | {name} {days} दिन में समाप्त | {name} {days} రోజుల్లో గడువు ముగుస్తుంది
+notif.credits.topup | {credits} AI credits added | {credits} AI क्रेडिट जोड़े गए | {credits} AI క్రెడిట్లు జోడించారు
+notif.curriculum.newYear | A new curriculum map is available. Review your school copy. | नया पाठ्यक्रम मानचित्र उपलब्ध है। अपनी स्कूल प्रति देखें। | కొత్త పాఠ్యప్రణాళిక మ్యాప్ అందుబాటులో ఉంది. మీ పాఠశాల కాపీని చూడండి.
+notif.digest.title | Daily digest: {branch} | दैनिक सारांश: {branch} | రోజువారీ సారాంశం: {branch}
+notif.digest.body | Present {present}, late {late}, on leave {leave}. Substitutions {subs} ({uncovered} uncovered). Sections unmarked {unmarked}. Overdue tasks {overdue}. Checklists missed {missed}. Open tickets {tickets}. Approvals {approvals}. Plans to review {plans}. | उपस्थित {present}, देर {late}, अवकाश {leave}। प्रतिस्थापन {subs} ({uncovered} बिना व्यवस्था)। बिना उपस्थिति सेक्शन {unmarked}। बाकी कार्य {overdue}। छूटी चेकलिस्ट {missed}। खुले टिकट {tickets}। अनुमोदन {approvals}। समीक्षा हेतु योजनाएँ {plans}। | హాజరు {present}, ఆలస్యం {late}, సెలవు {leave}. ప్రత్యామ్నాయాలు {subs} ({uncovered} ఏర్పాటు లేదు). హాజరు వేయని సెక్షన్లు {unmarked}. బాకీ పనులు {overdue}. తప్పిన చెక్‌లిస్టులు {missed}. తెరిచిన టికెట్లు {tickets}. ఆమోదాలు {approvals}. సమీక్షకు ప్రణాళికలు {plans}.
+notif.duty.reminder | Duty today: {name} at {time} | आज ड्यूटी: {name}, {time} बजे | ఈరోజు డ్యూటీ: {name}, {time}కి
+notif.incident.serious | Serious incident logged ({severity}) | गंभीर घटना दर्ज ({severity}) | తీవ్ర సంఘటన నమోదు ({severity})
+notif.insight.ready | This week's insight is ready | इस सप्ताह की जानकारी तैयार है | ఈ వారపు సమాచారం సిద్ధం
+notif.meeting.scheduled | Meeting: {title} | बैठक: {title} | సమావేశం: {title}
+notif.observation.scheduled | {who} will observe your class | {who} आपकी कक्षा का अवलोकन करेंगे | {who} మీ తరగతిని పరిశీలిస్తారు
+notif.observation.shared | {who} shared observation feedback | {who} ने अवलोकन प्रतिक्रिया साझा की | {who} పరిశీలన అభిప్రాయం పంచుకున్నారు
+notif.paper.review | {who} sent a question paper for review | {who} ने प्रश्न पत्र समीक्षा के लिए भेजा | {who} ప్రశ్నాపత్రాన్ని సమీక్షకు పంపారు
+notif.plan.approved | {who} approved your lesson plan | {who} ने आपकी पाठ योजना स्वीकृत की | {who} మీ పాఠ ప్రణాళికను ఆమోదించారు
+notif.plan.returned | {who} returned your lesson plan with comments | {who} ने आपकी पाठ योजना टिप्पणी सहित लौटाई | {who} మీ పాఠ ప్రణాళికను వ్యాఖ్యలతో తిప్పి పంపారు
+notif.plan.review | {who} submitted a lesson plan for review | {who} ने पाठ योजना समीक्षा के लिए जमा की | {who} పాఠ ప్రణాళికను సమీక్షకు సమర్పించారు
+notif.report.ready | Your scheduled report is ready | आपकी निर्धारित रिपोर्ट तैयार है | మీ షెడ్యూల్ నివేదిక సిద్ధం
+notif.substitution.assigned | Substitution: {section}, period {period} on {date} | प्रतिस्थापन: {section}, पीरियड {period}, {date} | ప్రత్యామ్నాయం: {section}, పీరియడ్ {period}, {date}
+notif.substitution.needed | {count} periods need a substitute on {date} | {date} को {count} पीरियड के लिए प्रतिस्थापक चाहिए | {date}న {count} పీరియడ్లకు ప్రత్యామ్నాయం కావాలి
+notif.substitution.supervision | Please supervise {section}, period {period} on {date} | कृपया {section}, पीरियड {period}, {date} की निगरानी करें | దయచేసి {section}, పీరియడ్ {period}, {date} పర్యవేక్షించండి
+notif.ticket.assigned | Helpdesk ticket assigned: {title} | हेल्पडेस्क टिकट सौंपा गया: {title} | హెల్ప్‌డెస్క్ టికెట్ అప్పగించారు: {title}
+notif.timetable.published | New timetable from {date} | {date} से नई समय सारणी | {date} నుండి కొత్త టైమ్‌టేబుల్

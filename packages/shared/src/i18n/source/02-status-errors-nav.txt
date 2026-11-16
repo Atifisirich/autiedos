@@ -1,0 +1,232 @@
+# Statuses shown by StatusBadge (status.*)
+module.help_bot | Help bot | सहायता बॉट | సహాయ బాట్
+status.absent | Absent | अनुपस्थित | గైర్హాజరు
+status.acknowledged | Acknowledged | स्वीकार किया | అంగీకరించారు
+status.active | Active | सक्रिय | క్రియాశీలం
+status.already_checked_in | Already checked in | पहले से चेक-इन | ఇప్పటికే చెక్-ఇన్
+status.answered | Answered | उत्तर दिया | సమాధానం ఇచ్చారు
+status.approval_requested | Approval requested | अनुमोदन माँगा गया | ఆమోదం కోరారు
+status.approved | Approved | स्वीकृत | ఆమోదించబడింది
+status.archived | Archived | संग्रहीत | ఆర్కైవ్ చేయబడింది
+status.assigned | Assigned | सौंपा गया | అప్పగించబడింది
+status.blocked | Blocked | अटका हुआ | నిలిచిపోయింది
+status.cancelled | Cancelled | रद्द | రద్దు
+status.closed | Closed | बंद | మూసివేయబడింది
+status.completed | Completed | पूर्ण | పూర్తయింది
+status.coordinator_review | Coordinator review | समन्वयक समीक्षा | కోఆర్డినేటర్ సమీక్ష
+status.dead | Failed | विफल | విఫలమైంది
+status.declined | Declined | अस्वीकार | తిరస్కరించారు
+status.delivered | Delivered | पढ़ाया गया | బోధించారు
+status.done | Done | पूरा | పూర్తి
+status.draft | Draft | मसौदा | డ్రాఫ్ట్
+status.duplicate | Already saved | पहले से सहेजा गया | ఇప్పటికే సేవ్ అయింది
+status.embedded | Indexed | अनुक्रमित | సూచికలో చేర్చబడింది
+status.ended | Ended | समाप्त | ముగిసింది
+status.escalated | Escalated | आगे बढ़ाया गया | పై స్థాయికి పంపబడింది
+status.expiring | Expiring | समाप्ति निकट | గడువు దగ్గర
+status.failed | Failed | विफल | విఫలమైంది
+status.follow_up | Follow-up | अनुवर्ती | ఫాలో-అప్
+status.generated | Generated | तैयार | సిద్ధం
+status.generating | Generating | तैयार हो रहा है | తయారవుతోంది
+status.half_day | Half day | आधा दिन | అర్ధ రోజు
+status.held | Held | आयोजित | జరిగింది
+status.hod_review | HOD review | विभागाध्यक्ष समीक्षा | HOD సమీక్ష
+status.holiday | Holiday | अवकाश दिवस | సెలవు దినం
+status.in_progress | In progress | प्रगति पर | జరుగుతోంది
+status.in_review | In review | समीक्षा में | సమీక్షలో ఉంది
+status.inactive | Inactive | निष्क्रिय | నిష్క్రియం
+status.invalid | Invalid | अमान्य | చెల్లదు
+status.invited | Invited | आमंत्रित | ఆహ్వానించారు
+status.late | Late | देर से | ఆలస్యం
+status.leave | On leave | अवकाश पर | సెలవులో
+status.left | Left | छोड़ दिया | వెళ్లిపోయారు
+status.missed | Missed | छूट गया | తప్పిపోయింది
+status.missing | Missing | उपलब्ध नहीं | లేదు
+status.not_done | Not done | नहीं हुआ | చేయలేదు
+status.ok | OK | ठीक | సరే
+status.on_duty | On duty | ड्यूटी पर | డ్యూటీలో
+status.on_leave | On leave | अवकाश पर | సెలవులో
+status.open | Open | खुला | తెరిచి ఉంది
+status.overdue | Overdue | समय सीमा पार | గడువు దాటింది
+status.parsed | Read | पढ़ा गया | చదవబడింది
+status.paused | Paused | रुका हुआ | నిలిపివేయబడింది
+status.pending | Pending | लंबित | పెండింగ్
+status.planning | Planning | योजना में | ప్రణాళికలో
+status.present | Present | उपस्थित | హాజరు
+status.published | Published | प्रकाशित | ప్రచురించబడింది
+status.queued | Queued | कतार में | వరుసలో ఉంది
+status.ready | Ready | तैयार | సిద్ధం
+status.reflected | Reflected | चिंतन किया | ప్రతిబింబం రాశారు
+status.rejected | Rejected | अस्वीकृत | తిరస్కరించబడింది
+status.reopened | Reopened | फिर खोला गया | మళ్లీ తెరిచారు
+status.requested | Requested | अनुरोधित | అభ్యర్థించారు
+status.resolved | Resolved | हल हुआ | పరిష్కరించబడింది
+status.resolved_other | Covered another way | अन्य तरीके से व्यवस्था | వేరే విధంగా ఏర్పాటు
+status.returned | Returned | वापस भेजा गया | తిరిగి పంపారు
+status.reviewed | Reviewed | समीक्षित | సమీక్షించారు
+status.running | Running | चल रहा है | నడుస్తోంది
+status.scheduled | Scheduled | निर्धारित | షెడ్యూల్ చేయబడింది
+status.sent | Sent | भेजा गया | పంపబడింది
+status.shared | Shared | साझा किया | పంచుకున్నారు
+status.submitted | Submitted | जमा किया | సమర్పించారు
+status.suggested | Suggested | सुझाया गया | సూచించబడింది
+status.swap_requested | Swap requested | बदलाव का अनुरोध | మార్పిడి అభ్యర్థన
+status.swapped | Swapped | बदला गया | మార్చబడింది
+status.todo | To do | करना है | చేయాలి
+status.transferred | Transferred | स्थानांतरित | బదిలీ అయింది
+status.unanswered | Unanswered | अनुत्तरित | సమాధానం లేదు
+status.uncovered | Not covered | व्यवस्था नहीं | ఏర్పాటు లేదు
+status.uploaded | Uploaded | अपलोड किया | అప్‌లోడ్ అయింది
+status.valid | Valid | वैध | చెల్లుబాటు
+status.verified | Verified | सत्यापित | ధృవీకరించబడింది
+status.waiting | Waiting | प्रतीक्षा में | వేచి ఉంది
+# Errors (error.<code>) — the API returns a code, the UI shows the sentence
+error.generic | Something went wrong. Please try again. | कुछ गलत हो गया। कृपया फिर से कोशिश करें। | ఏదో తప్పు జరిగింది. దయచేసి మళ్లీ ప్రయత్నించండి.
+error.unauthorized | Please sign in again. | कृपया फिर से साइन इन करें। | దయచేసి మళ్లీ సైన్ ఇన్ చేయండి.
+error.forbidden | You do not have permission to do this. | आपको यह करने की अनुमति नहीं है। | దీన్ని చేయడానికి మీకు అనుమతి లేదు.
+error.not_found | Not found. It may have been removed. | नहीं मिला। शायद हटा दिया गया है। | కనబడలేదు. తొలగించి ఉండవచ్చు.
+error.conflict | This was changed by someone else. Refresh and try again. | इसे किसी और ने बदल दिया है। रीफ़्रेश करके फिर से करें। | దీన్ని వేరొకరు మార్చారు. రిఫ్రెష్ చేసి మళ్లీ ప్రయత్నించండి.
+error.validation_failed | Some fields are missing or invalid. | कुछ जानकारी अधूरी या गलत है। | కొన్ని వివరాలు లేవు లేదా తప్పుగా ఉన్నాయి.
+error.duplicate | This already exists. | यह पहले से मौजूद है। | ఇది ఇప్పటికే ఉంది.
+error.invalid_reference | A linked item no longer exists. | जुड़ी हुई चीज़ अब मौजूद नहीं है। | లింక్ చేసిన అంశం ఇప్పుడు లేదు.
+error.invalid_value | One of the values is not allowed. | एक मान स्वीकार्य नहीं है। | ఒక విలువ అనుమతించబడదు.
+error.internal_error | The server had a problem. Please try again. | सर्वर में समस्या आई। कृपया फिर से कोशिश करें। | సర్వర్‌లో సమస్య వచ్చింది. మళ్లీ ప్రయత్నించండి.
+error.rate_limited | Too many requests. Please wait a minute. | बहुत अधिक अनुरोध। कृपया एक मिनट रुकें। | చాలా అభ్యర్థనలు. ఒక నిమిషం ఆగండి.
+error.bad_signature | This link has expired. | यह लिंक समाप्त हो गया है। | ఈ లింక్ గడువు ముగిసింది.
+error.view_as_is_read_only | Support view is read-only. | सहायता दृश्य केवल पढ़ने के लिए है। | సపోర్ట్ వీక్షణ చదవడానికి మాత్రమే.
+error.view_as_expired | The support view session has ended. | सहायता दृश्य सत्र समाप्त हो गया। | సపోర్ట్ వీక్షణ సెషన్ ముగిసింది.
+error.download_failed | The download failed. | डाउनलोड विफल रहा। | డౌన్‌లోడ్ విఫలమైంది.
+error.upload_failed | The upload failed. | अपलोड विफल रहा। | అప్‌లోడ్ విఫలమైంది.
+error.missing_permission | You do not have permission to do this. | आपको यह करने की अनुमति नहीं है। | దీన్ని చేయడానికి మీకు అనుమతి లేదు.
+error.module_disabled | This module is switched off for your branch. | यह मॉड्यूल आपकी शाखा के लिए बंद है। | ఈ మాడ్యూల్ మీ శాఖకు ఆపివేయబడింది.
+error.credits_exhausted | AI credits for this month are used up. Ask your admin to request a top-up. | इस महीने के AI क्रेडिट खत्म हो गए। एडमिन से टॉप-अप माँगें। | ఈ నెల AI క్రెడిట్లు అయిపోయాయి. టాప్-అప్ కోసం అడ్మిన్‌ను అడగండి.
+error.teacher_cap_reached | You have reached your monthly AI limit. | आपकी मासिक AI सीमा पूरी हो गई है। | మీ నెలవారీ AI పరిమితి పూర్తయింది.
+error.fair_use_limit | Daily fair-use limit reached for this feature. Try again tomorrow. | इस सुविधा की दैनिक सीमा पूरी हो गई। कल फिर कोशिश करें। | ఈ ఫీచర్ రోజువారీ పరిమితి పూర్తయింది. రేపు మళ్లీ ప్రయత్నించండి.
+error.ai_unavailable | The AI service is not available right now. No credits were used. | AI सेवा अभी उपलब्ध नहीं है। कोई क्रेडिट नहीं लगा। | AI సేవ ఇప్పుడు అందుబాటులో లేదు. క్రెడిట్లు వాడలేదు.
+error.ai_output_invalid | The AI draft did not pass checks. No credits were used. Please try again. | AI मसौदा जाँच में पास नहीं हुआ। कोई क्रेडिट नहीं लगा। फिर से कोशिश करें। | AI డ్రాఫ్ట్ తనిఖీలో విఫలమైంది. క్రెడిట్లు వాడలేదు. మళ్లీ ప్రయత్నించండి.
+error.ai_refused | The AI could not help with this request. | AI इस अनुरोध में मदद नहीं कर सका। | ఈ అభ్యర్థనకు AI సహాయం చేయలేకపోయింది.
+error.personal_data_in_prompt | Please remove student names or phone numbers before using AI. | AI से पहले छात्रों के नाम या फ़ोन नंबर हटाएँ। | AI వాడే ముందు విద్యార్థుల పేర్లు లేదా ఫోన్ నంబర్లు తీసివేయండి.
+error.still_generating | Still being prepared. Please wait. | अभी तैयार हो रहा है। कृपया रुकें। | ఇంకా తయారవుతోంది. దయచేసి వేచి ఉండండి.
+error.approval_type_not_found | That request type does not exist. | यह अनुरोध प्रकार मौजूद नहीं है। | ఆ అభ్యర్థన రకం లేదు.
+error.assignment_not_allowed | You cannot assign work to this person. Send a request instead. | आप इस व्यक्ति को काम नहीं सौंप सकते। अनुरोध भेजें। | మీరు ఈ వ్యక్తికి పని అప్పగించలేరు. అభ్యర్థన పంపండి.
+error.group_assignment_requires_assign_rights | You need assign rights to give work to a group. | समूह को काम देने के लिए सौंपने का अधिकार चाहिए। | గ్రూప్‌కు పని ఇవ్వడానికి అప్పగింపు హక్కు కావాలి.
+error.bad_number | Please enter a valid number. | कृपया सही संख्या लिखें। | సరైన సంఖ్యను నమోదు చేయండి.
+error.bad_operator | That filter is not allowed. | यह फ़िल्टर स्वीकार्य नहीं है। | ఆ ఫిల్టర్ అనుమతించబడదు.
+error.bad_path | Invalid file. | अमान्य फ़ाइल। | చెల్లని ఫైల్.
+error.bank_has_too_few_questions | The question bank does not have enough questions. Try AI or mixed. | प्रश्न बैंक में पर्याप्त प्रश्न नहीं हैं। AI या मिश्रित आज़माएँ। | ప్రశ్నల బ్యాంక్‌లో తగినన్ని ప్రశ్నలు లేవు. AI లేదా మిశ్రమం ప్రయత్నించండి.
+error.blueprint_invalid | The blueprint totals do not add up. | ब्लूप्रिंट का योग सही नहीं है। | బ్లూప్రింట్ మొత్తాలు సరిపోలడం లేదు.
+error.blueprint_unsatisfiable | The blueprint cannot be filled with these settings. | इन सेटिंग्स से ब्लूप्रिंट नहीं भरा जा सकता। | ఈ సెట్టింగ్‌లతో బ్లూప్రింట్ నింపలేము.
+error.branch_not_allowed | You do not have access to that branch. | आपको उस शाखा की पहुँच नहीं है। | ఆ శాఖకు మీకు యాక్సెస్ లేదు.
+error.cannot_cancel | This can no longer be cancelled. | इसे अब रद्द नहीं किया जा सकता। | దీన్ని ఇక రద్దు చేయలేము.
+error.cannot_report_to_self | A person cannot report to themselves. | कोई व्यक्ति स्वयं को रिपोर्ट नहीं कर सकता। | ఎవరూ తమకే రిపోర్ట్ చేయలేరు.
+error.clashes_present | Fix the clashes first. | पहले टकराव ठीक करें। | ముందు ఘర్షణలను సరిచేయండి.
+error.class_already_has_exam_at_this_time | This class already has an exam at this time. | इस कक्षा की इस समय पहले से परीक्षा है। | ఈ తరగతికి ఈ సమయంలో ఇప్పటికే పరీక్ష ఉంది.
+error.clone_the_map_first | Make a school copy of the curriculum map first. | पहले पाठ्यक्रम मानचित्र की स्कूल प्रति बनाएँ। | ముందు పాఠ్యప్రణాళిక మ్యాప్‌కు పాఠశాల కాపీ చేయండి.
+error.confirm_before_submit | Please confirm you have read the plan before submitting. | जमा करने से पहले पुष्टि करें कि आपने योजना पढ़ ली है। | సమర్పించే ముందు ప్రణాళిక చదివినట్లు నిర్ధారించండి.
+error.delegate_to_required | Choose who to delegate to. | किसे सौंपना है चुनें। | ఎవరికి అప్పగించాలో ఎంచుకోండి.
+error.delegation_not_allowed | Delegation is not allowed for this task. | इस कार्य के लिए सौंपना अनुमत नहीं है। | ఈ పనికి అప్పగింపు అనుమతించబడదు.
+error.dev_login_disabled | Email sign-in is not available here. | यहाँ ईमेल साइन-इन उपलब्ध नहीं है। | ఇక్కడ ఈమెయిల్ సైన్-ఇన్ అందుబాటులో లేదు.
+error.due_at_required | Please set a due date. | कृपया नियत तारीख चुनें। | దయచేసి గడువు తేదీ పెట్టండి.
+error.edit_reason_required | Please give a reason for the change. | कृपया बदलाव का कारण लिखें। | మార్పుకు కారణం రాయండి.
+error.email_or_phone_required | Enter an email or phone number. | ईमेल या फ़ोन नंबर लिखें। | ఈమెయిల్ లేదా ఫోన్ నంబర్ నమోదు చేయండి.
+error.end_before_start | The end is before the start. | समाप्ति, शुरुआत से पहले है। | ముగింపు ప్రారంభానికి ముందు ఉంది.
+error.entity | Unknown settings list. | अज्ञात सेटिंग सूची। | తెలియని సెట్టింగ్ జాబితా.
+error.entry | Timetable entry not found. | समय सारणी प्रविष्टि नहीं मिली। | టైమ్‌టేబుల్ ఎంట్రీ కనబడలేదు.
+error.entry_locked | This period is locked. Unlock it first. | यह पीरियड लॉक है। पहले अनलॉक करें। | ఈ పీరియడ్ లాక్ అయింది. ముందు అన్‌లాక్ చేయండి.
+error.file_too_large | The file is too large. | फ़ाइल बहुत बड़ी है। | ఫైల్ చాలా పెద్దది.
+error.file_type_not_allowed | This file type is not allowed. | यह फ़ाइल प्रकार अनुमत नहीं है। | ఈ ఫైల్ రకం అనుమతించబడదు.
+error.forward_to_required | Choose who to forward to. | किसे भेजना है चुनें। | ఎవరికి పంపాలో ఎంచుకోండి.
+error.invalid_session | Your session has ended. Please sign in again. | आपका सत्र समाप्त हो गया। फिर से साइन इन करें। | మీ సెషన్ ముగిసింది. మళ్లీ సైన్ ఇన్ చేయండి.
+error.invalid_supabase_token | The sign-in code is not valid. | साइन-इन कोड मान्य नहीं है। | సైన్-ఇన్ కోడ్ చెల్లదు.
+error.invalid_transition | This step is not allowed now. | यह कदम अभी अनुमत नहीं है। | ఈ దశ ఇప్పుడు అనుమతించబడదు.
+error.leave_invalid | This leave request is not valid. Check the dates and balance. | यह अवकाश अनुरोध मान्य नहीं है। तारीख और शेष जाँचें। | ఈ సెలవు అభ్యర్థన చెల్లదు. తేదీలు, మిగులు చూడండి.
+error.leave_type | Unknown leave type. | अज्ञात अवकाश प्रकार। | తెలియని సెలవు రకం.
+error.metric | Unknown figure. | अज्ञात आँकड़ा। | తెలియని గణాంకం.
+error.minutes_required | Please enter the time spent. | कृपया लगा समय लिखें। | వెచ్చించిన సమయం నమోదు చేయండి.
+error.missing_field | A required field is missing. | एक आवश्यक जानकारी नहीं है। | ఒక తప్పనిసరి వివరం లేదు.
+error.no_admin_to_view_as | This school has no admin account yet. | इस स्कूल में अभी कोई एडमिन खाता नहीं है। | ఈ పాఠశాలకు ఇంకా అడ్మిన్ ఖాతా లేదు.
+error.no_annual_plan | There is no annual plan for this class and subject yet. | इस कक्षा और विषय की वार्षिक योजना अभी नहीं है। | ఈ తరగతి, సబ్జెక్టుకు ఇంకా వార్షిక ప్రణాళిక లేదు.
+error.no_branch | No branch is set up yet. | अभी कोई शाखा नहीं बनी है। | ఇంకా శాఖ ఏర్పాటు కాలేదు.
+error.no_chapters | No chapters found in the curriculum map. | पाठ्यक्रम मानचित्र में कोई अध्याय नहीं मिला। | పాఠ్యప్రణాళిక మ్యాప్‌లో అధ్యాయాలు లేవు.
+error.no_current_academic_year | Set up the academic year first. | पहले शैक्षणिक वर्ष बनाएँ। | ముందు విద్యా సంవత్సరం ఏర్పాటు చేయండి.
+error.no_preset_for_entity | There is no preset for this list. | इस सूची के लिए कोई प्रीसेट नहीं है। | ఈ జాబితాకు ప్రీసెట్ లేదు.
+error.no_staff_profile | Your account is not linked to a staff profile. | आपका खाता किसी स्टाफ प्रोफ़ाइल से नहीं जुड़ा है। | మీ ఖాతా సిబ్బంది ప్రొఫైల్‌కు లింక్ కాలేదు.
+error.not_a_reviewer | You are not a reviewer for this plan. | आप इस योजना के समीक्षक नहीं हैं। | మీరు ఈ ప్రణాళికకు సమీక్షకులు కాదు.
+error.not_an_approver | You are not the approver for this step. | आप इस चरण के अनुमोदक नहीं हैं। | మీరు ఈ దశకు ఆమోదకులు కాదు.
+error.not_checked_in | You have not checked in today. | आपने आज चेक-इन नहीं किया है। | మీరు ఈరోజు చెక్-ఇన్ చేయలేదు.
+error.not_optional | This notification cannot be switched off. | यह सूचना बंद नहीं की जा सकती। | ఈ నోటిఫికేషన్ ఆపలేము.
+error.not_pending | This is no longer pending. | यह अब लंबित नहीं है। | ఇది ఇక పెండింగ్‌లో లేదు.
+error.not_returned | This has not been returned. | यह वापस नहीं भेजा गया है। | ఇది తిరిగి పంపబడలేదు.
+error.not_your_review_step | It is not your turn to review. | अभी आपकी समीक्षा की बारी नहीं है। | సమీక్షించడం ఇప్పుడు మీ వంతు కాదు.
+error.not_your_section | You do not teach this section. | आप यह सेक्शन नहीं पढ़ाते। | మీరు ఈ సెక్షన్‌కు బోధించరు.
+error.only_approved_plans | Only approved plans can go to the bank. | केवल स्वीकृत योजनाएँ बैंक में जा सकती हैं। | ఆమోదించిన ప్రణాళికలు మాత్రమే బ్యాంకుకు వెళ్తాయి.
+error.only_assigner_or_above | Only the person who assigned it (or their manager) can do this. | केवल सौंपने वाला (या उनके प्रबंधक) यह कर सकते हैं। | అప్పగించిన వారు (లేదా వారి మేనేజర్) మాత్రమే ఇది చేయగలరు.
+error.only_the_teacher_edits | Only the teacher can edit this plan. | केवल शिक्षक ही इस योजना को बदल सकते हैं। | ఈ ప్రణాళికను ఉపాధ్యాయులు మాత్రమే మార్చగలరు.
+error.owner_required | Choose an owner. | ज़िम्मेदार व्यक्ति चुनें। | బాధ్యులను ఎంచుకోండి.
+error.paper_does_not_match_blueprint | The paper does not match the blueprint. | प्रश्न पत्र ब्लूप्रिंट से मेल नहीं खाता। | ప్రశ్నాపత్రం బ్లూప్రింట్‌తో సరిపోలడం లేదు.
+error.period_times | Period times overlap or are out of order. | पीरियड के समय आपस में टकराते हैं या क्रम में नहीं हैं। | పీరియడ్ సమయాలు ఒకదానిపై ఒకటి పడుతున్నాయి లేదా క్రమంలో లేవు.
+error.plan_locked_in_review | The plan is in review and cannot be edited. | योजना समीक्षा में है, बदली नहीं जा सकती। | ప్రణాళిక సమీక్షలో ఉంది, మార్చలేము.
+error.published_versions_are_read_only_create_revision | Published timetables cannot be edited. Create a revision. | प्रकाशित समय सारणी नहीं बदली जा सकती। संशोधन बनाएँ। | ప్రచురించిన టైమ్‌టేబుల్ మార్చలేము. సవరణ సృష్టించండి.
+error.question | Question not found. | प्रश्न नहीं मिला। | ప్రశ్న కనబడలేదు.
+error.rating_required | Please choose a rating. | कृपया रेटिंग चुनें। | దయచేసి రేటింగ్ ఎంచుకోండి.
+error.reflection_required | Please write a short reflection. | कृपया छोटा चिंतन लिखें। | చిన్న ప్రతిబింబం రాయండి.
+error.reply_required | Please choose an answer. | कृपया उत्तर चुनें। | దయచేసి సమాధానం ఎంచుకోండి.
+error.report | Unknown report. | अज्ञात रिपोर्ट। | తెలియని నివేదిక.
+error.reporting_cycle | This change would make someone report to themselves through others. | इस बदलाव से कोई घूमकर स्वयं को रिपोर्ट करेगा। | ఈ మార్పుతో ఎవరో చుట్టూ తిరిగి తమకే రిపోర్ట్ చేస్తారు.
+error.required_items_missing | Complete all required items first. | पहले सभी आवश्यक बिंदु पूरे करें। | ముందు అన్ని తప్పనిసరి అంశాలు పూర్తి చేయండి.
+error.score_out_of_scale | A score is outside the rubric scale. | एक अंक रूब्रिक सीमा से बाहर है। | ఒక స్కోరు రూబ్రిక్ పరిధిలో లేదు.
+error.section | Section not found. | सेक्शन नहीं मिला। | సెక్షన్ కనబడలేదు.
+error.session_revoked | You were signed out from this device. | आपको इस डिवाइस से साइन आउट कर दिया गया। | ఈ పరికరం నుండి మిమ్మల్ని సైన్ అవుట్ చేశారు.
+error.slug_taken | That short name is already used. | यह छोटा नाम पहले से उपयोग में है। | ఆ చిన్న పేరు ఇప్పటికే వాడుకలో ఉంది.
+error.stale_check_in | The check-in is too old. Please try again. | चेक-इन बहुत पुराना है। फिर से करें। | చెక్-ఇన్ చాలా పాతది. మళ్లీ ప్రయత్నించండి.
+error.student_not_in_section | A student is not in this section. | एक छात्र इस सेक्शन में नहीं है। | ఒక విద్యార్థి ఈ సెక్షన్‌లో లేరు.
+error.substitute_required | Choose a substitute teacher. | प्रतिस्थापक शिक्षक चुनें। | ప్రత్యామ్నాయ ఉపాధ్యాయుణ్ని ఎంచుకోండి.
+error.super_admin_only | Only AutoEd support can do this. | केवल AutoEd सहायता ही यह कर सकती है। | AutoEd సపోర్ట్ మాత్రమే ఇది చేయగలదు.
+error.system_type | System request types cannot be edited. | सिस्टम अनुरोध प्रकार नहीं बदले जा सकते। | సిస్టమ్ అభ్యర్థన రకాలు మార్చలేము.
+error.task_closed | This task is closed. | यह कार्य बंद है। | ఈ పని మూసివేయబడింది.
+error.topic | Topic not found. | विषय-वस्तु नहीं मिली। | అంశం కనబడలేదు.
+error.unknown_area | Unknown settings area. | अज्ञात सेटिंग क्षेत्र। | తెలియని సెట్టింగ్ విభాగం.
+error.unknown_column | Unknown column. | अज्ञात कॉलम। | తెలియని కాలమ్.
+error.unknown_dataset | Unknown data source. | अज्ञात डेटा स्रोत। | తెలియని డేటా మూలం.
+error.unknown_import_kind | Unknown import type. | अज्ञात आयात प्रकार। | తెలియని దిగుమతి రకం.
+error.unknown_section | Unknown plan section. | अज्ञात योजना खंड। | తెలియని ప్రణాళిక భాగం.
+error.unknown_user | We could not find an account for this sign-in. | इस साइन-इन के लिए खाता नहीं मिला। | ఈ సైన్-ఇన్‌కు ఖాతా కనబడలేదు.
+error.year_dates | The year dates are not valid. | वर्ष की तारीखें सही नहीं हैं। | సంవత్సర తేదీలు సరిగా లేవు.
+# Navigation
+nav.myDay | My Day | मेरा दिन | నా రోజు
+nav.tasks | Tasks | कार्य | పనులు
+nav.checklists | Checklists | चेकलिस्ट | చెక్‌లిస్టులు
+nav.attendance | My attendance | मेरी उपस्थिति | నా హాజరు
+nav.studentAttendance | Student attendance | छात्र उपस्थिति | విద్యార్థుల హాజరు
+nav.leave | Leave | अवकाश | సెలవు
+nav.approvals | Approvals | अनुमोदन | ఆమోదాలు
+nav.timetable | Timetable | समय सारणी | టైమ్‌టేబుల్
+nav.substitution | Substitution | प्रतिस्थापन | ప్రత్యామ్నాయ బోధన
+nav.duty | Duty roster | ड्यूटी रोस्टर | డ్యూటీ రోస్టర్
+nav.lessonPlans | Lesson plans | पाठ योजनाएँ | పాఠ ప్రణాళికలు
+nav.coverage | Syllabus coverage | पाठ्यक्रम प्रगति | సిలబస్ పురోగతి
+nav.classLog | Class log | कक्षा लॉग | తరగతి లాగ్
+nav.exams | Exams | परीक्षाएँ | పరీక్షలు
+nav.observation | Observation | कक्षा अवलोकन | తరగతి పరిశీలన
+nav.helpdesk | Helpdesk | हेल्पडेस्क | హెల్ప్‌డెస్క్
+nav.circulars | Circulars | परिपत्र | సర్క్యులర్లు
+nav.calendar | Calendar | कैलेंडर | క్యాలెండర్
+nav.meetings | Meetings | बैठकें | సమావేశాలు
+nav.events | Events | कार्यक्रम | కార్యక్రమాలు
+nav.incidents | Incidents | घटनाएँ | సంఘటనలు
+nav.compliance | Compliance | अनुपालन | నిబంధనల పాటింపు
+nav.reports | Reports | रिपोर्ट | నివేదికలు
+nav.inbox | Inbox | इनबॉक्स | ఇన్‌బాక్స్
+nav.aiCredits | AI credits | AI क्रेडिट | AI క్రెడిట్లు
+nav.setup | Setup | सेटअप | సెటప్
+nav.settings | Settings | सेटिंग्स | సెట్టింగ్‌లు
+nav.superAdmin | AutoEd console | AutoEd कंसोल | AutoEd కన్సోల్
+nav.signOut | Sign out | साइन आउट | సైన్ అవుట్
+nav.branch | Branch | शाखा | శాఖ
+nav.main | Main menu | मुख्य मेनू | ప్రధాన మెను
+nav.menu | Menu | मेनू | మెను
+nav.group.day | My work | मेरा काम | నా పని
+nav.group.academic | Academics | शैक्षणिक | విద్యా వ్యవహారాలు
+nav.group.admin | Administration | प्रशासन | నిర్వహణ
+nav.group.insight | Insights | जानकारी | సమాచారం
+nav.group.settings | Settings | सेटिंग्स | సెట్టింగ్‌లు

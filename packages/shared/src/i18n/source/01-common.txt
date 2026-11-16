@@ -1,0 +1,148 @@
+# key | English | Hindi | Telugu
+app.name | AutoEd OS | AutoEd OS | AutoEd OS
+common.add | Add | जोड़ें | జోడించండి
+common.all | All | सभी | అన్నీ
+common.allBranches | All branches | सभी शाखाएँ | అన్ని శాఖలు
+common.allClasses | All classes | सभी कक्षाएँ | అన్ని తరగతులు
+common.allDepartments | All departments | सभी विभाग | అన్ని విభాగాలు
+common.allSubjects | All subjects | सभी विषय | అన్ని సబ్జెక్టులు
+common.allWings | All wings | सभी विंग | అన్ని విభాగాలు (వింగ్స్)
+common.back | Back | वापस | వెనుకకు
+common.branch | Branch | शाखा | శాఖ
+common.cancel | Cancel | रद्द करें | రద్దు చేయండి
+common.category | Category | श्रेणी | వర్గం
+common.choose | Choose… | चुनें… | ఎంచుకోండి…
+common.class | Class | कक्षा | తరగతి
+common.close | Close | बंद करें | మూసివేయండి
+common.created | Created | बनाया गया | సృష్టించబడింది
+common.date | Date | तारीख | తేదీ
+common.delete | Delete | हटाएँ | తొలగించండి
+common.department | Department | विभाग | విభాగం
+common.description | Description | विवरण | వివరణ
+common.edit | Edit | संपादित करें | సవరించండి
+common.exportExcel | Export to Excel | Excel में निर्यात करें | Excel కు ఎగుమతి
+common.exportWord | Export to Word | Word में निर्यात करें | Word కు ఎగుమతి
+common.file | File | फ़ाइल | ఫైల్
+common.key | Key | कुंजी | కీ
+common.label | Label | लेबल | లేబుల్
+common.loading | Loading… | लोड हो रहा है… | లోడ్ అవుతోంది…
+common.location | Location | स्थान | స్థలం
+common.min | min | मिनट | నిమి
+common.month | Month | महीना | నెల
+common.name | Name | नाम | పేరు
+common.next | Next | आगे | తదుపరి
+common.no | No | नहीं | కాదు
+common.none | None | कोई नहीं | ఏదీ లేదు
+common.notes | Notes | टिप्पणियाँ | గమనికలు
+common.nothingHere | Nothing here yet. | अभी यहाँ कुछ नहीं है। | ఇక్కడ ఇంకా ఏమీ లేదు.
+common.open | Open | खोलें | తెరవండి
+common.optional | Optional | वैकल्पिक | ఐచ్ఛికం
+common.person | Person | व्यक्ति | వ్యక్తి
+common.position | Position | पद | హోదా
+common.remove | Remove | हटाएँ | తీసివేయండి
+common.reports | Reports | रिपोर्ट | నివేదికలు
+common.request | Request | अनुरोध | అభ్యర్థన
+common.required | Required | आवश्यक | తప్పనిసరి
+common.role | Role | भूमिका | పాత్ర
+common.save | Save | सहेजें | సేవ్ చేయండి
+common.saveContinue | Save and continue | सहेजें और आगे बढ़ें | సేవ్ చేసి కొనసాగండి
+common.saveDraft | Save draft | मसौदा सहेजें | డ్రాఫ్ట్ సేవ్ చేయండి
+common.search | Search | खोजें | వెతకండి
+common.section | Section | सेक्शन | సెక్షన్
+common.select | Select | चुनें | ఎంచుకోండి
+common.send | Send | भेजें | పంపండి
+common.status | Status | स्थिति | స్థితి
+common.subject | Subject | विषय | సబ్జెక్టు
+common.submit | Submit | जमा करें | సమర్పించండి
+common.system | System | सिस्टम | సిస్టమ్
+common.thisBranch | This branch | यह शाखा | ఈ శాఖ
+common.time | Time | समय | సమయం
+common.title | Title | शीर्षक | శీర్షిక
+common.type | Type | प्रकार | రకం
+common.when | When | कब | ఎప్పుడు
+common.wing | Wing | विंग | వింగ్
+common.yes | Yes | हाँ | అవును
+lang.en | English | अंग्रेज़ी | ఇంగ్లీష్
+lang.hi | Hindi | हिन्दी | హిందీ
+lang.te | Telugu | तेलुगु | తెలుగు
+day.1 | Mon | सोम | సోమ
+day.2 | Tue | मंगल | మంగళ
+day.3 | Wed | बुध | బుధ
+day.4 | Thu | गुरु | గురు
+day.5 | Fri | शुक्र | శుక్ర
+day.6 | Sat | शनि | శని
+day.7 | Sun | रवि | ఆది
+weekday.1 | Monday | सोमवार | సోమవారం
+weekday.2 | Tuesday | मंगलवार | మంగళవారం
+weekday.3 | Wednesday | बुधवार | బుధవారం
+weekday.4 | Thursday | गुरुवार | గురువారం
+weekday.5 | Friday | शुक्रवार | శుక్రవారం
+weekday.6 | Saturday | शनिवार | శనివారం
+weekday.7 | Sunday | रविवार | ఆదివారం
+priority.low | Low | कम | తక్కువ
+priority.normal | Normal | सामान्य | సాధారణ
+priority.high | High | उच्च | ఎక్కువ
+priority.urgent | Urgent | अत्यावश्यक | అత్యవసరం
+severity.low | Low | कम | తక్కువ
+severity.medium | Medium | मध्यम | మధ్యస్థం
+severity.high | High | उच्च | ఎక్కువ
+severity.critical | Critical | गंभीर | తీవ్రమైనది
+difficulty.easy | Easy | आसान | సులభం
+difficulty.medium | Medium | मध्यम | మధ్యస్థం
+difficulty.hard | Hard | कठिन | కఠినం
+frequency.daily | Daily | रोज़ | రోజూ
+frequency.weekly | Weekly | साप्ताहिक | వారానికోసారి
+frequency.monthly | Monthly | मासिक | నెలకోసారి
+channel.inapp | In-app | ऐप में | యాప్‌లో
+channel.push | Push | पुश | పుష్
+channel.whatsapp | WhatsApp | WhatsApp | WhatsApp
+channel.email | Email | ईमेल | ఈమెయిల్
+channel.whatsapp_link | WhatsApp link | WhatsApp लिंक | WhatsApp లింక్
+preset.cbse | CBSE school | CBSE स्कूल | CBSE పాఠశాల
+preset.cambridge | Cambridge school | कैम्ब्रिज स्कूल | కేంబ్రిడ్జ్ పాఠశాల
+preset.dual | CBSE + Cambridge | CBSE + कैम्ब्रिज | CBSE + కేంబ్రిడ్జ్
+scope.own | Own | स्वयं | స్వంతం
+scope.team | Team | टीम | బృందం
+scope.department | Department | विभाग | విభాగం
+scope.wing | Wing | विंग | వింగ్
+scope.branch | Branch | शाखा | శాఖ
+scope.group | Whole group | पूरा समूह | మొత్తం గ్రూప్
+action.view | View | देखें | చూడండి
+action.create | Create | बनाएँ | సృష్టించండి
+action.edit | Edit | संपादित करें | సవరించండి
+action.delete | Delete | हटाएँ | తొలగించండి
+action.assign | Assign | सौंपें | అప్పగించండి
+action.approve | Approve | स्वीकृत करें | ఆమోదించండి
+action.verify | Verify | सत्यापित करें | ధృవీకరించండి
+action.export | Export | निर्यात | ఎగుమతి
+action.configure | Configure | कॉन्फ़िगर करें | కాన్ఫిగర్ చేయండి
+module.tasks | Tasks | कार्य | పనులు
+module.checklists | Checklists | चेकलिस्ट | చెక్‌లిస్టులు
+module.timetable | Timetable | समय सारणी | టైమ్‌టేబుల్
+module.substitution | Substitution | प्रतिस्थापन | ప్రత్యామ్నాయ బోధన
+module.staff_attendance | Staff attendance | स्टाफ उपस्थिति | సిబ్బంది హాజరు
+module.student_attendance | Student attendance | छात्र उपस्थिति | విద్యార్థుల హాజరు
+module.leave | Leave | अवकाश | సెలవు
+module.approvals | Approvals | अनुमोदन | ఆమోదాలు
+module.lesson_planner | Lesson planner | पाठ योजना | పాఠ ప్రణాళిక
+module.syllabus_coverage | Syllabus coverage | पाठ्यक्रम प्रगति | సిలబస్ పురోగతి
+module.class_log | Class log | कक्षा लॉग | తరగతి లాగ్
+module.exams | Exams | परीक्षाएँ | పరీక్షలు
+module.observation | Observation | कक्षा अवलोकन | తరగతి పరిశీలన
+module.helpdesk | Helpdesk | हेल्पडेस्क | హెల్ప్‌డెస్క్
+module.circulars | Circulars | परिपत्र | సర్క్యులర్లు
+module.calendar | Calendar | कैलेंडर | క్యాలెండర్
+module.meetings | Meetings | बैठकें | సమావేశాలు
+module.events | Events | कार्यक्रम | కార్యక్రమాలు
+module.duty_roster | Duty roster | ड्यूटी रोस्टर | డ్యూటీ రోస్టర్
+module.incidents | Incidents | घटनाएँ | సంఘటనలు
+module.compliance | Compliance | अनुपालन | నిబంధనల పాటింపు
+module.reports | Reports | रिपोर्ट | నివేదికలు
+module.setup | Setup | सेटअप | సెటప్
+module.staff | Staff records | स्टाफ रिकॉर्ड | సిబ్బంది రికార్డులు
+module.students | Student records | छात्र रिकॉर्ड | విద్యార్థుల రికార్డులు
+module.appraisal | Appraisal | मूल्यांकन | మూల్యాంకనం
+module.question_papers | Question papers | प्रश्न पत्र | ప్రశ్నాపత్రాలు
+module.incidents_confidential | Confidential incidents | गोपनीय घटनाएँ | రహస్య సంఘటనలు
+module.ai | AI credits | AI क्रेडिट | AI క్రెడిట్లు
+module.audit | Audit log | ऑडिट लॉग | ఆడిట్ లాగ్

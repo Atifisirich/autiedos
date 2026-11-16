@@ -1,0 +1,362 @@
+# My Day
+myDay.greeting | Good day, {name} | नमस्ते, {name} | నమస్కారం, {name}
+myDay.subtitle | Your timetable, tasks and duties for today | आज की आपकी समय सारणी, कार्य और ड्यूटी | ఈరోజు మీ టైమ్‌టేబుల్, పనులు, డ్యూటీలు
+myDay.atAGlance | At a glance | एक नज़र में | ఒక్క చూపులో
+myDay.anytime | Any time today | आज कभी भी | ఈరోజు ఎప్పుడైనా
+myDay.empty | Nothing scheduled. Enjoy the calm. | कुछ निर्धारित नहीं है। | ఏమీ షెడ్యూల్ కాలేదు.
+myDay.freePeriod | Free period | खाली पीरियड | ఖాళీ పీరియడ్
+myDay.holiday | Holiday | छुट्टी | సెలవు
+myDay.onLeave | You are on leave today | आज आप अवकाश पर हैं | ఈరోజు మీరు సెలవులో ఉన్నారు
+myDay.logged | Logged | दर्ज किया | నమోదు చేశారు
+myDay.closeDay | Close my day | मेरा दिन बंद करें | నా రోజు ముగించండి
+myDay.quickAdd | Quick add a task… | जल्दी से कार्य जोड़ें… | త్వరగా పని జోడించండి…
+myDay.pendingApprovals | {count} approvals waiting for you | {count} अनुमोदन आपकी प्रतीक्षा में | {count} ఆమోదాలు మీ కోసం వేచి ఉన్నాయి
+myDay.unread | {count} unread messages | {count} अपठित संदेश | {count} చదవని సందేశాలు
+myDay.kind.period | Class | कक्षा | తరగతి
+myDay.kind.free | Free | खाली | ఖాళీ
+myDay.kind.substitution | Substitution | प्रतिस्थापन | ప్రత్యామ్నాయం
+myDay.kind.duty | Duty | ड्यूटी | డ్యూటీ
+myDay.kind.meeting | Meeting | बैठक | సమావేశం
+myDay.kind.task | Task | कार्य | పని
+myDay.kind.checklist | Checklist | चेकलिस्ट | చెక్‌లిస్టు
+# Day close
+dayClose.title | Close my day | मेरा दिन बंद करें | నా రోజు ముగించండి
+dayClose.subtitle | Mark what happened to each open task today | आज के हर खुले कार्य की स्थिति चुनें | ఈరోజు ప్రతి తెరిచి ఉన్న పని ఏమైందో గుర్తించండి
+dayClose.nothing | No open tasks for today. | आज कोई खुला कार्य नहीं। | ఈరోజు తెరిచి ఉన్న పనులు లేవు.
+dayClose.outcome | Outcome | परिणाम | ఫలితం
+dayClose.done | Done | पूरा | పూర్తి
+dayClose.carry | Carry to tomorrow | कल पर ले जाएँ | రేపటికి మార్చండి
+dayClose.notDone | Not done | नहीं हुआ | చేయలేదు
+dayClose.needsProof | Proof needed — open the task to add it | प्रमाण चाहिए — जोड़ने के लिए कार्य खोलें | రుజువు కావాలి — జోడించడానికి పనిని తెరవండి
+dayClose.submit | Close day | दिन बंद करें | రోజు ముగించండి
+notDone.no_time | Ran out of time | समय नहीं मिला | సమయం సరిపోలేదు
+notDone.not_possible | Not possible | संभव नहीं | సాధ్యం కాదు
+notDone.not_needed | No longer needed | अब ज़रूरी नहीं | ఇక అవసరం లేదు
+notDone.other | Other | अन्य | ఇతర
+# Tasks
+tasks.new | New task | नया कार्य | కొత్త పని
+tasks.title | Title | शीर्षक | శీర్షిక
+tasks.description | Details | विवरण | వివరాలు
+tasks.details | Details | विवरण | వివరాలు
+tasks.category | Category | श्रेणी | వర్గం
+tasks.categoryDefault | Category default: {value} | श्रेणी डिफ़ॉल्ट: {value} | వర్గం డిఫాల్ట్: {value}
+tasks.useCategoryDefault | Use category default | श्रेणी डिफ़ॉल्ट उपयोग करें | వర్గం డిఫాల్ట్ వాడండి
+tasks.priority | Priority | प्राथमिकता | ప్రాధాన్యం
+tasks.due | Due | नियत | గడువు
+tasks.dueTime | Due time | नियत समय | గడువు సమయం
+tasks.noDueDate | No due date | कोई नियत तारीख नहीं | గడువు తేదీ లేదు
+tasks.owner | Owner | ज़िम्मेदार | బాధ్యులు
+tasks.assigner | Assigned by | सौंपने वाले | అప్పగించినవారు
+tasks.assignTo | Assign to | किसे सौंपें | ఎవరికి అప్పగించాలి
+tasks.people | People | लोग | వ్యక్తులు
+tasks.peopleHint | Pick one or more people. Your assignment rules decide whether it is sent as a task or a request. | एक या अधिक लोग चुनें। नियमों के अनुसार यह कार्य या अनुरोध के रूप में जाएगा। | ఒకరు లేదా ఎక్కువ మందిని ఎంచుకోండి. నియమాల ప్రకారం ఇది పని లేదా అభ్యర్థనగా వెళ్తుంది.
+tasks.target.people | Specific people | चुने हुए लोग | ఎంపిక చేసిన వ్యక్తులు
+tasks.target.role | Everyone in a role | एक भूमिका के सभी | ఒక పాత్రలోని అందరూ
+tasks.target.wing | Everyone in a wing | एक विंग के सभी | ఒక వింగ్‌లోని అందరూ
+tasks.target.department | Everyone in a department | एक विभाग के सभी | ఒక విభాగంలోని అందరూ
+tasks.groupMode | Group task | समूह कार्य | గ్రూప్ పని
+tasks.groupMode.each | Each person does it | हर व्यक्ति करे | ప్రతి ఒక్కరూ చేయాలి
+tasks.groupMode.any | Any one person can do it | कोई एक व्यक्ति कर दे | ఎవరో ఒకరు చేస్తే చాలు
+tasks.groupProgress | {done} of {total} done | {total} में से {done} पूरे | {total}లో {done} పూర్తి
+tasks.proof | Proof needed | प्रमाण आवश्यक | రుజువు అవసరం
+tasks.proofFile | Proof | प्रमाण | రుజువు
+proof.none | No proof | कोई प्रमाण नहीं | రుజువు అక్కర్లేదు
+proof.note | A note | एक टिप्पणी | ఒక గమనిక
+proof.photo | A photo | एक फ़ोटो | ఒక ఫోటో
+proof.file | A file | एक फ़ाइल | ఒక ఫైల్
+tasks.verificationRequired | Needs verification by the assigner | सौंपने वाले से सत्यापन आवश्यक | అప్పగించినవారి ధృవీకరణ అవసరం
+tasks.estimate | Estimated minutes | अनुमानित मिनट | అంచనా నిమిషాలు
+tasks.timeSpent | Time spent (minutes) | लगा समय (मिनट) | వెచ్చించిన సమయం (నిమిషాలు)
+tasks.recurring | Repeats | दोहराएँ | పునరావృతం
+tasks.frequency | How often | कितनी बार | ఎంత తరచుగా
+tasks.weekdays | On these days | इन दिनों | ఈ రోజుల్లో
+tasks.unplanned | Unplanned (sudden) work | अनियोजित (अचानक) काम | ప్రణాళిక లేని (అకస్మాత్తు) పని
+tasks.unplannedShare | Unplanned share | अनियोजित हिस्सा | ప్రణాళిక లేని భాగం
+tasks.subtasks | Subtasks | उप-कार्य | ఉప పనులు
+tasks.subtasksHint | One per line | हर पंक्ति में एक | ప్రతి పంక్తికి ఒకటి
+tasks.linked | Linked to | इससे जुड़ा | దీనికి లింక్
+linked.class | Class | कक्षा | తరగతి
+linked.section | Section | सेक्शन | సెక్షన్
+linked.subject | Subject | विषय | సబ్జెక్టు
+linked.event | Event | कार्यक्रम | కార్యక్రమం
+linked.ticket | Ticket | टिकट | టికెట్
+linked.lesson_plan | Lesson plan | पाठ योजना | పాఠ ప్రణాళిక
+linked.meeting | Meeting | बैठक | సమావేశం
+linked.incident | Incident | घटना | సంఘటన
+tasks.view.mine | Mine | मेरे | నావి
+tasks.view.assigned | Assigned by me | मेरे द्वारा सौंपे | నేను అప్పగించినవి
+tasks.view.team | My team | मेरी टीम | నా బృందం
+tasks.view.all | All | सभी | అన్నీ
+tasks.filter.open | Open | खुले | తెరిచి ఉన్నవి
+tasks.filter.awaitingVerification | Awaiting verification | सत्यापन की प्रतीक्षा | ధృవీకరణ కోసం వేచి ఉన్నవి
+tasks.layout.list | List | सूची | జాబితా
+tasks.layout.board | Board | बोर्ड | బోర్డు
+tasks.layout.calendar | Calendar | कैलेंडर | క్యాలెండర్
+tasks.layout.team | Team workload | टीम कार्यभार | బృంద పనిభారం
+tasks.teamWorkload | Team workload | टीम कार्यभार | బృంద పనిభారం
+tasks.open | Open | खुले | తెరిచి ఉన్నవి
+tasks.overdue | Overdue | समय सीमा पार | గడువు దాటింది
+tasks.onTimeRate | On-time rate | समय पर दर | సమయానికి రేటు
+tasks.unscheduled | Not scheduled | निर्धारित नहीं | షెడ్యూల్ కాలేదు
+tasks.planWeek | Plan my week | मेरा सप्ताह योजना | నా వారం ప్రణాళిక
+tasks.planWeekHint | Drag tasks onto a day to schedule them. | कार्यों को किसी दिन पर खींचें। | పనులను రోజుపైకి లాగండి.
+tasks.actions | Actions | कार्रवाई | చర్యలు
+tasks.action.accept | Accept | स्वीकार करें | అంగీకరించండి
+tasks.action.decline | Decline | अस्वीकार करें | తిరస్కరించండి
+tasks.action.start | Start | शुरू करें | ప్రారంభించండి
+tasks.action.complete | Mark done | पूरा करें | పూర్తయినట్లు గుర్తించండి
+tasks.action.block | I am blocked | मैं अटका हूँ | నేను ఆగిపోయాను
+tasks.action.notDone | Could not do | नहीं कर पाया | చేయలేకపోయాను
+tasks.action.verify | Verify | सत्यापित करें | ధృవీకరించండి
+tasks.action.reopen | Reopen | फिर खोलें | మళ్లీ తెరవండి
+tasks.action.cancel | Cancel task | कार्य रद्द करें | పని రద్దు చేయండి
+tasks.action.delegate | Delegate | सौंपें | అప్పగించండి
+tasks.action.changeDue | Change due date | नियत तारीख बदलें | గడువు తేదీ మార్చండి
+tasks.action.requestExtension | Ask for more time | और समय माँगें | ఇంకా సమయం అడగండి
+tasks.newDue | New due date | नई नियत तारीख | కొత్త గడువు తేదీ
+tasks.reason | Reason | कारण | కారణం
+tasks.note | Note | टिप्पणी | గమనిక
+tasks.noteRequired | Please add a note. | कृपया टिप्पणी जोड़ें। | దయచేసి గమనిక జోడించండి.
+tasks.whatDidYouDo | What did you do? | आपने क्या किया? | మీరు ఏమి చేశారు?
+tasks.comments | Comments | टिप्पणियाँ | వ్యాఖ్యలు
+tasks.commentPlaceholder | Write a comment or question… | टिप्पणी या प्रश्न लिखें… | వ్యాఖ్య లేదా ప్రశ్న రాయండి…
+tasks.commentRequired | Write something first. | पहले कुछ लिखें। | ముందు ఏదైనా రాయండి.
+tasks.toSubtask | Turn into subtask | उप-कार्य बनाएँ | ఉప పనిగా మార్చండి
+commentKind.comment | Comment | टिप्पणी | వ్యాఖ్య
+commentKind.question | Question | प्रश्न | ప్రశ్న
+commentKind.extension_request | Extension request | समय बढ़ाने का अनुरोध | గడువు పొడిగింపు అభ్యర్థన
+tasks.attachments | Attachments | संलग्नक | జోడింపులు
+attachmentKind.proof | Proof | प्रमाण | రుజువు
+attachmentKind.attachment | File | फ़ाइल | ఫైల్
+attachmentKind.voice | Voice note | आवाज़ संदेश | వాయిస్ నోట్
+tasks.history | History | इतिहास | చరిత్ర
+taskEvent.created | Created | बनाया | సృష్టించారు
+taskEvent.accept | Accepted | स्वीकार किया | అంగీకరించారు
+taskEvent.decline | Declined | अस्वीकार किया | తిరస్కరించారు
+taskEvent.start | Started | शुरू किया | ప్రారంభించారు
+taskEvent.complete | Marked done | पूरा किया | పూర్తి చేశారు
+taskEvent.block | Blocked | अटका | ఆగిపోయింది
+taskEvent.not_done | Not done | नहीं हुआ | చేయలేదు
+taskEvent.verify | Verified | सत्यापित किया | ధృవీకరించారు
+taskEvent.reopen | Reopened | फिर खोला | మళ్లీ తెరిచారు
+taskEvent.cancel | Cancelled | रद्द किया | రద్దు చేశారు
+taskEvent.delegate | Delegated | सौंपा | అప్పగించారు
+taskEvent.delegated | Delegated | सौंपा | అప్పగించారు
+taskEvent.change_due | Due date changed | नियत तारीख बदली | గడువు తేదీ మార్చారు
+taskEvent.due_changed | Due date changed | नियत तारीख बदली | గడువు తేదీ మార్చారు
+taskEvent.request_extension | Asked for more time | और समय माँगा | ఇంకా సమయం అడిగారు
+taskEvent.extension_requested | Asked for more time | और समय माँगा | ఇంకా సమయం అడిగారు
+taskEvent.attachment | File added | फ़ाइल जोड़ी | ఫైల్ జోడించారు
+taskEvent.comment | Comment | टिप्पणी | వ్యాఖ్య
+taskEvent.question | Question asked | प्रश्न पूछा | ప్రశ్న అడిగారు
+taskEvent.extension_request | Asked for more time | और समय माँगा | ఇంకా సమయం అడిగారు
+taskEvent.escalated | Escalated | आगे बढ़ाया | పై స్థాయికి పంపారు
+taskEvent.reminder | Reminder sent | याद दिलाया | రిమైండర్ పంపారు
+taskEvent.reassigned | Reassigned | फिर से सौंपा | మళ్లీ అప్పగించారు
+taskEvent.scheduled | Scheduled | निर्धारित किया | షెడ్యూల్ చేశారు
+taskEvent.group_complete | Group task complete | समूह कार्य पूरा | గ్రూప్ పని పూర్తి
+taskEvent.group_reopened | Group task reopened | समूह कार्य फिर खुला | గ్రూప్ పని మళ్లీ తెరిచారు
+taskEvent.completed_by_other | Done by another person | किसी और ने पूरा किया | వేరొకరు పూర్తి చేశారు
+taskEvent.offline_conflict | Offline change conflicted | ऑफ़लाइन बदलाव टकराया | ఆఫ్‌లైన్ మార్పు విభేదించింది
+source.assigned | Assigned | सौंपा गया | అప్పగించినది
+source.self | Self | स्वयं | స్వయంగా
+source.recurring | Recurring | दोहराया जाने वाला | పునరావృతం
+source.sudden | Sudden | अचानक | అకస్మాత్తు
+source.request | Request | अनुरोध | అభ్యర్థన
+source.system | System | सिस्टम | సిస్టమ్
+source.app | App | ऐप | యాప్
+source.biometric | Biometric | बायोमेट्रिक | బయోమెట్రిక్
+source.merged | App + biometric | ऐप + बायोमेट्रिक | యాప్ + బయోమెట్రిక్
+source.manual | Manual | मैनुअल | మాన్యువల్
+source.regularised | Corrected | सुधारा गया | సరిదిద్దారు
+source.leave | Leave | अवकाश | సెలవు
+source.absence | Absence | अनुपस्थिति | గైర్హాజరు
+tasks.bulk.title | {count} selected | {count} चुने गए | {count} ఎంచుకున్నారు
+tasks.bulk.reassign | Reassign | फिर से सौंपें | మళ్లీ అప్పగించండి
+tasks.bulk.cancel | Cancel selected | चुने हुए रद्द करें | ఎంచుకున్నవి రద్దు చేయండి
+tasks.bulk.chooseStaff | Choose a person | व्यक्ति चुनें | వ్యక్తిని ఎంచుకోండి
+task.extensionRequested | More time requested | और समय माँगा गया | ఇంకా సమయం అడిగారు
+# Checklists
+checklists.mine | My checklists | मेरी चेकलिस्ट | నా చెక్‌లిస్టులు
+checklists.manage | Templates | टेम्पलेट | టెంప్లేట్లు
+checklists.templates | Templates | टेम्पलेट | టెంప్లేట్లు
+checklists.runs | Recent runs | हाल के रन | ఇటీవలి రన్‌లు
+checklists.none | No checklists due. | कोई चेकलिस्ट बाकी नहीं। | చెక్‌లిస్టులు ఏవీ లేవు.
+checklists.item | Item | बिंदु | అంశం
+checklists.done | Done | पूरा | పూర్తి
+checklists.complete | Submit checklist | चेकलिस्ट जमा करें | చెక్‌లిస్టు సమర్పించండి
+checklists.completion | Completion | पूर्णता | పూర్తి శాతం
+checklists.failCount | Failed items | असफल बिंदु | విఫలమైన అంశాలు
+checklists.failures | Most failed items | सबसे ज़्यादा असफल बिंदु | ఎక్కువగా విఫలమైన అంశాలు
+checklists.followUpsCreated | {count} follow-ups created | {count} अनुवर्ती बनाए गए | {count} ఫాలో-అప్‌లు సృష్టించారు
+checklists.photoAdded | Photo added | फ़ोटो जोड़ी गई | ఫోటో జోడించారు
+checklists.photos | Photos | फ़ोटो | ఫోటోలు
+checklists.range | Allowed {min}–{max} | अनुमत {min}–{max} | అనుమతి {min}–{max}
+itemType.tick | Tick | टिक | టిక్
+itemType.yesno | Yes / No | हाँ / नहीं | అవును / కాదు
+itemType.number | Number | संख्या | సంఖ్య
+itemType.photo | Photo | फ़ोटो | ఫోటో
+itemType.text | Text | पाठ | వచనం
+onFail.ticket | raises a ticket | टिकट बनता है | టికెట్ వస్తుంది
+onFail.task | creates a task | कार्य बनता है | పని సృష్టించబడుతుంది
+# Staff attendance
+attendance.today | Today | आज | ఈరోజు
+attendance.checkIn | Check in | चेक-इन | చెక్-ఇన్
+attendance.checkOut | Check out | चेक-आउट | చెక్-అవుట్
+attendance.checkedInAt | Checked in at | चेक-इन समय | చెక్-ఇన్ సమయం
+attendance.checkedOutAt | Checked out at | चेक-आउट समय | చెక్-అవుట్ సమయం
+attendance.in | In | आगमन | వచ్చిన సమయం
+attendance.out | Out | प्रस्थान | వెళ్లిన సమయం
+attendance.lateBy | Late by | इतनी देर | ఆలస్యం
+attendance.noCheckIn | No check-in yet | अभी चेक-इन नहीं | ఇంకా చెక్-ఇన్ లేదు
+attendance.notCheckedIn | Not checked in | चेक-इन नहीं | చెక్-ఇన్ కాలేదు
+attendance.mine | My attendance | मेरी उपस्थिति | నా హాజరు
+attendance.thisMonth | This month | इस महीने | ఈ నెల
+attendance.workingDays | {count} working days | {count} कार्य दिवस | {count} పని దినాలు
+attendance.lop | Loss of pay days | वेतन कटौती दिन | జీతం కోత రోజులు
+attendance.requestCorrection | Request a correction | सुधार का अनुरोध करें | సవరణ అభ్యర్థించండి
+attendance.regularisation | Attendance correction | उपस्थिति सुधार | హాజరు సవరణ
+attendance.regularisations | Corrections | सुधार | సవరణలు
+attendance.exceptions | Exceptions | अपवाद | మినహాయింపులు
+attendance.exceptionsToday | Today's exceptions | आज के अपवाद | ఈరోజు మినహాయింపులు
+attendance.register | Monthly register | मासिक रजिस्टर | నెలవారీ రిజిస్టర్
+attendance.import | Import biometric file | बायोमेट्रिक फ़ाइल आयात करें | బయోమెట్రిక్ ఫైల్ దిగుమతి
+attendance.deviceType | Device type | डिवाइस प्रकार | పరికరం రకం
+attendance.dateFormat | Date format | तारीख का प्रारूप | తేదీ ఫార్మాట్
+attendance.rowsRead | {count} rows read | {count} पंक्तियाँ पढ़ी गईं | {count} వరుసలు చదివారు
+attendance.merge | Merge into attendance | उपस्थिति में जोड़ें | హాజరులో విలీనం చేయండి
+attendance.mergedSummary | {merged} merged, {conflicts} conflicts, {errors} errors | {merged} जोड़े, {conflicts} टकराव, {errors} त्रुटियाँ | {merged} విలీనం, {conflicts} విభేదాలు, {errors} లోపాలు
+attendance.conflict | Conflict | टकराव | విభేదం
+attendance.check_in | Check-in | चेक-इन | చెక్-ఇన్
+attendance.check_out | Check-out | चेक-आउट | చెక్-అవుట్
+attendance.map.employeeCode | Employee code column | कर्मचारी कोड कॉलम | ఉద్యోగి కోడ్ కాలమ్
+attendance.map.date | Date column | तारीख कॉलम | తేదీ కాలమ్
+attendance.map.checkIn | Check-in column | चेक-इन कॉलम | చెక్-ఇన్ కాలమ్
+attendance.map.checkOut | Check-out column | चेक-आउट कॉलम | చెక్-అవుట్ కాలమ్
+# Student attendance
+studentAtt.mark | Mark attendance | उपस्थिति लगाएँ | హాజరు వేయండి
+studentAtt.summary | Today's summary | आज का सारांश | ఈరోజు సారాంశం
+studentAtt.alerts | Alerts | चेतावनियाँ | హెచ్చరికలు
+studentAtt.chooseSection | Choose a section | सेक्शन चुनें | సెక్షన్ ఎంచుకోండి
+studentAtt.session | Session | सत्र | సెషన్
+studentAtt.tapHint | Everyone is present by default. Tap a name to change it. | सभी डिफ़ॉल्ट रूप से उपस्थित हैं। बदलने के लिए नाम पर टैप करें। | అందరూ డిఫాల్ట్‌గా హాజరు. మార్చడానికి పేరుపై నొక్కండి.
+studentAtt.editReason | Reason for change | बदलाव का कारण | మార్పుకు కారణం
+studentAtt.withinWindow | You can still edit within the edit window. | आप अभी संपादन समय में बदल सकते हैं। | సవరణ సమయంలో ఇంకా మార్చవచ్చు.
+studentAtt.needsApproval | The edit window has passed — this change needs approval. | संपादन समय निकल गया — इस बदलाव को अनुमोदन चाहिए। | సవరణ సమయం దాటింది — ఈ మార్పుకు ఆమోదం అవసరం.
+studentAtt.saveChanges | Save changes | बदलाव सहेजें | మార్పులు సేవ్ చేయండి
+studentAtt.result.submitted | Attendance saved. | उपस्थिति सहेजी गई। | హాజరు సేవ్ అయింది.
+studentAtt.result.duplicate | Already saved. | पहले से सहेजी गई। | ఇప్పటికే సేవ్ అయింది.
+studentAtt.result.approval_requested | Change sent for approval. | बदलाव अनुमोदन के लिए भेजा गया। | మార్పు ఆమోదానికి పంపారు.
+studentAtt.marked | Marked | लगाई गई | వేశారు
+studentAtt.notMarked | Not marked | नहीं लगाई | వేయలేదు
+studentAtt.pct | Attendance % | उपस्थिति % | హాజరు %
+studentAtt.absentees | Absent today | आज अनुपस्थित | ఈరోజు గైర్హాజరు
+studentAtt.roll | Roll no. | रोल नं. | రోల్ నం.
+studentAtt.below | Below {pct}% attendance | {pct}% से कम उपस्थिति | {pct}% కంటే తక్కువ హాజరు
+studentAtt.consecutive | Absent several days in a row | लगातार कई दिन अनुपस्थित | వరుసగా చాలా రోజులు గైర్హాజరు
+studentAtt.days | Days | दिन | రోజులు
+mark.present | Present | उपस्थित | హాజరు
+mark.absent | Absent | अनुपस्थित | గైర్హాజరు
+mark.late | Late | देर से | ఆలస్యం
+mark.half_day | Half day | आधा दिन | అర్ధ రోజు
+mark.on_duty | On duty | ड्यूटी पर | డ్యూటీలో
+mark.leave | Leave | अवकाश | సెలవు
+session.day | Day | दिन | రోజు
+session.am | Morning | सुबह | ఉదయం
+session.pm | Afternoon | दोपहर | మధ్యాహ్నం
+session.period | Period {n} | पीरियड {n} | పీరియడ్ {n}
+# Leave
+leave.apply | Apply | आवेदन करें | దరఖాస్తు
+leave.applyAnother | Apply for more leave | और अवकाश के लिए आवेदन करें | మరో సెలవుకు దరఖాస్తు
+leave.mine | My requests | मेरे अनुरोध | నా అభ్యర్థనలు
+leave.calendar | Leave calendar | अवकाश कैलेंडर | సెలవుల క్యాలెండర్
+leave.type | Leave type | अवकाश प्रकार | సెలవు రకం
+leave.from | From | से | నుండి
+leave.to | To | तक | వరకు
+leave.days | Days | दिन | రోజులు
+leave.hours | Hours | घंटे | గంటలు
+leave.halfDay | Half day | आधा दिन | అర్ధ రోజు
+leave.document | Supporting document | सहायक दस्तावेज़ | సహాయక పత్రం
+leave.handover | Handover note | कार्य सौंपने की टिप्पणी | బాధ్యతల అప్పగింత గమనిక
+leave.preview | {days} days · balance after: {balance} | {days} दिन · बाद में शेष: {balance} | {days} రోజులు · తర్వాత మిగులు: {balance}
+leave.clashes | {count} colleagues also away | {count} सहकर्मी भी अनुपस्थित | {count} సహోద్యోగులు కూడా లేరు
+leave.submitted | Your leave request was sent for approval. | आपका अवकाश अनुरोध अनुमोदन के लिए भेजा गया। | మీ సెలవు అభ్యర్థన ఆమోదానికి పంపారు.
+halfDay.none | Full day | पूरा दिन | పూర్తి రోజు
+halfDay.first | First half | पहला आधा | మొదటి సగం
+halfDay.second | Second half | दूसरा आधा | రెండవ సగం
+leaveError.hours_required | Enter the number of hours. | घंटों की संख्या लिखें। | గంటల సంఖ్య నమోదు చేయండి.
+leaveError.half_day_not_allowed | Half days are not allowed for this leave type. | इस अवकाश प्रकार में आधा दिन अनुमत नहीं। | ఈ సెలవు రకంలో అర్ధ రోజు అనుమతి లేదు.
+leaveError.half_day_single_day_only | A half day must be a single date. | आधा दिन एक ही तारीख का होना चाहिए। | అర్ధ రోజు ఒకే తేదీ కావాలి.
+leaveError.no_working_days | There are no working days in this range. | इस अवधि में कोई कार्य दिवस नहीं। | ఈ వ్యవధిలో పని దినాలు లేవు.
+leaveError.notice_too_short | Not enough notice for this leave type. | इस अवकाश के लिए पर्याप्त पूर्व सूचना नहीं। | ఈ సెలవుకు తగినంత ముందస్తు సమాచారం లేదు.
+leaveError.document_required | A supporting document is required. | सहायक दस्तावेज़ आवश्यक है। | సహాయక పత్రం అవసరం.
+leaveError.insufficient_balance | Not enough leave balance. | पर्याप्त अवकाश शेष नहीं। | తగినంత సెలవు మిగులు లేదు.
+leaveError.overlaps_existing | You already have leave on these dates. | इन तारीखों पर पहले से अवकाश है। | ఈ తేదీల్లో ఇప్పటికే సెలవు ఉంది.
+# Approvals
+approvals.new | New request | नया अनुरोध | కొత్త అభ్యర్థన
+approvals.types | Request types | अनुरोध प्रकार | అభ్యర్థన రకాలు
+approvals.newType | New request type | नया अनुरोध प्रकार | కొత్త అభ్యర్థన రకం
+approvals.pendingMe | Waiting for me | मेरी प्रतीक्षा में | నా కోసం వేచి ఉన్నవి
+approvals.mine | My requests | मेरे अनुरोध | నా అభ్యర్థనలు
+approvals.decided | Decided by me | मेरे द्वारा तय | నేను నిర్ణయించినవి
+approvals.applicant | Applicant | आवेदक | దరఖాస్తుదారు
+approvals.age | Waiting | प्रतीक्षा | వేచి ఉన్న సమయం
+approvals.hours | {n} h | {n} घं | {n} గం
+approvals.details | Details | विवरण | వివరాలు
+approvals.chain | Approval chain | अनुमोदन क्रम | ఆమోద క్రమం
+approvals.chainHint | Steps run in order. A condition (for example amount > 10000) adds the step only when it applies. | चरण क्रम से चलते हैं। शर्त (जैसे राशि > 10000) लागू होने पर ही चरण जुड़ता है। | దశలు క్రమంగా నడుస్తాయి. షరతు (ఉదా. మొత్తం > 10000) వర్తిస్తేనే దశ జోడించబడుతుంది.
+approvals.limitHours | {n} h limit | {n} घं सीमा | {n} గం పరిమితి
+approvals.comment | Comment | टिप्पणी | వ్యాఖ్య
+approvals.forwardTo | Forward to… | आगे भेजें… | ముందుకు పంపండి…
+approvals.system | system | सिस्टम | సిస్టమ్
+approvals.formFields | Form fields | फ़ॉर्म फ़ील्ड | ఫారమ్ ఫీల్డ్‌లు
+approvals.addField | Add field | फ़ील्ड जोड़ें | ఫీల్డ్ జోడించండి
+approvals.addStep | Add step | चरण जोड़ें | దశ జోడించండి
+approvals.step | Step | चरण | దశ
+approvals.approver | Approver | अनुमोदक | ఆమోదకులు
+approvals.conditionField | Only if field… | केवल यदि फ़ील्ड… | ఫీల్డ్ అయితే మాత్రమే…
+approvals.conditionValue | is more than | इससे अधिक है | దీని కంటే ఎక్కువ
+approvals.timeLimit | Time limit (hours) | समय सीमा (घंटे) | సమయ పరిమితి (గంటలు)
+approvalAction.approve | Approve | स्वीकृत करें | ఆమోదించండి
+approvalAction.reject | Reject | अस्वीकार करें | తిరస్కరించండి
+approvalAction.return | Return for changes | बदलाव के लिए लौटाएँ | మార్పుల కోసం తిప్పి పంపండి
+approvalAction.forward | Forward | आगे भेजें | ముందుకు పంపండి
+approvalAction.resubmit | Resubmit | फिर से जमा करें | మళ్లీ సమర్పించండి
+approvalAction.cancel | Withdraw | वापस लें | ఉపసంహరించండి
+approvalAction.submit | Submitted | जमा किया | సమర్పించారు
+approvalAction.escalate | Escalated | आगे बढ़ाया | పై స్థాయికి పంపారు
+approvalAction.comment | Comment | टिप्पणी | వ్యాఖ్య
+approverKind.manager_of_applicant | Applicant's manager | आवेदक के प्रबंधक | దరఖాస్తుదారు మేనేజర్
+approverKind.role | Anyone with a role | किसी भूमिका वाला कोई भी | ఒక పాత్ర ఉన్న ఎవరైనా
+approverKind.staff | A specific person | एक विशेष व्यक्ति | ఒక నిర్దిష్ట వ్యక్తి
+fieldType.text | Text | पाठ | వచనం
+fieldType.number | Number | संख्या | సంఖ్య
+fieldType.date | Date | तारीख | తేదీ
+fieldType.dropdown | Dropdown | ड्रॉपडाउन | డ్రాప్‌డౌన్
+fieldType.yesno | Yes / No | हाँ / नहीं | అవును / కాదు
+fieldType.file | File | फ़ाइल | ఫైల్
+# Login and help bot
+login.signIn | Sign in | साइन इन | సైన్ ఇన్
+login.subtitle | Staff sign-in for your school | आपके स्कूल के स्टाफ के लिए साइन-इन | మీ పాఠశాల సిబ్బంది సైన్-ఇన్
+login.email | Email | ईमेल | ఈమెయిల్
+login.phoneOrEmail | Phone or email | फ़ोन या ईमेल | ఫోన్ లేదా ఈమెయిల్
+login.sendCode | Send code | कोड भेजें | కోడ్ పంపండి
+login.code | Code | कोड | కోడ్
+login.verify | Verify and sign in | सत्यापित करें और साइन इन करें | ధృవీకరించి సైన్ ఇన్ చేయండి
+login.failed | Sign-in failed. Check the details and try again. | साइन-इन विफल। जानकारी जाँचकर फिर कोशिश करें। | సైన్-ఇన్ విఫలమైంది. వివరాలు చూసి మళ్లీ ప్రయత్నించండి.
+login.invitedOnly | Only staff invited by your school can sign in. | केवल स्कूल द्वारा आमंत्रित स्टाफ ही साइन इन कर सकते हैं। | పాఠశాల ఆహ్వానించిన సిబ్బంది మాత్రమే సైన్ ఇన్ చేయగలరు.
+bot.title | Help | सहायता | సహాయం
+bot.open | Open help | सहायता खोलें | సహాయం తెరవండి
+bot.intro | Ask how to do anything in AutoEd OS. | AutoEd OS में कुछ भी कैसे करें, पूछें। | AutoEd OSలో ఏదైనా ఎలా చేయాలో అడగండి.
+bot.placeholder | Type your question… | अपना प्रश्न लिखें… | మీ ప్రశ్న రాయండి…
+bot.send | Send | भेजें | పంపండి
+bot.voice | Speak your question | अपना प्रश्न बोलें | మీ ప్రశ్న చెప్పండి
+bot.helpful | Helpful | उपयोगी | ఉపయోగపడింది
+bot.notHelpful | Not helpful | उपयोगी नहीं | ఉపయోగపడలేదు
+bot.takeMeThere | Take me there | वहाँ ले चलें | అక్కడికి తీసుకెళ్లండి
+bot.raiseTicket | Ask AutoEd support | AutoEd सहायता से पूछें | AutoEd సపోర్ట్‌ను అడగండి
+bot.ticketRaised | Sent to AutoEd support. They will reply in your inbox. | AutoEd सहायता को भेजा गया। उत्तर आपके इनबॉक्स में आएगा। | AutoEd సపోర్ట్‌కు పంపారు. సమాధానం మీ ఇన్‌బాక్స్‌కు వస్తుంది.
+bot.cannotAnswer | I could not find this in the help guide. You can ask AutoEd support. | मुझे यह सहायता गाइड में नहीं मिला। आप AutoEd सहायता से पूछ सकते हैं। | సహాయ మార్గదర్శిలో ఇది కనబడలేదు. AutoEd సపోర్ట్‌ను అడగవచ్చు.
+bot.error | The help bot is not available right now. | सहायता बॉट अभी उपलब्ध नहीं है। | సహాయ బాట్ ఇప్పుడు అందుబాటులో లేదు.
+import.rowError | Row {row}: {error} | पंक्ति {row}: {error} | వరుస {row}: {error}
+staff.code | Employee code | कर्मचारी कोड | ఉద్యోగి కోడ్
