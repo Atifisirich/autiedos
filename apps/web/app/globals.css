@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+body { @apply bg-slate-50 text-slate-900 antialiased; }
+html.large-text { font-size: 18px; }
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  .print-sheet { box-shadow: none !important; border: none !important; }
+}
