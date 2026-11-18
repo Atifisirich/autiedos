@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "AutoEd OS",
+    "slug": "autoed-os",
+    "scheme": "autoed",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": ["expo-router", "expo-secure-store", ["expo-notifications", { "color": "#1d4ed8" }]],
+    "ios": { "bundleIdentifier": "in.autoed.os", "supportsTablet": false },
+    "android": { "package": "in.autoed.os", "permissions": ["ACCESS_FINE_LOCATION", "CAMERA", "RECORD_AUDIO"] },
+    "extra": { "apiBase": "https://os.autoed.example/api/os", "eas": { "projectId": "" } },
+    "experiments": { "typedRoutes": false }
+  }
+}
