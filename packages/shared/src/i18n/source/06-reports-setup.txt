@@ -588,3 +588,8 @@ notif.substitution.needed | {count} periods need a substitute on {date} | {date}
 notif.substitution.supervision | Please supervise {section}, period {period} on {date} | कृपया {section}, पीरियड {period}, {date} की निगरानी करें | దయచేసి {section}, పీరియడ్ {period}, {date} పర్యవేక్షించండి
 notif.ticket.assigned | Helpdesk ticket assigned: {title} | हेल्पडेस्क टिकट सौंपा गया: {title} | హెల్ప్‌డెస్క్ టికెట్ అప్పగించారు: {title}
 notif.timetable.published | New timetable from {date} | {date} से नई समय सारणी | {date} నుండి కొత్త టైమ్‌టేబుల్
+dashboard.me | My day at a glance | एक नज़र में मेरा दिन | ఒక్క చూపులో నా రోజు
+notif.task.esc.reminder | Reminder: "{title}" is due soon | अनुस्मारक: "{title}" की समय सीमा निकट है | రిమైండర్: "{title}" గడువు దగ్గర పడింది
+notif.task.esc.due | "{title}" is due now | "{title}" की समय सीमा अभी है | "{title}" గడువు ఇప్పుడే
+notif.task.esc.overdue_assigner | Overdue: "{title}" has not been completed | समय सीमा पार: "{title}" पूरा नहीं हुआ | గడువు దాటింది: "{title}" పూర్తి కాలేదు
+notif.task.esc.overdue_manager | Overdue for a long time: "{title}" | बहुत देर से बाकी: "{title}" | చాలాకాలంగా గడువు దాటింది: "{title}"

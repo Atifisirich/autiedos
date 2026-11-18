@@ -21,13 +21,13 @@ export default function StudentAttendance() {
   const sec = sections.data?.find((s) => s.id === section);
   const sessionKeys = sec?.mode === 'daily_twice' ? ['am', 'pm'] : sec?.mode === 'period' ? Array.from({ length: 8 }, (_, i) => `p${i + 1}`) : ['day'];
   const [session, setSession] = useState('day');
-  useEffect(() => setSession(sessionKeys[0]!), [section]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setSession(sessionKeys[0]!); }, [section]); // eslint-disable-line react-hooks/exhaustive-deps
   const roster = useApi<any>(section ? `/student-attendance/roster?section_id=${section}&date=${date}&session_key=${session}` : null);
   const [marks, setMarks] = useState<Record<string, string>>({});
   const [reason, setReason] = useState('');
   const a = useAction();
   const [msg, setMsg] = useState<string | null>(null);
-  useEffect(() => setMarks(Object.fromEntries((roster.data?.students ?? []).map((s: any) => [s.id, s.status]))), [roster.data]);
+  useEffect(() => { setMarks(Object.fromEntries((roster.data?.students ?? []).map((s: any) => [s.id, s.status]))); }, [roster.data]);
   const summary = useApi<any>(tab === 'summary' ? `/student-attendance/summary?date=${date}` : null);
   const alerts = useApi<any>(tab === 'alerts' ? '/student-attendance/alerts' : null);
   const counts = Object.values(marks).reduce<Record<string, number>>((c, m) => ((c[m] = (c[m] ?? 0) + 1), c), {});

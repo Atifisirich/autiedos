@@ -47,7 +47,12 @@ function initialLang(): Lang {
 
 export function AppProvider({ children, requireAuth = true }: { children: ReactNode; requireAuth?: boolean }) {
   const [me, setMe] = useState<Me | null>(null);
-  const [lang, setLangState] = useState<Lang>(initialLang);
+  // Server and first client render both use English; the saved language is applied after mount
+  // so hydration matches.
+  const [lang, setLangState] = useState<Lang>('en');
+  useEffect(() => {
+    setLangState(initialLang());
+  }, []);
   const [branch, setBranchState] = useState<string | null>(() => {
     try {
       return typeof window !== 'undefined' ? localStorage.getItem('os_branch') : null;

@@ -249,7 +249,7 @@ export async function listTickets(ctx: Ctx, view: 'mine' | 'assigned' | 'all', s
       `select t.id, t.title, t.status, t.priority, t.due_at, t.created_at, t.cost, tc.name as category, tc.name_i18n, r.name as room_name, o.full_name as owner_name, rb.full_name as raised_by_name,
          (t.due_at < now() and t.status not in ('resolved','closed')) as breached
        from public.tickets t join public.ticket_categories tc on tc.id = t.category_id left join public.rooms r on r.id = t.room_id left join public.staff o on o.id = t.owner_id left join public.staff rb on rb.id = t.raised_by
-       where t.deleted_at is null and ${view === 'mine' ? 't.raised_by = $1' : view === 'assigned' ? 't.owner_id = $1' : 't.branch_id = $2'} and ($3::text is null or t.status = $3)
+       where t.deleted_at is null and $1::uuid is not null and $2::uuid is not null and ${view === 'mine' ? 't.raised_by = $1' : view === 'assigned' ? 't.owner_id = $1' : 't.branch_id = $2'} and ($3::text is null or t.status = $3)
        order by (t.status in ('resolved','closed')), t.due_at nulls last limit 300`,
       [ctx.staffId, ctx.branchId, status ?? null],
     ),

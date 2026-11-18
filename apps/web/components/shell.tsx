@@ -18,7 +18,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const inbox = useApi<{ id: string }[]>(me ? '/inbox?unread=1' : null);
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => { setOpen(false); }, [pathname]);
   if (!me) return <Loading />;
   const items = NAV_ITEMS.filter((i) => on(i.module) && (!i.perm || can(i.perm.module, i.perm.action, i.key === 'setup' ? 5 : 1)));
   const isActive = (href: string) => (href === '/os' ? pathname === '/os' : pathname?.startsWith(href));

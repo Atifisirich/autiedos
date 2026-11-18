@@ -24,7 +24,7 @@ export default function PlanDetail({ params }: { params: Promise<{ id: string }>
   const [rating, setRating] = useState('5');
   const [companion, setCompanion] = useState<{ kind: string; companion: unknown } | null>(null);
   const [reuse, setReuse] = useState<{ open: boolean; sections: string[]; date: string }>({ open: false, sections: [], date: new Date().toISOString().slice(0, 10) });
-  useEffect(() => setContent(plan.data?.content ?? null), [plan.data]);
+  useEffect(() => { setContent(plan.data?.content ?? null); }, [plan.data]);
   if (!plan.data || !content) return plan.error ? <ErrorBox error={plan.error} /> : <Loading />;
   const p = plan.data;
   const sections: { key: string; name: string; mandatory: boolean }[] = p.template?.sections ?? [];

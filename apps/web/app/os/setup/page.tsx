@@ -14,7 +14,7 @@ export default function Setup() {
   const w = useApi<any>('/setup');
   const a = useAction();
   const [step, setStep] = useState(0);
-  useEffect(() => w.data && setStep(Math.min(w.data.org.setup_step ?? 0, 7)), [w.data]);
+  useEffect(() => { if (w.data) setStep(Math.min(w.data.org.setup_step ?? 0, 7)); }, [w.data]);
   if (!w.data) return <ErrorBox error={w.error} />;
   const steps: string[] = w.data.steps;
   const go = async (n: number) => { setStep(n); await post('/setup/step', { step: Math.max(n, w.data.org.setup_step ?? 0) }).catch(() => undefined); };
