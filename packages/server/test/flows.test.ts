@@ -319,7 +319,7 @@ describe('flow 6: blueprint -> generate paper -> review -> approve -> restricted
 
 describe('flow 7: checklist failure -> ticket -> resolve -> close', () => {
   it('works end to end', async () => {
-    const runs = await ok(HOUSEKEEPING, 'GET', '/checklists/runs', undefined, { date: '2026-11-16' });
+    const runs = await ok(HOUSEKEEPING, 'GET', '/checklists/runs', undefined, { date: today });
     const run = runs.find((r: { name: string; status: string }) => r.name === 'Morning opening' && r.status === 'pending');
     expect(run).toBeTruthy();
     const detail = await ok(HOUSEKEEPING, 'GET', `/checklists/runs/${run.id}`);
