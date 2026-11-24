@@ -76,22 +76,21 @@ export async function createWorld(opts: { extraMigrations?: boolean } = {}): Pro
   }
 
   const q = async <R extends pg.QueryResultRow = pg.QueryResultRow>(sql: string, params: unknown[] = []) => (await pool.query<R>(sql, params)).rows;
-  const world = await build(pool, q);
-  return {
-    dbName,
-    url,
-    pool,
-    db: createSetRoleDb(pool),
-    ...world,
-    q,
-    async close() {
-      await pool.end();
-      const a = new pg.Client({ connectionString: base.toString() });
-      await a.connect();
-      await a.query(`drop database if exists ${dbName} with (force)`);
-      await a.end();
-    },
+  const close = async () => {
+    await pool.end().catch(() => undefined);
+    const a = new pg.Client({ connectionString: base.toString() });
+    await a.connect();
+    await a.query(`drop database if exists ${dbName} with (force)`);
+    await a.end();
   };
+  let world: Awaited<ReturnType<typeof build>>;
+  try {
+    world = await build(pool, q);
+  } catch (e) {
+    await close(); // never leave a scratch database behind
+    throw e;
+  }
+  return { dbName, url, pool, db: createSetRoleDb(pool), ...world, q, close };
 }
 
 async function build(pool: pg.Pool, q: World['q']) {
