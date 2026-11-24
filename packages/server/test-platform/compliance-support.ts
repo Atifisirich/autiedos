@@ -53,7 +53,7 @@ export async function createWorld(opts: { extraMigrations?: boolean } = {}): Pro
   const u = new URL(BASE_URL);
   u.pathname = `/${dbName}`;
   const url = u.toString();
-  execSync(`node ${join(ROOT, 'scripts/db.mjs')} reset --platform-only`, { stdio: 'pipe', env: { ...process.env, DATABASE_URL: url } });
+  execSync(`node ${join(ROOT, 'scripts/db.mjs')} reset --platform-only`, { stdio: 'pipe', env: { ...process.env, DATABASE_URL: url, MIGRATION_FILTER: '_platform_|_core_master_|_compliance' } });
 
   const pool = new pg.Pool({ connectionString: url, max: 6 });
   // every migration of the platform stream that the platform-only filter does not pick up (the compliance one included)
