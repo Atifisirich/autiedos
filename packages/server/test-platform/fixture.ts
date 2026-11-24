@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { owner } from './helpers';
 import { seedCore } from './fixture-core';
+import { seedOs } from './fixture-os';
 import { resetPlatformDatabase } from './global-setup';
 
 export type World = Awaited<ReturnType<typeof buildWorld>>;
@@ -116,6 +117,9 @@ async function build(c: pg.PoolClient) {
   // core master data (20261115100001..8): learners, families, staff and one row per core table for A and B
   const coreA = await seedCore(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, guardian: u.aGuardian, teacher: u.aTeacher });
   const coreB = await seedCore(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, guardian: u.bGuardian });
+  // OS product rows (20261116000001..5): one row per os table (and OS wallet tables) for A and B
+  await seedOs(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, core: coreA });
+  await seedOs(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, core: coreB });
   const learnerA = coreA.learner;
   const learnerB = coreB.learner;
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'mother'), ($4, $5, $6, 'father')`, [A.id, u.aGuardian, learnerA, B.id, u.bGuardian, learnerB]);
