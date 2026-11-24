@@ -41,7 +41,7 @@ export async function submitRoll(sectionId: string, date: string, session: strin
       for (const s of sl) for (const g of ((gs ?? []) as { household_id: string; user_id: string }[]).filter((x) => x.household_id === s.household_id)) {
         notes.push({ user_id: g.user_id, product_key: 'erp', event_key: 'absent', title: `${s.first_name} was marked absent`, body: `On ${date}. Reply with the reason or apply for leave in the app.`, link: '/erp/parent/requests', dedupe_key: `absent:${s.id}:${date}:${g.user_id}` });
       }
-      if (notes.length) await sb.from('notifications').upsert(notes, { onConflict: 'org_id,dedupe_key', ignoreDuplicates: true });
+      if (notes.length) await sb.from('notifications').upsert(notes, { onConflict: 'org_id,user_id,dedupe_key', ignoreDuplicates: true });
       // Chronic absence: three consecutive days (ATT-08)
       const { data: recent } = await sb.from('student_attendance_marks').select('student_id, date, status').in('student_id', newlyAbsent).eq('session_key', 'day').gte('date', addDays(date, -7)).is('deleted_at', null).order('date', { ascending: false });
       const rec = (recent ?? []) as { student_id: string; status: string }[];

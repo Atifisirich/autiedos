@@ -235,6 +235,8 @@ export async function seedErp(q: Q, o: ErpOrgInput) {
   await ins('forms', { title: 'Staff form (draft)', status: 'draft', audience: 'staff' });
   await ins('form_responses', { form_id: form, user_id: o.guardian, student_id: c.learner, answers: j({ q1: 'good' }) });
   await ins('principal_diary', { date: '2026-11-23', comments: 'Quiet day', ...base });
+  // staff UI (20261118100002): a substitution when the school has no OS timetable
+  await ins('substitutions', { date: '2026-11-23', period_seq: 1, section_id: c.section, subject_id: c.subj, absent_staff_id: c.otherStaff, substitute_staff_id: c.adminStaff, reason: 'Sick leave', ...base });
   await ins('data_health_reports', { findings: j({ missing_dob: 2 }) });
   await ins('franchise_royalties', { period: '2026-Q2', amount: 10000, ...base });
   await ins('quality_audits', { framework: 'internal', ...base });

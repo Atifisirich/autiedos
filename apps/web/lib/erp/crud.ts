@@ -69,9 +69,13 @@ export function rowFromForm(ent: EntityDef, fd: FormData) {
   return row;
 }
 
+/** Core tables that have no soft-delete column. */
+const HARD_DELETE = new Set(['branches', 'org_users']);
+
 /** A list query for an entity with the branch and year filters of the header applied. */
 export function listQuery(ctx: Ctx, ent: EntityDef, select = '*', opts: { count?: boolean } = {}) {
-  let q = tableOf(ctx, ent).select(select, opts.count ? { count: 'exact' } : undefined).is('deleted_at', null);
+  const base = tableOf(ctx, ent).select(select, opts.count ? { count: 'exact' } : undefined);
+  let q = HARD_DELETE.has(ent.table) ? base : base.is('deleted_at', null);
   if (ent.branch && ctx.branchId) q = q.or(`branch_id.eq.${ctx.branchId},branch_id.is.null`);
   return q;
 }

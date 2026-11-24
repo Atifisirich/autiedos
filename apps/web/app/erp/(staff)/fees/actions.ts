@@ -96,7 +96,7 @@ export async function logFollowup(fd: FormData) {
     const { data: gs } = await core(ctx.sb).from('guardians').select('user_id').eq('household_id', (s as { household_id: string } | null)?.household_id ?? '00000000-0000-0000-0000-000000000000').not('user_id', 'is', null);
     const amount = str(fd, 'amount');
     const notes = ((gs ?? []) as { user_id: string }[]).map((g) => ({ user_id: g.user_id, product_key: 'erp', event_key: 'fee_due', title: `Fee reminder for ${(s as { first_name: string } | null)?.first_name}`, body: `Rs ${amount} is pending. You can pay in the app.`, link: '/erp/parent/fees', dedupe_key: `fee:${student}:${today()}:${g.user_id}` }));
-    if (notes.length) await core(ctx.sb).from('notifications').upsert(notes, { onConflict: 'org_id,dedupe_key', ignoreDuplicates: true }); // never two reminders for the same trigger
+    if (notes.length) await core(ctx.sb).from('notifications').upsert(notes, { onConflict: 'org_id,user_id,dedupe_key', ignoreDuplicates: true }); // never two reminders for the same trigger
   }
   go('/erp/fees/dues', type === 'message' ? 'Reminder sent.' : 'Follow-up logged.');
 }
