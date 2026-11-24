@@ -33,7 +33,7 @@ async function main() {
   await client.query('alter table public._migrations enable row level security');
   const done = new Set((await client.query('select name from public._migrations')).rows.map((r) => r.name));
   const files = readdirSync(join(root, 'supabase/migrations')).filter((f) => f.endsWith('.sql'))
-    .filter((f) => !platformOnly || /_platform_/.test(f)).sort();
+    .filter((f) => !platformOnly || /_platform_|_core_master_/.test(f)).sort();
   for (const f of files) {
     if (done.has(f)) continue;
     if (cmd === 'status') { console.log('pending', f); continue; }
