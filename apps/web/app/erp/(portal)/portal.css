@@ -1,0 +1,13 @@
+/* Defaults of the school brand variables; the portal session replaces them with the school's colours after sign-in. */
+:root {
+  --pt-primary: #1d4ed8;
+  --pt-accent: #f59e0b;
+  --pt-on-primary: #ffffff;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+@media print {
+  nav, header.no-print, .print\:hidden { display: none !important; }
+  body { background: #fff; }
+}

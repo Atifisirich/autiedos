@@ -11,7 +11,8 @@
     "./i18n": "./src/i18n/index.ts",
     "./presets": "./src/presets/index.ts",
     "./billing": "./src/billing/index.ts",
-    "./erp": "./src/erp/index.ts"
+    "./erp": "./src/erp/index.ts",
+    "./erp-portal": "./src/erp-portal/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

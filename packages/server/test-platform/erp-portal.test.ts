@@ -67,6 +67,34 @@ describe('erp.portal_results', () => {
   });
 });
 
+describe('erp.portal_set_consent / erp.portal_consents', () => {
+  it('a guardian records and reads own message choices; the ledger row is written for the own guardian record', async () => {
+    expect(await code(w.u.aGuardian, `select erp.portal_set_consent('whatsapp', 'promotional', 'opted_out')`)).toBe('');
+    const c = await owner.connect();
+    try {
+      await c.query('begin');
+      await c.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: w.u.aGuardian, role: 'authenticated' })]);
+      await c.query('set local role authenticated');
+      await c.query(`select erp.portal_set_consent('whatsapp', 'promotional', 'opted_in')`);
+      const got = (await c.query(`select erp.portal_consents() as c`)).rows[0].c as Record<string, Record<string, string>>;
+      expect(got.whatsapp?.promotional).toBe('opted_in');
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    const [ev] = await ownerQuery(`select e.person_type, e.source, e.recorded_by, e.guardian_id, g.user_id from core.consent_events e join core.guardians g on g.id = e.guardian_id
+                                    where e.org_id = $1 and e.source = 'portal' order by e.recorded_at desc limit 1`, [w.A.id]);
+    expect(ev).toMatchObject({ person_type: 'guardian', source: 'portal', recorded_by: w.u.aGuardian, user_id: w.u.aGuardian });
+  });
+  it('refuses unknown choices, students, staff and users without a guardian record', async () => {
+    expect(await code(w.u.aGuardian, `select erp.portal_set_consent('fax', 'service', 'opted_in')`)).toBe('22023');
+    expect(await code(w.u.aGuardian, `select erp.portal_set_consent('sms', 'service', 'maybe')`)).toBe('22023');
+    expect(await code(w.u.aStudent, `select erp.portal_set_consent('sms', 'service', 'opted_in')`)).toBe('42501');
+    expect(await code(w.u.aAdmin, `select erp.portal_consents()`)).toBe('42501');
+    expect(await code(w.u.aOtherParent, `select erp.portal_set_consent('sms', 'service', 'opted_in')`)).toBe('22023'); // a parent login with no guardian row
+  });
+});
+
 describe('erp.request_gate_pass', () => {
   async function request(user: string, student: string, reason = 'Doctor appointment') {
     const c = await owner.connect();
