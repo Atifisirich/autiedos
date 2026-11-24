@@ -9,7 +9,8 @@ ap-south-1, free plan) and the owner's Vercel Hobby team (project `autoed-platfo
 
 * Schema: every file of `supabase/migrations` applied in filename order with the Supabase MCP `apply_migration` (one migration per
   file, same name without `.sql`). Each call fetched the file from GitHub at a pinned commit through the `http` extension and checked
-  its sha256 before running it, so the applied SQL is byte-identical to the repository. No file needed a change for real Supabase.
+  its sha256 before running it, so the applied SQL is byte-identical to the repository (the `http` extension was enabled only for
+  the load and dropped afterwards; enable it again in schema `extensions` to reload). No file needed a change for real Supabase.
   `supabase/local/shim.sql` is local only and was not applied.
 * Login roles `os_server`, `crm_server`, `erp_server`, `platform_admin_server`, `job_runner` have random passwords, set out of band
   (never in a migration or in git); they live only in the Vercel environment variables.
@@ -59,6 +60,15 @@ ap-south-1, free plan) and the owner's Vercel Hobby team (project `autoed-platfo
 * CRM: `@demo.test` logins (Greenfield Demo School) through `/login` (they are staff, so the demo e-mail sign-in accepts them).
   The CRM's own `/crm/login` e-mail-only sign-in refuses on real Supabase by design.
 * Platform console: `/admin` needs Supabase Auth (its dev login is off in production).
+
+## Checked on the first preview (2026-11-24)
+
+Through the preview with a Vercel share link: `/login`, `/os`, `/crm/f/greenfield-enquiry`, `/erp` (-> `/erp/login`), `/admin` answer 200;
+demo sign-in as `principal@demo.school` -> `/api/os/session` and `/api/os/me` 200 with the OS demo school; `admin@demo.test` via
+`/login` -> `/api/crm/shell` and `/api/crm/leads` 200; `principal@erp.demo.school` Supabase Auth token -> `/api/erp/session` -> `/erp`
+renders the ERP home with Demo Public School data (Data API, RLS); `admin@autoed.dev` Supabase Auth token -> `/api/admin/auth/session`
+-> `/api/admin/clients` 200; `/api/erp-portal/verify` (erp_server) and `/api/cron/tick` with `CRON_SECRET` (job_runner) 200. No runtime
+errors were reported.
 
 ## Known gaps on hosted Supabase
 
