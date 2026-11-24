@@ -44,8 +44,8 @@ Key server concepts:
 * Permissions: `has_permission(user, module, action, target)` with scopes own/team/department/wing/branch/group. In code: `need`, `needModule`, `rank`.
 * Auth: Supabase OTP -> `POST /auth/session` -> HS256 session token (`AUTH_JWT_SECRET`), per-device revocable. `AUTH_PROVIDER=dev` enables email-only login for demos/tests.
 * Jobs: `jobs` table driven by `/api/cron/tick` (Vercel cron every minute, `CRON_SECRET`); handlers in `scheduler.ts`.
-* AI: `adapters/ai.ts` (Anthropic SDK, JSON-schema output, validate + repair, up to 3 attempts, cost only on success), `mockAi.ts` when no key.
-  Models are rows in `platform_settings` (strong `claude-opus-5-5`, fast `claude-haiku-5-5`), credit costs in `ai_action_costs`.
+* AI: `adapters/ai.ts` (Google Gemini via REST, JSON-schema output, validate + repair, up to 3 attempts, cost only on success), `mockAi.ts` in dev and tests. See `docs/adr/ai-gemini.md`.
+  Models are rows in `platform_settings` (`ai_models`: strong, fast, optional prices; seeded as named placeholders until verified), credit costs in `ai_action_costs`.
 * Translations: edit `packages/shared/src/i18n/source/*.txt` (`key | English | Hindi | Telugu`), run `pnpm i18n:build`, then `pnpm lint`.
 
 ---
@@ -92,7 +92,7 @@ README, `.env.example`, AUDIT, DECISIONS (26 decisions), BUILD-LOG, this file.
 ### A. Blocked on the owner (Atif) — cannot be built without these
 | # | Needed | Why | Where it plugs in |
 |---|---|---|---|
-| 1 | Anthropic API key | Real AI; today a mock runs | `ANTHROPIC_API_KEY` |
+| 1 | Gemini API key (paid tier) | Real AI; today a mock runs | `GEMINI_API_KEY`, `GEMINI_TIER=paid` |
 | 2 | WhatsApp provider + approved templates | Real WhatsApp (template-only) | `WHATSAPP_API_URL/TOKEN`; templates in `presets/catalogs.ts` `NOTIFICATION_EVENTS[].whatsappTemplate` |
 | 3 | Expo + Firebase/APNs accounts, Play + Apple developer accounts | Push, app builds, store listing | `PUSH_PROVIDER=expo`, `EXPO_ACCESS_TOKEN`, `mobile/app.json` `extra.eas.projectId` |
 | 4 | Sentry project DSN | Error tracking | not wired yet |
@@ -104,7 +104,7 @@ README, `.env.example`, AUDIT, DECISIONS (26 decisions), BUILD-LOG, this file.
 ### B. Engineering work still to do
 1. **Run the mobile app on a real device/emulator** and fix whatever breaks. Not yet done at all. Expand from 5 tabs to the PRD's mobile scope
    (class log, checklists with photos, leave apply, approvals, substitution alerts, helpdesk raise with photo/voice, timetable view, voice notes).
-2. **Real-service integration tests** once keys exist: Anthropic (JSON-schema output, `server-side-fallback` beta flags in `adapters/ai.ts` were written from docs and never run live),
+2. **Real-service integration tests** once keys exist: Gemini (JSON-schema output via `responseJsonSchema` in `adapters/ai.ts` was written from docs and never run live; set real model IDs and prices in `platform_settings`),
    WhatsApp send + delivery status, Expo push, Supabase Auth OTP end to end.
 3. **Deploy**: create Vercel project (root `apps/web`, transpile workspace packages), Supabase project (apply migrations with `supabase db push`, **not** the local shim),
    set env vars, confirm the cron tick runs, confirm storage bucket + policies. Nothing has been deployed.

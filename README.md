@@ -31,7 +31,8 @@ Demo logins (email only, dev mode): `principal@demo.school`, `vp@demo.school`, `
 `admin@demo.school`, `chairman@demo.school`, `director@demo.school`, teacher `deepa.teacher9@demo.school`,
 HOD `priya.hod6@demo.school`, Kondapur principal `principal.kond@demo.school`; platform console `admin@autoed.dev`.
 
-Without `ANTHROPIC_API_KEY`, AI features use a deterministic mock so everything works offline.
+Without `GEMINI_API_KEY`, AI features use a deterministic mock so everything works offline. Production requires
+`GEMINI_API_KEY` and `GEMINI_TIER=paid` (see `docs/adr/ai-gemini.md`).
 
 ## Checks
 

@@ -5,18 +5,29 @@
  */
 import { checkCredits, creditCost, containsContactData, crossedThresholds, monthKey, type AiAction, type CostRow } from '@autoed/shared';
 import type { ZodType, ZodTypeDef } from 'zod';
-import { PaymentRequiredError, ValidationError, insert, maybe, one, q, type Tx } from '../db';
-import { getAiProvider, AiRefusalError, type ModelTier } from '../adapters/ai';
+import { PaymentRequiredError, ValidationError, asService, insert, maybe, one, q, type Tx } from '../db';
+import { getAiProvider, AiRefusalError, type AiModels, type ModelTier } from '../adapters/ai';
 import { notify } from '../notify';
 import { need, run, now, staffWithRole, type Ctx } from '../core';
+
+/**
+ * Calls that end in an error are still recorded (rule 5). The caller's transaction rolls back when we throw,
+ * so these rows are written on their own connection and survive it.
+ */
+async function recordFailed(row: Record<string, unknown>): Promise<void> {
+  await asService((cc) => insert(cc, 'ai_generations', row));
+}
 
 export async function costTable(c: Tx): Promise<CostRow[]> {
   return (await q<{ action: string; credits: number; included: boolean; daily_fair_use: number | null }>(c, `select action, credits, included, daily_fair_use from public.ai_action_costs where deleted_at is null`)).map((r) => ({ action: r.action, credits: Number(r.credits), included: r.included, dailyFairUse: r.daily_fair_use }));
 }
 
-async function models(c: Tx): Promise<{ strong: string; fast: string }> {
-  const r = await maybe<{ value: { strong: string; fast: string } }>(c, `select value from public.platform_settings where key = 'ai_models'`);
-  return r?.value ?? { strong: 'claude-opus-5-5', fast: 'claude-haiku-5-5' };
+/** Model IDs (and optional USD prices per 1M tokens) are platform_settings rows, never code. */
+const UNSET_MODELS: AiModels = { strong: 'PLACEHOLDER_GEMINI_STRONG_MODEL_ID', fast: 'PLACEHOLDER_GEMINI_FAST_MODEL_ID', prices: null };
+
+async function models(c: Tx): Promise<AiModels> {
+  const r = await maybe<{ value: AiModels }>(c, `select value from public.platform_settings where key = 'ai_models'`);
+  return r?.value ?? UNSET_MODELS;
 }
 
 /** Ensures this month's allowance exists (from the branch's plan; carry-forward if the plan allows). */
@@ -81,7 +92,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
   const decision = checkCredits(o.action, { ...state, usesToday }, costs, o.units ?? 1);
   const model = await models(c);
   if (!decision.allowed) {
-    await insert(c, 'ai_generations', { org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, action: o.action, model: o.tier === 'strong' ? model.strong : model.fast, provider: 'none', input: o.logInput, status: 'blocked', error: decision.reason, credits: 0 });
+    await recordFailed({ org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, action: o.action, model: o.tier === 'strong' ? model.strong : model.fast, provider: 'none', input: o.logInput, status: 'blocked', error: decision.reason, credits: 0 });
     throw new PaymentRequiredError(decision.reason === 'fair_use' ? 'fair_use_limit' : decision.reason === 'teacher_cap' ? 'teacher_cap_reached' : 'credits_exhausted');
   }
   if (containsContactData(o.prompt) || containsContactData(o.system)) throw new ValidationError('personal_data_in_prompt');
@@ -101,7 +112,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
       res = await provider.generate({ action: o.action, tier: o.tier, system: o.system, prompt: attempts > 1 ? `${o.prompt}\n\nThe previous answer failed these checks: ${lastIssues.join(', ')}. Fix them.` : o.prompt, schema: o.jsonSchema, mockContext: o.mockContext }, model);
     } catch (e) {
       const refusal = e instanceof AiRefusalError;
-      await insert(c, 'ai_generations', { org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, action: o.action, model: usedModel || model.strong, provider: provider.name, input: o.logInput, status: 'failed', attempts, error: refusal ? `refused:${(e as AiRefusalError).category}` : (e as Error).message.slice(0, 500), credits: 0 });
+      await recordFailed({ org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, action: o.action, model: usedModel || model.strong, provider: provider.name, input: o.logInput, status: 'failed', attempts, error: refusal ? `refused:${(e as AiRefusalError).category}` : (e as Error).message.slice(0, 500), credits: 0 });
       throw refusal ? new ValidationError('ai_refused') : new ValidationError('ai_unavailable');
     }
     tokensIn += res.inputTokens;
@@ -120,7 +131,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
   }
   const ok = output !== null && !lastIssues.length;
   const credits = ok ? creditCost(o.action, costs, o.units ?? 1) : 0;
-  const gen = await insert<{ id: string }>(c, 'ai_generations', {
+  const genRow = {
     org_id: o.orgId,
     branch_id: o.branchId,
     staff_id: o.staffId,
@@ -138,8 +149,12 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
     error: ok ? null : lastIssues.join('; ').slice(0, 1000),
     linked_type: o.linked?.type ?? null,
     linked_id: o.linked?.id ?? null,
-  });
-  if (!ok || output === null) throw new ValidationError('ai_output_invalid', { issues: lastIssues });
+  };
+  if (!ok || output === null) {
+    await recordFailed(genRow);
+    throw new ValidationError('ai_output_invalid', { issues: lastIssues });
+  }
+  const gen = await insert<{ id: string }>(c, 'ai_generations', genRow);
   if (credits > 0) {
     await insert(c, 'ai_credit_ledger', { org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, kind: 'usage', action: o.action, period, credits: -credits, generation_id: gen.id, tokens: tokensIn + tokensOut, provider_cost: cost });
     const beforePct = state.granted ? (state.used / state.granted) * 100 : 0;

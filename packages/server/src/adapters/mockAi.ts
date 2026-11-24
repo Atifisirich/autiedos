@@ -1,5 +1,5 @@
 /**
- * Deterministic mock AI used until an Anthropic key is configured. It returns structured
+ * Deterministic mock AI used in development and tests (production uses Gemini, see adapters/ai.ts). It returns structured
  * output in the same shape the real model is asked for, built from curriculum context,
  * so every screen and flow can be exercised end to end.
  */
