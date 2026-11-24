@@ -9,7 +9,7 @@ import { roleKey, seedStarterPack } from '../src/provision';
 import { asSystem, closePools } from '../src/db';
 
 export const OWNER_URL = process.env.DATABASE_URL ?? 'postgres://postgres@localhost:54322/postgres';
-const as = (role: string) => {
+export const as = (role: string) => {
   const u = new URL(OWNER_URL);
   u.username = role;
   u.password = '';

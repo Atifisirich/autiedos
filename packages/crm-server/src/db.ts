@@ -66,7 +66,6 @@ export async function closePools() {
   await jobPool?.end();
   crmPool = null;
   jobPool = null;
-  actors.clear();
 }
 
 // ---------------------------------------------------------------- column types (jsonb vs arrays)
@@ -195,15 +194,9 @@ export async function asUser<T>(userId: string, orgId: string | null, fn: (db: D
   return inTx(getPool(), { orgId, userId, system: false }, fn);
 }
 
-const actors = new Map<string, string>();
-
-/** The org's automation user id, or null when the org has no active CRM subscription. */
+/** The org's automation user id, or null when the org has no active CRM subscription. Never cached: a subscription change applies to the next request. */
 export async function systemActor(orgId: string): Promise<string | null> {
-  const cached = actors.get(orgId);
-  if (cached) return cached;
-  const r = (await getPool().query('select crm.system_actor($1) as id', [orgId])).rows[0]?.id as string | null | undefined;
-  if (r) actors.set(orgId, r);
-  return r ?? null;
+  return ((await getPool().query('select crm.system_actor($1) as id', [orgId])).rows[0]?.id as string | null | undefined) ?? null;
 }
 
 export class OrgInactiveError extends ForbiddenError {
@@ -223,7 +216,6 @@ export async function asSystem<T>(orgId: string, fn: (db: Db) => Promise<T>): Pr
 export async function resolvePublic(kind: 'webhook' | 'form' | 'enquiry' | 'payment' | 'api_key', token: string): Promise<{ orgId: string; refId: string; name: string | null; sourceId: string | null } | null> {
   const r = (await getPool().query('select org_id, system_user_id, ref_id, name, source_id from crm.resolve_public($1, $2)', [kind, token])).rows[0];
   if (!r) return null;
-  actors.set(r.org_id, r.system_user_id);
   return { orgId: r.org_id, refId: r.ref_id, name: r.name, sourceId: r.source_id };
 }
 
