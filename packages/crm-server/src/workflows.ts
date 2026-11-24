@@ -2,6 +2,7 @@
 // Ported from autoedcrm lib/workflows.ts. Waiting steps are rows in private.jobs (kind crm.workflow_resume, product
 // crm) queued with app.enqueue_job; the job runner (jobs.ts) resumes them only for orgs that still have the CRM.
 import { type Db, type Row } from './db';
+import { publicUrl } from './util';
 import { addTask, assignOwner, changeStage, getEnquiry, headsFor, logActivity, notify, renderTemplate, sendMessage, stageByName } from './core';
 
 export type Step =
@@ -203,10 +204,9 @@ export async function mergeVars(db: Db, e: Row): Promise<Record<string, string>>
   const org = db.requireOrg();
   const g = await db.one('select name from crm.guardians where org_id = $1 and household_id = $2 order by is_primary desc, created_at limit 1', [org, e.household_id]);
   const t = await db.one('select name from core.organizations where id = $1', [org]);
-  const base = process.env.APP_URL ?? '';
   return {
     guardian_name: g?.name ?? 'Parent', student_name: e.student_name, grade: e.grade ?? '', branch: e.branch_name, counsellor: e.owner_name, school: t?.name ?? '',
-    apply_link: `${base}/apply/${e.public_token}`, year: '',
+    apply_link: publicUrl('apply', e.public_token), year: '',
   };
 }
 

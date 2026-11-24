@@ -12,43 +12,14 @@
  *
  * The screens (apps/web) are ported later against this surface; the contract here is the old server actions' logic.
  */
-import { asSystem, asUser, type Db, ForbiddenError, NotFoundError, OrgInactiveError, resolvePublic, UnauthorizedError, ValidationError, type Row } from '../db';
-import { requireCtx, verifySession } from '../auth';
-import { addTask, captureEnquiry, changeStage, completeTask, emit, findHousehold, getEnquiry, logActivity, receiveMessage, sendMessage, assignOwner } from '../core';
-import { APPLICATION_SECTIONS, confirmAdmission, saveApplication, settlePayment, startApplication } from '../admissions';
+import { asSystem, NotFoundError, resolvePublic, UnauthorizedError, type Row } from '../db';
+import { bearer, handle, ok, on, str, type ApiRequest, type ApiResponse, type Handler } from './router';
+import { captureEnquiry, findHousehold, getEnquiry, logActivity, receiveMessage, addTask, emit } from '../core';
+import { APPLICATION_SECTIONS, saveApplication, settlePayment, startApplication } from '../admissions';
 import { handleMetaWebhook, verifySignature } from '../meta';
 import { getSecret } from '../secrets';
 import { runDueJobs } from '../jobs';
-import { findEnquiry, leadIds, listLeads, countLeads, pipeline, type SP } from '../leads';
-import { type Perms, canCreateLeads, canEditApplications, canEditLeads, canMessage, canTakePayment, has } from '../perm';
 import { hashKey } from '../util';
-
-export interface ApiRequest {
-  method: string;
-  path: string; // e.g. /leads/123/stage (without the mount prefix)
-  query: Record<string, string>;
-  headers: Record<string, string | undefined>;
-  body: unknown;
-  rawBody?: string;
-  ip?: string;
-}
-export interface ApiResponse {
-  status: number;
-  json?: unknown;
-  text?: { body: string; contentType: string };
-}
-
-type Handler = (a: { req: ApiRequest; p: Record<string, string>; b: any }) => Promise<ApiResponse | unknown>;
-interface Route { method: string; pattern: RegExp; keys: string[]; handler: Handler }
-const routes: Route[] = [];
-function on(method: string, path: string, handler: Handler) {
-  const keys: string[] = [];
-  const pattern = new RegExp(`^${path.replace(/:(\w+)/g, (_, k) => (keys.push(k), '([^/]+)'))}$`);
-  routes.push({ method, pattern, keys, handler });
-}
-const bearer = (req: ApiRequest) => (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '').trim();
-const ok = (json: unknown, status = 200): ApiResponse => ({ status, json });
-const str = (v: unknown) => String(v ?? '').trim();
 
 // ---------------------------------------------------------------- public
 on('GET', '/health', async () => ({ ok: true }));
@@ -230,92 +201,10 @@ on('POST', '/v1/messages/inbound', async ({ req, b }) => {
   });
 });
 
-// ---------------------------------------------------------------- staff
-on('GET', '/me', async ({ req }) => {
-  const ctx = await requireCtx((await verifySession(bearer(req))).userId);
-  return { user: ctx.user, org: { id: ctx.orgId, name: ctx.org.name }, role: { key: ctx.roleKey, name: ctx.roleName, permissions: ctx.perms }, branches: ctx.branches, years: ctx.years };
-});
+// The working screens, the admin console and the data tools register their routes on the same router.
+import './public';
+import './staff';
+import './admin';
+import './data';
 
-on('GET', '/leads', async ({ req }) => {
-  const s = await verifySession(bearer(req));
-  const ctx = await requireCtx(s.userId, { yearId: req.query.yearId, branchId: req.query.branchId });
-  return asUser(s.userId, ctx.orgId, async (db) => {
-    const sp: SP = req.query;
-    return { data: await listLeads(db, ctx, sp, Math.min(200, Number(req.query.limit) || 100), Number(req.query.offset) || 0), total: await countLeads(db, ctx, sp), pipeline: await pipeline(db), ids: req.query.ids_only ? await leadIds(db, ctx, sp) : undefined };
-  });
-});
-
-on('POST', '/leads', async ({ req, b }) => {
-  const s = await verifySession(bearer(req));
-  const ctx = await requireCtx(s.userId);
-  if (!canCreateLeads(ctx.perms)) throw new ForbiddenError('Your role does not allow this action.');
-  // Capture sees the whole org (duplicate and sibling detection, sticky owner) so it runs as the automation user;
-  // the person's own permission was checked above and they are recorded as the actor.
-  return asSystem(ctx.orgId, (db) => captureEnquiry(db, { ...b, preferOwnerId: ctx.user.id }, { id: ctx.user.id, name: ctx.user.name }));
-});
-
-/** Runs a mutation on an enquiry the caller can see and edit (row policies decide), as the automation user. */
-async function onEnquiry<T>(req: ApiRequest, enquiryId: string, need: (p: Perms) => boolean, fn: (db: Db, actor: { id: string; name: string }) => Promise<T>): Promise<T> {
-  const s = await verifySession(bearer(req));
-  const ctx = await requireCtx(s.userId);
-  if (!need(ctx.perms)) throw new ForbiddenError('Your role does not allow this action.');
-  await asUser(s.userId, ctx.orgId, (db) => findEnquiry(db, enquiryId)); // throws unless the row is visible to this person
-  return asSystem(ctx.orgId, (db) => fn(db, { id: ctx.user.id, name: ctx.user.name }));
-}
-
-on('POST', '/leads/:id/stage', ({ req, p, b }) => onEnquiry(req, p.id!, canEditLeads, (db, actor) => changeStage(db, p.id!, b.stageId, actor, { closure_reason: b.closure_reason, expected_decision: b.expected_decision, note: b.note })));
-on('POST', '/leads/:id/message', ({ req, p, b }) =>
-  onEnquiry(req, p.id!, canMessage, async (db, actor) => {
-    const e = await getEnquiry(db, p.id!);
-    return sendMessage(db, { householdId: e!.household_id, enquiryId: p.id!, channel: b.channel, body: b.body, actorId: actor.id });
-  }));
-on('POST', '/leads/:id/application', ({ req, p, b }) =>
-  onEnquiry(req, p.id!, canEditApplications, async (db, actor) => {
-    await startApplication(db, p.id!, actor);
-    return saveApplication(db, p.id!, b.answers ?? {}, { submit: !!b.submit, declaration: !!b.declaration, overrideAge: !!b.overrideAge }, actor);
-  }));
-on('POST', '/leads/:id/admission', ({ req, p, b }) => onEnquiry(req, p.id!, (perms) => canEditApplications(perms) && has(perms, 'applications'), (db, actor) => confirmAdmission(db, p.id!, actor, !!b?.allowOverCapacity)));
-on('POST', '/payments/:id/settle', async ({ req, p, b }) => {
-  const s = await verifySession(bearer(req));
-  const ctx = await requireCtx(s.userId);
-  if (!canTakePayment(ctx.perms)) throw new ForbiddenError('Your role does not allow this action.');
-  const pay = await asUser(s.userId, ctx.orgId, (db) => db.one('select id from crm.payments where id = $1', [p.id]));
-  if (!pay) throw new NotFoundError();
-  return asSystem(ctx.orgId, (db) => settlePayment(db, p.id!, b.success !== false, { id: ctx.user.id, name: ctx.user.name }, b.reference));
-});
-on('POST', '/tasks/:id/complete', async ({ req, p, b }) => {
-  const s = await verifySession(bearer(req));
-  const ctx = await requireCtx(s.userId);
-  const t = await asUser(s.userId, ctx.orgId, (db) => db.one('select id from crm.follow_ups where id = $1', [p.id]));
-  if (!t) throw new NotFoundError();
-  return asSystem(ctx.orgId, (db) => completeTask(db, p.id!, { id: ctx.user.id, name: ctx.user.name }, str(b.outcome)));
-});
-on('POST', '/assignment/simulate', async ({ req, b }) => {
-  const s = await verifySession(bearer(req));
-  const ctx = await requireCtx(s.userId);
-  if (!has(ctx.perms, 'admin')) throw new ForbiddenError('Your role does not allow this action.');
-  return asSystem(ctx.orgId, (db) => assignOwner(db, { branchId: b.branchId, board: b.board, grade: b.grade, channel: b.channel }, true));
-});
-
-// ---------------------------------------------------------------- dispatcher
-export async function handle(req: ApiRequest): Promise<ApiResponse> {
-  try {
-    for (const r of routes) {
-      if (r.method !== req.method) continue;
-      const m = r.pattern.exec(req.path);
-      if (!m) continue;
-      const p: Record<string, string> = {};
-      r.keys.forEach((k, i) => (p[k] = decodeURIComponent(m[i + 1]!)));
-      const out = (await r.handler({ req, p, b: (req.body ?? {}) as any })) as ApiResponse | unknown;
-      if (out && typeof out === 'object' && 'status' in out && ('json' in out || 'text' in out)) return out as ApiResponse;
-      return { status: 200, json: out };
-    }
-    return { status: 404, json: { error: 'not_found' } };
-  } catch (e) {
-    const err = e as { status?: number; message?: string };
-    if (e instanceof OrgInactiveError) return { status: 403, json: { error: 'crm_not_active' } };
-    const status = e instanceof ValidationError || e instanceof ForbiddenError || e instanceof NotFoundError || e instanceof UnauthorizedError ? err.status! : (err.status ?? 500);
-    if (status >= 500) console.error('crm api error', e);
-    return { status, json: { error: status >= 500 ? 'server_error' : (err.message ?? 'error') } };
-  }
-}
+export { handle, type ApiRequest, type ApiResponse };

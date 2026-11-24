@@ -26,3 +26,6 @@ export function parseCsv(text: string): string[][] {
 }
 
 export const isUuid = (s: unknown): s is string => typeof s === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
+/** Parent-facing links. In the unified web app the public pages live under /crm (decision 35); override with CRM_PUBLIC_PREFIX. */
+export const publicUrl = (kind: "apply" | "pay" | "f", token: string) => `${process.env.APP_URL ?? ""}${process.env.CRM_PUBLIC_PREFIX ?? "/crm"}/${kind}/${token}`;
