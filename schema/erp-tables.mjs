@@ -32,6 +32,9 @@
 //   rpcOnly            no direct access at all (select policy closed, no DML grants): read/saved through erp.<name>() which logs the view
 //   updCols            column-level update grant (e.g. mark a message read, nothing else)
 //   audit: false       drops the audit trigger (telemetry tables only; harness catalogue lists them)
+//   redact             columns replaced by [redacted] in audit.log rows (audit.log is readable with audit.view: payroll, health, safeguarding)
+//   checks, fk         extra check constraints; fk: [[col, ..., 'schema.table']] foreign keys without org_id (global catalogue tables only)
+//   markLock           trigger erp.guard_marks (marks of a locked/published assessment cannot change)
 
 export const FILES = [
   {
