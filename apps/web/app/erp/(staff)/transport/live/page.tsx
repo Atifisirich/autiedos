@@ -3,7 +3,7 @@ import { requireCap } from '@/lib/erp/ctx';
 import { erp } from '@/lib/erp/db';
 import { Page, Card, Empty, Badge } from '@/components/erp/ui';
 import { ftime, today } from '@/lib/erp/fmt';
-import { AutoRefresh } from '../../driver/refresh';
+import { AutoRefresh } from '../driver/refresh';
 
 export const metadata = { title: 'Live trips' };
 type T = { id: string; direction: string; status: string; started_at: string; ended_at: string | null; delay_minutes: number; last_lat: number | null; last_lng: number | null; last_speed: number | null; last_at: string | null; route_id: string };

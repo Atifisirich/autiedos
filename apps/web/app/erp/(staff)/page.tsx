@@ -12,7 +12,7 @@ import { balance } from '@autoed/shared/erp';
 export const metadata = { title: 'Home' };
 export default async function Home() {
   const ctx = await getCtx();
-  if (ctx.role === 'driver') redirect('/erp/driver');
+  if (ctx.role === 'driver') redirect('/erp/transport/driver');
   if (['group_admin', 'principal', 'system_admin', 'coordinator'].includes(ctx.role)) return <Pulse ctx={ctx} />;
   if (['class_teacher', 'subject_teacher'].includes(ctx.role)) return <MyDay ctx={ctx} />;
   return <RoleHome ctx={ctx} />;

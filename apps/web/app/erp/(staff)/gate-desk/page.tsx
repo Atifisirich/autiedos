@@ -12,15 +12,15 @@ async function checkInVisitor(fd: FormData) {
   const ctx = await requireCap('gate', 'write');
   const badge = `V${Date.now().toString().slice(-6)}`;
   const { error } = await erp(ctx.sb).from('visitors').insert({ name: str(fd, 'name'), phone: str(fd, 'phone'), type: str(fd, 'type') ?? 'visitor', purpose: str(fd, 'purpose'), host_name: str(fd, 'host_name'), id_type: str(fd, 'id_type'), id_number_last4: str(fd, 'id_number_last4'), vehicle_no: str(fd, 'vehicle_no'), material_details: str(fd, 'material_details'), badge_no: badge, branch_id: ctx.branchId ?? ctx.orgUser.home_branch_id });
-  go('/erp/gate', error ? error.message : `Checked in. Badge ${badge}.`, error ? 'err' : 'ok');
+  go('/erp/gate-desk', error ? error.message : `Checked in. Badge ${badge}.`, error ? 'err' : 'ok');
 }
-async function checkOut(fd: FormData) { 'use server'; const ctx = await requireCap('gate', 'write'); await erp(ctx.sb).from('visitors').update({ status: 'out', out_at: new Date().toISOString() }).eq('id', str(fd, 'id')!); go('/erp/gate', 'Checked out.'); }
+async function checkOut(fd: FormData) { 'use server'; const ctx = await requireCap('gate', 'write'); await erp(ctx.sb).from('visitors').update({ status: 'out', out_at: new Date().toISOString() }).eq('id', str(fd, 'id')!); go('/erp/gate-desk', 'Checked out.'); }
 async function verify(fd: FormData) {
   'use server';
   const ctx = await requireCap('gate', 'write');
   const { data, error } = await erp(ctx.sb).rpc('verify_gate_pass', { p_pass: str(fd, 'id'), p_otp: str(fd, 'otp') ?? '' });
-  if (error) go('/erp/gate?tab=passes', error.message, 'err');
-  go('/erp/gate?tab=passes', data === 'ok' ? 'OTP matched. Student handed over and the parent has been told.' : 'The OTP does not match. Do not hand over the student. The office has been alerted.', data === 'ok' ? 'ok' : 'err');
+  if (error) go('/erp/gate-desk?tab=passes', error.message, 'err');
+  go('/erp/gate-desk?tab=passes', data === 'ok' ? 'OTP matched. Student handed over and the parent has been told.' : 'The OTP does not match. Do not hand over the student. The office has been alerted.', data === 'ok' ? 'ok' : 'err');
 }
 async function staffPass(fd: FormData) {
   'use server';
@@ -28,10 +28,10 @@ async function staffPass(fd: FormData) {
   const sid = str(fd, 'student_id');
   const { data: s } = await core(ctx.sb).from('students').select('first_name, last_name, branch_id').eq('id', sid!).single();
   const { data: g, error } = await erp(ctx.sb).from('gate_passes').insert({ student_id: sid, type: 'early_pickup', reason: str(fd, 'reason'), collector_name: str(fd, 'collector_name'), collector_phone: str(fd, 'collector_phone'), branch_id: (s as { branch_id: string } | null)?.branch_id, requested_by: ctx.user.id, status: 'requested' }).select('id').single();
-  if (error) go('/erp/gate?tab=passes', error.message, 'err');
+  if (error) go('/erp/gate-desk?tab=passes', error.message, 'err');
   const x = s as { first_name: string; last_name: string | null } | null;
   const r = await erp(ctx.sb).rpc('submit_approval', { p_type: 'gate_pass', p_object: (g as { id: string }).id, p_title: `Early pickup: ${x?.first_name} ${x?.last_name ?? ''}`, p_summary: `${str(fd, 'reason') ?? ''} · collector ${str(fd, 'collector_name') ?? ''}`, p_student: sid, p_payload: {} });
-  go('/erp/gate?tab=passes', r.error ? r.error.message : 'Gate pass requested. It needs the class teacher’s approval.', r.error ? 'err' : 'ok');
+  go('/erp/gate-desk?tab=passes', r.error ? r.error.message : 'Gate pass requested. It needs the class teacher’s approval.', r.error ? 'err' : 'ok');
 }
 
 /** Gate app (SAF-01..04): large buttons for one-hand use on a tablet or phone. */
@@ -42,7 +42,7 @@ export default async function Gate({ searchParams }: { searchParams: Promise<{ t
   const can = ctx.can('gate', 'write');
   return (
     <Page title="Gate and visitors" sub="Visitor check-in, student gate passes and pickup verification.">
-      <Tabs current={tab === 'visitors' ? '/erp/gate' : `/erp/gate?tab=${tab}`} tabs={[{ href: '/erp/gate', label: 'Visitors' }, { href: '/erp/gate?tab=passes', label: 'Student gate passes' }, { href: '/erp/gate?tab=pickup', label: 'Authorised pickup' }, { href: '/erp/x/safeguarding_incidents', label: 'Incident register' }]} />
+      <Tabs current={tab === 'visitors' ? '/erp/gate-desk' : `/erp/gate-desk?tab=${tab}`} tabs={[{ href: '/erp/gate-desk', label: 'Visitors' }, { href: '/erp/gate-desk?tab=passes', label: 'Student gate passes' }, { href: '/erp/gate-desk?tab=pickup', label: 'Authorised pickup' }, { href: '/erp/x/safeguarding_incidents', label: 'Incident register' }]} />
       {tab === 'visitors' && <Visitors ctx={ctx} can={can} />}{tab === 'passes' && <Passes ctx={ctx} can={can} />}{tab === 'pickup' && <Pickup ctx={ctx} q={sp.q} />}
     </Page>
   );

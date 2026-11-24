@@ -40,8 +40,8 @@ const NAV: Group[] = [
   ] },
   { title: 'Operations', items: [
     { href: '/erp/transport', label: 'Transport', cap: 'transport', module: 'transport' },
-    { href: '/erp/driver', label: 'Driver app', roles: ['driver', 'transport', 'group_admin'], module: 'transport' },
-    { href: '/erp/gate', label: 'Gate and visitors', cap: 'gate' },
+    { href: '/erp/transport/driver', label: 'Driver app', roles: ['driver', 'transport', 'group_admin'], module: 'transport' },
+    { href: '/erp/gate-desk', label: 'Gate and visitors', cap: 'gate' },
     { href: '/erp/library', label: 'Library', cap: 'library', module: 'library' },
     { href: '/erp/store', label: 'Store and canteen', cap: 'inventory', module: 'inventory' },
     { href: '/erp/m/hostel', label: 'Hostel', cap: 'hostel', module: 'hostel' },
