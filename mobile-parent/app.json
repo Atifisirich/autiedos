@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "AutoEd Parent",
+    "slug": "autoed-parent",
+    "scheme": "autoedparent",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": ["expo-router", "expo-secure-store", ["expo-notifications", { "color": "#1d4ed8" }]],
+    "ios": { "bundleIdentifier": "in.autoed.parent", "supportsTablet": false },
+    "android": { "package": "in.autoed.parent" },
+    "extra": { "supabaseUrl": "https://example.supabase.co", "supabaseAnonKey": "", "webBase": "https://app.autoed.in", "eas": { "projectId": "" } },
+    "experiments": { "typedRoutes": false }
+  }
+}

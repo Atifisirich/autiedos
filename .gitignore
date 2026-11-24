@@ -10,3 +10,4 @@ test-results
 playwright-report
 .turbo
 apps/web/e2e/.portal-world.json
+apps/web/e2e/portal-shots
