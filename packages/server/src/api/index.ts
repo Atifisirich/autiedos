@@ -6,7 +6,8 @@
 import { ZodError, z, type ZodTypeAny } from 'zod';
 import * as S from '@autoed/shared';
 import { UnauthorizedError, loadCtx, needProduct, rank, type Ctx } from '../core';
-import { verifySession, issueSession, devLogin, verifySupabaseToken, endSession, rateLimit } from '../auth';
+import { verifySession, endSession, rateLimit } from '../auth';
+import * as login from '../login';
 import { asUser, maybe } from '../db';
 import * as tasks from '../services/tasks';
 import * as approvals from '../services/approvals';
@@ -74,33 +75,25 @@ const range = (q: Record<string, string>, days = 30) => ({ from: q.from ?? S.add
 
 // ---------------------------------------------------------------- auth (public)
 pub('GET', '/health', async () => ({ ok: true }));
-pub(
-  'POST',
-  '/auth/dev-login',
-  async ({ b, req }) => {
-    if (!rateLimit(`login:${req.ip}`, 20)) return { status: 429, json: { error: 'rate_limited' } };
-    const userId = await devLogin(b.email);
-    const s = await issueSession(userId, { platform: (req.headers['x-platform'] as 'web') ?? 'web', name: req.headers['user-agent']?.slice(0, 100) });
-    return { status: 200, json: s, setSession: s };
-  },
-  S.devLoginSchema,
-);
-pub(
-  'POST',
-  '/auth/session',
-  async ({ b, req }) => {
-    if (!rateLimit(`login:${req.ip}`, 20)) return { status: 429, json: { error: 'rate_limited' } };
-    const userId = await verifySupabaseToken(b.accessToken);
-    const s = await issueSession(userId, { platform: (req.headers['x-platform'] as 'web') ?? 'web', name: req.headers['user-agent']?.slice(0, 100) });
-    return { status: 200, json: s, setSession: s };
-  },
-  S.sessionSchema,
-);
+// Unified staff login (docs/adr/shell-and-login.md): every route below is product-neutral (CRM, OS and ERP share
+// the session), rate limited in the database and logged in core.login_events.
+const loginReq = (req: ApiRequest): login.LoginRequest => ({ ip: req.ip, userAgent: req.headers['user-agent'] ?? null, platform: (['android', 'ios'].includes(req.headers['x-platform'] ?? '') ? req.headers['x-platform'] : 'web') as 'web' });
+const signedIn = (s: S.SignInResult): ApiResponse => ({ status: 200, json: s, setSession: s });
+pub('POST', '/auth/dev-login', async ({ b, req }) => signedIn(await login.devEmailLogin(b, loginReq(req))), S.devLoginSchema);
+pub('POST', '/auth/session', async ({ b, req }) => signedIn(await login.exchange(b, loginReq(req))), S.sessionExchangeSchema);
+pub('POST', '/auth/password', async ({ b, req }) => signedIn(await login.passwordLogin(b, loginReq(req))), S.passwordLoginSchema);
+pub('POST', '/auth/otp/start', async ({ b, req }) => login.otpStart(b, loginReq(req)), S.otpStartSchema);
+pub('POST', '/auth/otp/verify', async ({ b, req }) => signedIn(await login.otpVerify(b, loginReq(req))), S.otpVerifySchema);
+pub('POST', '/auth/password/change', async ({ b, req }) => signedIn(await login.changePassword(await verifySession(bearer(req)), b, loginReq(req))), S.passwordChangeSchema);
+pub('GET', '/session', async ({ req }) => login.platformSession(await verifySession(bearer(req))));
 pub('POST', '/auth/logout', async ({ req }) => {
   const token = bearer(req);
   if (token) {
     const s = await verifySession(token).catch(() => null);
-    if (s) await endSession(s.sid, s.userId);
+    if (s) {
+      await endSession(s.sid, s.userId);
+      await login.logoutNote(s.userId, loginReq(req));
+    }
   }
   return { status: 200, json: { ok: true }, setSession: null };
 });
@@ -502,6 +495,8 @@ export async function dispatch(req: ApiRequest, existingCtx?: Ctx): Promise<ApiR
       return { status: 200, json: res };
     }
     const session = existingCtx ? { userId: existingCtx.userId } : await verifySession(bearer(req));
+    // An admin asked for a new password (or a temporary one was set): nothing but the password routes answer.
+    if (!existingCtx && (session as { mustChangePassword?: boolean }).mustChangePassword) return { status: 403, json: { error: 'password_change_required' } };
     if (route.superAdmin) return { status: 200, json: await route.superAdmin({ userId: session.userId, p: params, b: body, q: req.query }) };
     let userId = session.userId;
     // Super admin "view as": an open support session (core.support_sessions, app.start_support_session), read-only,
