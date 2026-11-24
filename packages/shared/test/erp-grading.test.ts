@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { gradeFor, subjectResult, ranks, promoted, overall } from '../src/erp/grading';
 import { SCALES, SCHEME_CONFIG } from '../src/erp/boards';
 
-const cbse = SCALES.CBSE;
+const cbse = SCALES.CBSE!;
 describe('assessment engine (golden cases)', () => {
   it('CBSE grade bands', () => { expect(gradeFor(91, cbse)?.grade).toBe('A1'); expect(gradeFor(90.5, cbse)?.grade).toBe('A2'); expect(gradeFor(33, cbse)?.grade).toBe('D'); expect(gradeFor(32, cbse)?.grade).toBe('E'); expect(gradeFor(null, cbse)).toBeNull(); });
-  it('Cambridge bands', () => { expect(gradeFor(92, SCALES.Cambridge)?.grade).toBe('A*'); expect(gradeFor(15, SCALES.Cambridge)?.grade).toBe('U'); });
+  it('Cambridge bands', () => { expect(gradeFor(92, SCALES.Cambridge!)?.grade).toBe('A*'); expect(gradeFor(15, SCALES.Cambridge!)?.grade).toBe('U'); });
   it('weighted components with best-of', () => {
     const cfg = SCHEME_CONFIG.CBSE as Parameters<typeof subjectResult>[1];
     const r = subjectResult([

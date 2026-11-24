@@ -59,14 +59,14 @@ describe('erp catalogue', () => {
       if (!uq.length) bad.push(`${t}: unique (org_id, id)`);
       if (!(await asOwner(`select 1 from pg_trigger where tgrelid = ('erp.' || quote_ident($1))::regclass and tgname = 'trg_touch'`, [t])).length) bad.push(`${t}: trg_touch`);
     }
-    const fkNoOrg = await asOwner<{ t: string }>(
+    const fkNoOrg = await asOwner(
       `select l.relname || '.' || c.conname as t from pg_constraint c
          join pg_class l on l.oid = c.conrelid join pg_namespace ln on ln.oid = l.relnamespace
          join pg_class r on r.oid = c.confrelid
         where c.contype = 'f' and ln.nspname = 'erp' and r.relname not in ('organizations','product_modules')
           and not exists (select 1 from unnest(c.conkey) k join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k where a.attname = 'org_id')`);
     expect(fkNoOrg.map((r) => r.t)).toEqual([]);
-    const fkNoIdx = await asOwner<{ t: string }>(
+    const fkNoIdx = await asOwner(
       `select l.relname || '.' || c.conname as t from pg_constraint c
          join pg_class l on l.oid = c.conrelid join pg_namespace ln on ln.oid = l.relnamespace
         where c.contype = 'f' and ln.nspname = 'erp' and array_length(c.conkey, 1) = 2 and l.relname <> 'harness_probe'
@@ -79,7 +79,7 @@ describe('erp catalogue', () => {
   });
 
   it('the immutability, marks-lock and function-only guards exist where they must', async () => {
-    const trg = await asOwner<{ t: string }>(`select c.relname || ':' || g.tgname as t from pg_trigger g join pg_class c on c.oid = g.tgrelid join pg_namespace n on n.oid = c.relnamespace
+    const trg = await asOwner(`select c.relname || ':' || g.tgname as t from pg_trigger g join pg_class c on c.oid = g.tgrelid join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'erp' and g.tgname in ('trg_immutable','trg_marks_lock','trg_fn_only','trg_guard_assessment','trg_voucher_balanced') order by 1`);
     expect(trg.map((r) => r.t)).toEqual([
       'assessment_results:trg_marks_lock', 'assessments:trg_guard_assessment', 'fee_demands:trg_fn_only', 'receipt_allocations:trg_immutable',
@@ -287,7 +287,7 @@ describe('parents and students see only their own child (decision 30)', () => {
     expect((await call(g, `select erp.my_gate_pass_otp($1) as otp`, [w.erpA.passes.learner])).otp).toBe('123456');
     expect(await ec('authenticated', g, `select erp.my_gate_pass_otp($1)`, [w.erpA.passes.other])).toBe('42501');
     expect(await ec('authenticated', g, `select * from private.gate_pass_otps`)).toBe('42501');
-    expect(await ec('erp_server', g, `select * from private.gate_pass_otps`, [], 'erp_server')).toBe('42501');
+    expect(await ec('erp_server', g, `select * from private.gate_pass_otps`, [])).toBe('42501');
     expect(await ec('authenticated', g, `select erp.verify_gate_pass($1, '123456')`, [w.erpA.passes.learner])).toBe('42501');
     const a = w.u.aAdmin;
     expect((await call(a, `select erp.verify_gate_pass($1, '000000') as r`, [w.erpA.passes.learner])).r).toBe('mismatch');
@@ -359,7 +359,7 @@ describe('staff access follows the ERP role (core.role_permissions)', () => {
     for (const t of ['staff_payroll', 'student_sensitive']) {
       expect(await count('authenticated', w.u.aAdmin, `select * from erp.${t}`), t).toBe(0);
       expect(await ec('authenticated', w.u.aAdmin, `update erp.${t} set created_at = now()`), t).toBe('42501');
-      expect(await ec('erp_server', w.u.aAdmin, `delete from erp.${t}`, [], 'erp_server'), t).toBe('42501');
+      expect(await ec('erp_server', w.u.aAdmin, `delete from erp.${t}`, []), t).toBe('42501');
     }
     const hr = w.erpA.users.hr!;
     const before = Number((await asOwner(`select count(*)::int as n from audit.log where org_id = $1 and table_name = 'staff_payroll' and action = 'erp.view'`, [w.A.id]))[0]!.n);
@@ -561,7 +561,7 @@ describe('fee collection, reversal, concessions, online payment, CRM hand-off', 
     for (const role of ['authenticated', 'crm_server'] as const) {
       expect(await ec(role, w.u.aGuardian, `select erp.settle_payment_order($1, 'pay_1', $2)`, [order, amount])).toBe('42501');
     }
-    expect(await ec('erp_server', null, `select erp.settle_payment_order($1, 'pay_1', $2)`, [order, amount + 1], 'erp_server')).toBe('22023');
+    expect(await ec('erp_server', null, `select erp.settle_payment_order($1, 'pay_1', $2)`, [order, amount + 1])).toBe('22023');
     const r1 = (await call(null, `select erp.settle_payment_order($1, 'pay_1', $2) as r`, [order, amount], 'erp_server')).r;
     const r2 = (await call(null, `select erp.settle_payment_order($1, 'pay_1', $2) as r`, [order, amount], 'erp_server')).r;
     expect(r2).toBe(r1);
@@ -574,9 +574,9 @@ describe('fee collection, reversal, concessions, online payment, CRM hand-off', 
   it('CRM hand-off: the ERP server posts a receipt and voucher from a CRM payment, once; CRM, OS and users cannot call it', async () => {
     const args = [w.coreA.sibling, 2500, 'upi', 'crm.payment', 'pay-0001', 'UTR-77'];
     const sql = `select erp.post_admission_payment($1, $2, $3, $4, $5, $6) as r`;
-    expect(await ec('crm_server', w.u.aAdmin, sql, args, 'crm_server')).toBe('42501'); // no usage on schema erp at all
+    expect(await ec('crm_server', w.u.aAdmin, sql, args)).toBe('42501'); // no usage on schema erp at all
     expect(await ec('authenticated', w.u.aAdmin, sql, args)).toBe('42501');
-    expect(await ec('erp_server', null, `select erp.post_admission_payment($1, 0, 'upi', 'crm.payment', 'x')`, [w.coreA.sibling], 'erp_server')).toBe('22023');
+    expect(await ec('erp_server', null, `select erp.post_admission_payment($1, 0, 'upi', 'crm.payment', 'x')`, [w.coreA.sibling])).toBe('22023');
     const r1 = (await call(null, sql, args, 'erp_server')).r;
     const r2 = (await call(null, sql, args, 'erp_server')).r;
     expect(r2).toBe(r1);
@@ -587,7 +587,7 @@ describe('fee collection, reversal, concessions, online payment, CRM hand-off', 
     expect(Number((await asOwner(`select count(*)::int as n from erp.fee_demands where org_id = $1 and student_id = $2`, [w.A.id, w.coreA.sibling]))[0]!.n)).toBe(1);
     // a school without ERP (org D) cannot receive it
     const ghost = (await asOwner(`insert into core.students (org_id, branch_id, first_name, admission_no, status) values ($1, $2, 'Ghost', '9', 'active') returning id`, [w.D.id, w.D.branches.d1]))[0]!.id;
-    expect(await ec('erp_server', null, sql, [ghost, 100, 'upi', 'crm.payment', 'g1', null], 'erp_server')).toBe('42501');
+    expect(await ec('erp_server', null, sql, [ghost, 100, 'upi', 'crm.payment', 'g1', null])).toBe('42501');
   });
 
   it('a learner who leaves: the exit listener cancels open future fees, transport and hostel (after the status function)', async () => {

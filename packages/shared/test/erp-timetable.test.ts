@@ -11,7 +11,7 @@ describe('timetable and calendar rules', () => {
     expect(unplaced).toHaveLength(0); expect(created).toHaveLength(17); expect(findClashes(created)).toHaveLength(0);
     for (const day of [1, 2, 3, 4, 5, 6]) expect(created.filter((e) => e.section_id === 'A' && e.subject_id === 'math' && e.day === day).length).toBeLessThanOrEqual(2);
   });
-  it('ranks substitutes by subject fit, then fairness', () => { const r = rankSubstitutes([{ staff_id: 'a', name: 'A', teachesSubject: false, teachesSection: false, loadToday: 2, coversThisWeek: 0 }, { staff_id: 'b', name: 'B', teachesSubject: true, teachesSection: false, loadToday: 5, coversThisWeek: 1 }]); expect(r[0].staff_id).toBe('b'); });
+  it('ranks substitutes by subject fit, then fairness', () => { const r = rankSubstitutes([{ staff_id: 'a', name: 'A', teachesSubject: false, teachesSection: false, loadToday: 2, coversThisWeek: 0 }, { staff_id: 'b', name: 'B', teachesSubject: true, teachesSection: false, loadToday: 5, coversThisWeek: 1 }]); expect(r[0]?.staff_id).toBe('b'); });
   it('weekends and holidays are never working days', () => {
     expect(isWorking('2026-11-15', '1,2,3,4,5,6', [])).toBe(false); // Sunday
     expect(isWorking('2026-11-14', '1,2,3,4,5,6', [])).toBe(true); // Saturday
