@@ -22,7 +22,7 @@ import {
   type RosterStaff,
 } from '@autoed/shared';
 import { ForbiddenError, NotFoundError, ValidationError, insert, maybe, one, q, update, type Tx } from '../db';
-import { branchInfo, need, needModule, rank, run, staffWithRole, workCalendar, localToday, now, type Ctx } from '../core';
+import { branchInfo, fileId, need, needModule, rank, run, staffWithRole, workCalendar, localToday, now, type Ctx } from '../core';
 import { notify } from '../notify';
 import { systemTask } from './tasks';
 import { submitApproval, registerApprovalHook } from './approvals';
@@ -160,27 +160,34 @@ export async function checklistReports(ctx: Ctx, from: string, to: string) {
 }
 
 // ================================================================ helpdesk (7.1)
+/**
+ * Helpdesk rows are shared (core.tickets / ticket_events / ticket_categories). OS reads name the staff columns as
+ * before (raised_by, owner_id); categories name their owner role by key (R8).
+ */
+const TICKET = `t.*, t.raised_by_staff_id as raised_by, t.owner_staff_id as owner_id, (select f.storage_path from core.files f where f.id = t.photo_file_id) as photo_path, (select f.storage_path from core.files f where f.id = t.voice_file_id) as voice_path`;
+
 async function ticketOwner(c: Tx, orgId: string, branchId: string, categoryId: string): Promise<string | null> {
-  const cat = await one<{ owner_staff_id: string | null; key: string; owner_role_id: string | null }>(c, `select owner_staff_id, key, owner_role_id from core.ticket_categories where id = $1`, [categoryId]);
-  if (cat.owner_staff_id) return cat.owner_staff_id;
-  if (cat.owner_role_id) {
-    const s = await maybe<{ id: string }>(c, `select s.id from core.staff s join os.staff_roles sr on sr.staff_id = s.id where sr.role_id = $1 and s.branch_id = $2 and s.status = 'active' order by s.created_at limit 1`, [cat.owner_role_id, branchId]);
-    if (s) return s.id;
+  const cat = await one<{ key: string; owner_role_key: string | null }>(c, `select key, owner_role_key from core.ticket_categories where id = $1`, [categoryId]);
+  if (cat.owner_role_key) {
+    const s = (await staffWithRole(c, orgId, cat.owner_role_key, branchId))[0];
+    if (s) return s;
   }
   return (await staffWithRole(c, orgId, 'admin_officer', branchId))[0] ?? null;
 }
 
+/** core.ticket_categories.sla_hours is the normal-priority SLA; other priorities scale it (72/48/24/4 by default). */
+const SLA_FACTOR: Record<string, number> = { low: 1.5, normal: 1, high: 0.5, urgent: 1 / 12 };
 async function slaDue(c: Tx, categoryId: string, priority: string): Promise<string> {
-  const cat = await one<{ sla_hours: Record<string, number> }>(c, `select sla_hours from core.ticket_categories where id = $1`, [categoryId]);
-  return new Date(now().getTime() + (cat.sla_hours?.[priority] ?? 48) * 3600000).toISOString();
+  const cat = await one<{ sla_hours: number | null }>(c, `select sla_hours from core.ticket_categories where id = $1`, [categoryId]);
+  return new Date(now().getTime() + (cat.sla_hours ?? 48) * (SLA_FACTOR[priority] ?? 1) * 3600000).toISOString();
 }
 
 export async function autoTicket(c: Tx, input: { orgId: string; branchId: string; categoryKey: string; title: string; raisedBy: string; responseId: string | null }): Promise<string | null> {
   const cat = await maybe<{ id: string }>(c, `select id from core.ticket_categories where org_id = $1 and key = $2 and deleted_at is null`, [input.orgId, input.categoryKey]);
   if (!cat) return null;
   const owner = await ticketOwner(c, input.orgId, input.branchId, cat.id);
-  const t = await insert<{ id: string }>(c, 'core.tickets', { org_id: input.orgId, branch_id: input.branchId, category_id: cat.id, title: input.title, priority: 'high', status: owner ? 'assigned' : 'open', raised_by: input.raisedBy, owner_id: owner, source: 'checklist', checklist_response_id: input.responseId, due_at: await slaDue(c, cat.id, 'high') });
-  await insert(c, 'core.ticket_events', { org_id: input.orgId, branch_id: input.branchId, ticket_id: t.id, actor_id: null, event: 'created', to_status: owner ? 'assigned' : 'open', note: 'checklist' });
+  const t = await insert<{ id: string }>(c, 'core.tickets', { org_id: input.orgId, branch_id: input.branchId, product_key: 'os', category_id: cat.id, title: input.title, priority: 'high', status: owner ? 'assigned' : 'open', raised_by_staff_id: input.raisedBy, owner_staff_id: owner, source: 'checklist', linked_type: input.responseId ? 'checklist_response' : null, linked_id: input.responseId, due_at: await slaDue(c, cat.id, 'high') });
+  await insert(c, 'core.ticket_events', { org_id: input.orgId, ticket_id: t.id, actor_staff_id: null, event: 'created', to_status: owner ? 'assigned' : 'open', note: 'checklist' });
   if (owner) await notify(c, { orgId: input.orgId, branchId: input.branchId, staffIds: [owner], event: 'ticket.update', titleKey: 'notif.ticket.assigned', vars: { title: input.title }, link: `/os/helpdesk/${t.id}`, priority: 'urgent' });
   return t.id;
 }
@@ -193,8 +200,10 @@ export async function raiseTicket(ctx: Ctx, input: { category_id: string; room_i
     const room = input.room_id ? await maybe<{ name: string }>(c, `select name from core.rooms where id = $1`, [input.room_id]) : null;
     const owner = await sys(() => ticketOwner(c, ctx.orgId, ctx.branchId, input.category_id));
     const title = input.title || `${cat.name_i18n?.[ctx.lang] || cat.name}${room ? ` · ${room.name}` : input.location_text ? ` · ${input.location_text}` : ''}`;
-    const t = await insert<{ id: string }>(c, 'core.tickets', { org_id: ctx.orgId, branch_id: ctx.branchId, category_id: input.category_id, room_id: input.room_id ?? null, location_text: input.location_text ?? null, title, description: input.description ?? null, priority: input.priority, status: owner ? 'assigned' : 'open', raised_by: ctx.staffId, owner_id: owner, photo_path: input.photo_path ?? null, voice_path: input.voice_path ?? null, source: input.source, due_at: await sys(() => slaDue(c, input.category_id, input.priority)) });
-    await insert(c, 'core.ticket_events', { org_id: ctx.orgId, branch_id: ctx.branchId, ticket_id: t.id, actor_id: ctx.staffId, event: 'created', to_status: owner ? 'assigned' : 'open' });
+    const photo = input.photo_path ? await fileId(c, ctx.orgId, input.photo_path, 'ticket') : null;
+    const voice = input.voice_path ? await fileId(c, ctx.orgId, input.voice_path, 'ticket') : null;
+    const t = await insert<{ id: string }>(c, 'core.tickets', { org_id: ctx.orgId, branch_id: ctx.branchId, product_key: 'os', category_id: input.category_id, room_id: input.room_id ?? null, location_text: input.location_text ?? null, title, description: input.description ?? null, priority: input.priority, status: owner ? 'assigned' : 'open', raised_by_user_id: ctx.userId, raised_by_staff_id: ctx.staffId, raised_by_name: ctx.staff.full_name, owner_staff_id: owner, photo_file_id: photo, voice_file_id: voice, source: input.source, due_at: await sys(() => slaDue(c, input.category_id, input.priority)) });
+    await insert(c, 'core.ticket_events', { org_id: ctx.orgId, ticket_id: t.id, actor_user_id: ctx.userId, actor_staff_id: ctx.staffId, actor_name: ctx.staff.full_name, event: 'created', to_status: owner ? 'assigned' : 'open' });
     if (owner) await sys(() => notify(c, { orgId: ctx.orgId, branchId: ctx.branchId, staffIds: [owner], event: 'ticket.update', titleKey: 'notif.ticket.assigned', vars: { title }, link: `/os/helpdesk/${t.id}`, priority: input.priority === 'urgent' ? 'urgent' : 'normal' }));
     return { id: t.id, owner_id: owner };
   });
@@ -203,7 +212,7 @@ export async function raiseTicket(ctx: Ctx, input: { category_id: string; room_i
 export async function ticketAction(ctx: Ctx, id: string, input: { action: 'assign' | 'start' | 'wait' | 'resolve' | 'close' | 'reopen' | 'update_costs'; owner_id?: string; note?: string; vendor?: string; cost?: number; parts?: string }) {
   needModule(ctx, 'helpdesk');
   return run(ctx, async (c, sys) => {
-    const t = await maybe<{ id: string; org_id: string; branch_id: string; status: string; owner_id: string | null; raised_by: string; title: string; category_id: string; cost: number | null; approval_request_id: string | null }>(c, `select * from core.tickets where id = $1 for update`, [id]);
+    const t = await maybe<{ id: string; org_id: string; branch_id: string; status: string; owner_id: string | null; raised_by: string; title: string; category_id: string; cost: number | null; approval_request_id: string | null }>(c, `select ${TICKET} from core.tickets t where t.id = $1 for update`, [id]);
     if (!t) throw new NotFoundError();
     const isOwner = t.owner_id === ctx.staffId;
     const isRaiser = t.raised_by === ctx.staffId;
@@ -214,16 +223,17 @@ export async function ticketAction(ctx: Ctx, id: string, input: { action: 'assig
     const patch: Record<string, unknown> = { status: next[input.action] };
     if (input.action === 'assign') {
       if (!input.owner_id) throw new ValidationError('owner_required');
-      patch.owner_id = input.owner_id;
+      patch.owner_staff_id = input.owner_id;
     }
     if (input.action === 'resolve') patch.resolved_at = ctx.now.toISOString();
     if (input.action === 'close') patch.closed_at = ctx.now.toISOString();
     if (input.action === 'update_costs') Object.assign(patch, { vendor: input.vendor ?? null, cost: input.cost ?? null, parts: input.parts ?? null });
     await sys(() => update(c, 'core.tickets', id, patch));
-    await sys(() => insert(c, 'core.ticket_events', { org_id: t.org_id, branch_id: t.branch_id, ticket_id: id, actor_id: ctx.staffId, event: input.action, from_status: t.status, to_status: patch.status as string, note: input.note ?? null }));
+    await sys(() => insert(c, 'core.ticket_events', { org_id: t.org_id, ticket_id: id, actor_user_id: ctx.userId, actor_staff_id: ctx.staffId, actor_name: ctx.staff.full_name, event: input.action, from_status: t.status, to_status: patch.status as string, note: input.note ?? null }));
     // A cost above the category limit starts a purchase approval.
     if (input.action === 'update_costs' && input.cost != null && !t.approval_request_id) {
-      const cat = await one<{ cost_approval_limit: number }>(c, `select cost_approval_limit from core.ticket_categories where id = $1`, [t.category_id]);
+      // OS rule: costs above the school's limit (organizations.settings.ticket_cost_approval_limit, default ₹5,000) need approval
+      const cat = await one<{ cost_approval_limit: number }>(c, `select coalesce((o.settings->>'ticket_cost_approval_limit')::numeric, 5000) as cost_approval_limit from core.organizations o where o.id = $1`, [t.org_id]);
       if (input.cost > Number(cat.cost_approval_limit)) {
         const req = await sys(() => submitApproval(c, { orgId: t.org_id, branchId: t.branch_id, applicantId: ctx.staffId, typeKey: 'ticket_cost', title: `${t.title} · ₹${input.cost}`, data: { amount: input.cost, ticket_id: id, vendor: input.vendor ?? '' }, linkedType: 'ticket', linkedId: id, actorName: ctx.staff.full_name }));
         await sys(() => c.query(`update core.tickets set approval_request_id = $2, status = 'waiting' where id = $1`, [id, req.id]));
@@ -238,7 +248,7 @@ export async function ticketAction(ctx: Ctx, id: string, input: { action: 'assig
 registerApprovalHook('ticket_cost', async (c, req, decision) => {
   const tid = (req.data as { ticket_id: string }).ticket_id;
   await c.query(`update core.tickets set status = $2 where id = $1 and status = 'waiting'`, [tid, decision === 'approved' ? 'in_progress' : 'waiting']);
-  await insert(c, 'core.ticket_events', { org_id: req.org_id, branch_id: req.branch_id, ticket_id: tid, actor_id: null, event: `cost_${decision}`, note: req.title });
+  await insert(c, 'core.ticket_events', { org_id: req.org_id, ticket_id: tid, actor_staff_id: null, event: `cost_${decision}`, note: req.title });
 });
 
 export async function listTickets(ctx: Ctx, view: 'mine' | 'assigned' | 'all', status?: string) {
@@ -248,8 +258,8 @@ export async function listTickets(ctx: Ctx, view: 'mine' | 'assigned' | 'all', s
       c,
       `select t.id, t.title, t.status, t.priority, t.due_at, t.created_at, t.cost, tc.name as category, tc.name_i18n, r.name as room_name, o.full_name as owner_name, rb.full_name as raised_by_name,
          (t.due_at < now() and t.status not in ('resolved','closed')) as breached
-       from core.tickets t join core.ticket_categories tc on tc.id = t.category_id left join core.rooms r on r.id = t.room_id left join core.staff o on o.id = t.owner_id left join core.staff rb on rb.id = t.raised_by
-       where t.deleted_at is null and $1::uuid is not null and $2::uuid is not null and ${view === 'mine' ? 't.raised_by = $1' : view === 'assigned' ? 't.owner_id = $1' : 't.branch_id = $2'} and ($3::text is null or t.status = $3)
+       from core.tickets t join core.ticket_categories tc on tc.id = t.category_id left join core.rooms r on r.id = t.room_id left join core.staff o on o.id = t.owner_staff_id left join core.staff rb on rb.id = t.raised_by_staff_id
+       where t.deleted_at is null and $1::uuid is not null and $2::uuid is not null and ${view === 'mine' ? 't.raised_by_staff_id = $1' : view === 'assigned' ? 't.owner_staff_id = $1' : 't.branch_id = $2'} and ($3::text is null or t.status = $3)
        order by (t.status in ('resolved','closed')), t.due_at nulls last limit 300`,
       [ctx.staffId, ctx.branchId, status ?? null],
     ),
@@ -258,9 +268,9 @@ export async function listTickets(ctx: Ctx, view: 'mine' | 'assigned' | 'all', s
 
 export async function getTicket(ctx: Ctx, id: string) {
   return run(ctx, async (c) => {
-    const t = await maybe(c, `select t.*, tc.name as category, r.name as room_name, o.full_name as owner_name, rb.full_name as raised_by_name from core.tickets t join core.ticket_categories tc on tc.id = t.category_id left join core.rooms r on r.id = t.room_id left join core.staff o on o.id = t.owner_id left join core.staff rb on rb.id = t.raised_by where t.id = $1`, [id]);
+    const t = await maybe(c, `select ${TICKET}, tc.name as category, r.name as room_name, o.full_name as owner_name, rb.full_name as raised_by_name from core.tickets t join core.ticket_categories tc on tc.id = t.category_id left join core.rooms r on r.id = t.room_id left join core.staff o on o.id = t.owner_staff_id left join core.staff rb on rb.id = t.raised_by_staff_id where t.id = $1`, [id]);
     if (!t) throw new NotFoundError();
-    const events = await q(c, `select e.*, s.full_name as actor_name from core.ticket_events e left join core.staff s on s.id = e.actor_id where e.ticket_id = $1 order by e.created_at`, [id]);
+    const events = await q(c, `select e.*, e.actor_staff_id as actor_id, coalesce(s.full_name, e.actor_name) as actor_name from core.ticket_events e left join core.staff s on s.id = e.actor_staff_id where e.ticket_id = $1 order by e.created_at`, [id]);
     return { ...t, events };
   });
 }
@@ -399,16 +409,17 @@ export async function saveCalendarEvent(ctx: Ctx, id: string | null, input: { la
 }
 
 /** Subscription link for phone calendars: signed per staff member, read-only. */
-export function calendarToken(staffId: string): string {
-  const sig = createHmac('sha256', process.env.AUTH_JWT_SECRET ?? 'dev-secret').update(`ics:${staffId}`).digest('hex').slice(0, 32);
-  return `${staffId}.${sig}`;
+export function calendarToken(orgId: string, staffId: string): string {
+  const sig = createHmac('sha256', process.env.AUTH_JWT_SECRET ?? 'dev-secret').update(`ics:${orgId}:${staffId}`).digest('hex').slice(0, 32);
+  return `${orgId}.${staffId}.${sig}`;
 }
 
 export async function icsFeed(token: string): Promise<string> {
-  const [staffId, sig] = token.split('.');
-  if (!staffId || calendarToken(staffId) !== token || !sig) throw new ForbiddenError();
-  const { asService } = await import('../db');
-  return asService(async (c) => {
+  const [orgId, staffId, sig] = token.split('.');
+  if (!orgId || !staffId || !sig || calendarToken(orgId, staffId) !== token) throw new ForbiddenError();
+  // signed link, no session: read as the org's OS system actor (only that org, only with the OS product)
+  const { asSystem } = await import('../db');
+  return asSystem(orgId, async (c) => {
     const s = await one<{ org_id: string; branch_id: string | null }>(c, `select org_id, branch_id from core.staff where id = $1`, [staffId]);
     const ev = await q<{ id: string; title: string; starts_on: string; ends_on: string; layer: string }>(c, `select id, title, starts_on::text, ends_on::text, layer from core.calendar_events where org_id = $1 and (branch_id is null or branch_id = $2) and deleted_at is null and ends_on >= current_date - 30`, [s.org_id, s.branch_id]);
     const d = (x: string) => x.replace(/-/g, '');
@@ -485,7 +496,9 @@ export async function createEvent(ctx: Ctx, input: { template_id?: string | null
   return run(ctx, async (c, sys) => {
     const tpl = input.template_id ? await maybe<{ task_pack: { title: string; role_key: string; days_before: number; priority: string }[]; committees: string[]; budget_lines: { line: string; amount: number }[] }>(c, `select task_pack, committees, budget_lines from os.event_templates where id = $1`, [input.template_id]) : null;
     const budget = (input.budget.length ? input.budget : tpl?.budget_lines ?? []).map((b) => ({ ...b, approved: false }));
-    const ev = await insert<{ id: string }>(c, 'core.events', { org_id: ctx.orgId, branch_id: ctx.branchId, template_id: input.template_id ?? null, name: input.name, event_date: input.event_date, owner_id: input.owner_id ?? ctx.staffId, committees: (tpl?.committees ?? []).map((n) => ({ name: n, members: [] })), budget });
+    // shared event row (core.events) + the OS planning columns (os.event_plans, R7)
+    const ev = await insert<{ id: string }>(c, 'core.events', { org_id: ctx.orgId, branch_id: ctx.branchId, name: input.name, event_date: input.event_date, owner_staff_id: input.owner_id ?? ctx.staffId });
+    await insert(c, 'os.event_plans', { org_id: ctx.orgId, branch_id: ctx.branchId, event_id: ev.id, template_id: input.template_id ?? null, committees: (tpl?.committees ?? []).map((n) => ({ name: n, members: [] })), budget });
     await insert(c, 'core.calendar_events', { org_id: ctx.orgId, branch_id: ctx.branchId, layer: 'event', title: input.name, starts_on: input.event_date, ends_on: input.event_date, linked_type: 'event', linked_id: ev.id });
     // Creating an event from a template creates all tasks with owners by role and dates counted back.
     const cal = await workCalendar(c, ctx.branchId);
@@ -501,7 +514,7 @@ export async function createEvent(ctx: Ctx, input: { template_id?: string | null
       const total = budget.reduce((s, b) => s + b.amount, 0);
       if (total > 0) {
         const req = await submitApproval(c, { orgId: ctx.orgId, branchId: ctx.branchId, applicantId: ctx.staffId, typeKey: 'event_budget', title: `${input.name} budget · ₹${total}`, data: { amount: total, event_id: ev.id }, linkedType: 'event', linkedId: ev.id, actorName: ctx.staff.full_name });
-        await c.query(`update core.events set budget_approval_request_id = $2 where id = $1`, [ev.id, req.id]);
+        await c.query(`update os.event_plans set budget_approval_request_id = $2 where event_id = $1`, [ev.id, req.id]);
       }
     });
     return { id: ev.id, tasks };
@@ -511,15 +524,16 @@ export async function createEvent(ctx: Ctx, input: { template_id?: string | null
 registerApprovalHook('event_budget', async (c, req, decision) => {
   if (decision !== 'approved') return;
   const id = (req.data as { event_id: string }).event_id;
-  const ev = await one<{ budget: { line: string; amount: number; approved: boolean }[] }>(c, `select budget from core.events where id = $1`, [id]);
-  await c.query(`update core.events set budget = $2 where id = $1`, [id, JSON.stringify(ev.budget.map((b) => ({ ...b, approved: true })))]);
+  const ev = await one<{ budget: { line: string; amount: number; approved: boolean }[] }>(c, `select budget from os.event_plans where event_id = $1`, [id]);
+  await c.query(`update os.event_plans set budget = $2 where event_id = $1`, [id, JSON.stringify(ev.budget.map((b) => ({ ...b, approved: true })))]);
 });
 
 /** Event dashboard: readiness = share of the event's tasks completed. */
 export async function eventDetail(ctx: Ctx, id: string) {
   needModule(ctx, 'events');
   return run(ctx, async (c) => {
-    const ev = await maybe(c, `select e.*, o.full_name as owner_name, t.name as template_name from core.events e left join core.staff o on o.id = e.owner_id left join os.event_templates t on t.id = e.template_id where e.id = $1`, [id]);
+    const ev = await maybe(c, `select e.*, e.owner_staff_id as owner_id, p.template_id, p.committees, p.budget, p.budget_approval_request_id, p.review, o.full_name as owner_name, t.name as template_name
+       from core.events e left join os.event_plans p on p.event_id = e.id left join core.staff o on o.id = e.owner_staff_id left join os.event_templates t on t.id = p.template_id where e.id = $1`, [id]);
     if (!ev) throw new NotFoundError();
     const tasks = await q<{ status: string }>(c, `select t.id, t.title, t.status, t.due_at, s.full_name as owner_name from os.tasks t left join core.staff s on s.id = t.owner_id where t.linked_type = 'event' and t.linked_id = $1 and t.deleted_at is null order by t.due_at`, [id]);
     const active = tasks.filter((t) => t.status !== 'cancelled');
@@ -536,7 +550,10 @@ export async function listEvents(ctx: Ctx) {
 /** After the event: a short review form, saved for next year. */
 export async function reviewEvent(ctx: Ctx, id: string, review: { went_well: string; improve: string; attendance?: number }) {
   need(ctx, 'events', 'edit');
-  return run(ctx, async (c) => update(c, 'core.events', id, { review: { ...review, by: ctx.staff.full_name, at: ctx.now.toISOString() }, status: 'reviewed' }));
+  return run(ctx, async (c) => {
+    await c.query(`update os.event_plans set review = $2 where event_id = $1`, [id, JSON.stringify({ ...review, by: ctx.staff.full_name, at: ctx.now.toISOString() })]);
+    return update(c, 'core.events', id, { status: 'reviewed' });
+  });
 }
 
 // ================================================================ duty roster (7.6)
@@ -635,7 +652,8 @@ export async function logIncident(ctx: Ctx, input: { type: string; student_ids: 
   return run(ctx, async (c, sys) => {
     const { follow_ups, ...rest } = input;
     const owner = input.owner_id ?? ctx.staffId;
-    const inc = await sys(() => insert<{ id: string }>(c, 'core.incidents', { org_id: ctx.orgId, branch_id: ctx.branchId, ...rest, owner_id: owner, reported_by: ctx.staffId, status: follow_ups.length ? 'follow_up' : 'open' }));
+    const { owner_id: _owner, ...fields } = rest;
+    const inc = await sys(() => insert<{ id: string }>(c, 'core.incidents', { org_id: ctx.orgId, branch_id: ctx.branchId, ...fields, owner_staff_id: owner, reported_by_staff_id: ctx.staffId, reported_by_user_id: ctx.userId, status: follow_ups.length ? 'follow_up' : 'open' }));
     const cal = await workCalendar(c, ctx.branchId);
     await sys(async () => {
       for (const [i, f] of follow_ups.entries()) await systemTask(c, { orgId: ctx.orgId, branchId: ctx.branchId, ownerId: f.owner_id, assignerId: ctx.staffId, title: f.title, systemKey: `inc:${inc.id}:${i}`, dueAt: fromLocal(f.due_on, '17:00', cal.timeZone).toISOString(), linkedType: 'incident', linkedId: inc.id, categoryKey: 'parent' });
@@ -651,12 +669,12 @@ export async function logIncident(ctx: Ctx, input: { type: string; student_ids: 
 
 export async function listIncidents(ctx: Ctx) {
   needModule(ctx, 'incidents');
-  return run(ctx, async (c) => q(c, `select i.id, i.type, i.severity, i.status, i.confidential, i.occurred_at, i.location_text, r.name as room_name, o.full_name as owner_name, cardinality(i.student_ids) as students from core.incidents i left join core.rooms r on r.id = i.room_id left join core.staff o on o.id = i.owner_id where i.deleted_at is null order by i.occurred_at desc limit 300`));
+  return run(ctx, async (c) => q(c, `select i.id, i.type, i.severity, i.status, i.confidential, i.occurred_at, i.location_text, r.name as room_name, o.full_name as owner_name, cardinality(i.student_ids) as students from core.incidents i left join core.rooms r on r.id = i.room_id left join core.staff o on o.id = i.owner_staff_id where i.deleted_at is null order by i.occurred_at desc limit 300`));
 }
 
 export async function getIncident(ctx: Ctx, id: string) {
   return run(ctx, async (c) => {
-    const i = await maybe<{ student_ids: string[] }>(c, `select i.*, o.full_name as owner_name, rb.full_name as reported_by_name from core.incidents i left join core.staff o on o.id = i.owner_id left join core.staff rb on rb.id = i.reported_by where i.id = $1`, [id]);
+    const i = await maybe<{ student_ids: string[] }>(c, `select i.*, i.owner_staff_id as owner_id, i.reported_by_staff_id as reported_by, o.full_name as owner_name, rb.full_name as reported_by_name from core.incidents i left join core.staff o on o.id = i.owner_staff_id left join core.staff rb on rb.id = i.reported_by_staff_id where i.id = $1`, [id]);
     if (!i) throw new NotFoundError();
     const students = await q(c, `select st.id, st.full_name, cl.name || ' ' || se.name as section from core.students st left join core.sections se on se.id = st.section_id left join core.programmes cl on cl.id = se.programme_id where st.id = any($1)`, [i.student_ids]);
     const tasks = await q(c, `select t.id, t.title, t.status, t.due_at, s.full_name as owner_name from os.tasks t left join core.staff s on s.id = t.owner_id where t.linked_type = 'incident' and t.linked_id = $1`, [id]);

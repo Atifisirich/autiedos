@@ -50,12 +50,20 @@ begin
     on conflict (org_id, product_key, key) do update set name = excluded.name
     returning id into v_role;
     delete from core.role_permissions where role_id = v_role;
+    -- An OS 'configure' permission manages the module's configuration rows, which core tables guard with
+    -- create / edit / delete: it is carried over as those actions too (same scope).
     insert into core.role_permissions (org_id, role_id, module_key, action, scope)
-    select p_org, v_role, rp.module, rp.action,
-           case max(os.scope_rank(rp.scope)) when 6 then 'org' when 5 then 'branch' else 'own' end
-      from os.roles r join os.role_permissions rp on rp.role_id = r.id and rp.deleted_at is null
-     where r.org_id = p_org and r.key = any(v_keys) and r.deleted_at is null
-     group by rp.module, rp.action
+    select p_org, v_role, x.module, x.action,
+           case max(os.scope_rank(x.scope)) when 6 then 'org' when 5 then 'branch' else 'own' end
+      from (select rp.module, rp.action, rp.scope
+              from os.roles r join os.role_permissions rp on rp.role_id = r.id and rp.deleted_at is null
+             where r.org_id = p_org and r.key = any(v_keys) and r.deleted_at is null
+            union all
+            select rp.module, a.action, rp.scope
+              from os.roles r join os.role_permissions rp on rp.role_id = r.id and rp.deleted_at is null and rp.action = 'configure'
+              cross join unnest(array['create','edit','delete']) a(action)
+             where r.org_id = p_org and r.key = any(v_keys) and r.deleted_at is null) x
+     group by x.module, x.action
     on conflict (role_id, module_key, action) do nothing;
     insert into core.role_permissions (org_id, role_id, module_key, action, scope)
     values (p_org, v_role, 'files', 'view', 'org'), (p_org, v_role, 'files', 'create', 'org')
@@ -207,3 +215,21 @@ begin
     execute format('create trigger trg_sync_del after delete on os.%I referencing old table as old_rows for each statement execute function os.trg_sync_access_del()', t);
   end loop;
 end $$;
+
+-- Configuration history of the caller's org for the OS config screens: every row change of the table from audit.log
+-- (core master tables have no config-history trigger; audit.log records all of them). audit is not granted to
+-- os_server (ADR 001), so this security definer function answers setup admins (setup.configure) and auditors only.
+create or replace function os.config_history(p_table text, p_row uuid)
+returns table (id bigint, org_id uuid, branch_id uuid, entity text, entity_id uuid, action text, before jsonb, after jsonb, actor_user_id uuid, created_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select h.id, h.org_id, h.branch_id, h.schema_name || '.' || h.table_name, h.row_id, h.action, h.before, h.after, h.actor_user_id, h.created_at
+    from audit.log h
+   where h.org_id = app.current_org_id() and h.action in ('insert','update','delete')
+     and (os.staff_perm_rank(os.my_staff_id(), 'setup', 'configure') > 0 or os.staff_perm_rank(os.my_staff_id(), 'audit', 'view') > 0 or os.is_system())
+     and (p_table is null or h.schema_name || '.' || h.table_name = p_table)
+     and (p_row is null or h.row_id = p_row)
+$$;
+
+-- Org of a branch (the OS console takes branch ids; AutoEd staff cannot read client branches). os_server only.
+create or replace function os.branch_org_id(p_branch uuid) returns uuid
+language sql stable security definer set search_path = '' as $$ select b.org_id from core.branches b where b.id = p_branch $$;

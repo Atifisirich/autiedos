@@ -36,11 +36,20 @@ export async function listExams(ctx: Ctx) {
   return run(ctx, async (c) => q(c, `select e.*, et.name as type_name, (select count(*)::int from core.exam_schedules s where s.exam_id = e.id) as papers from core.exams e left join core.exam_types et on et.id = e.exam_type_id where e.branch_id = $1 and e.deleted_at is null order by e.starts_on desc`, [ctx.branchId]));
 }
 
+/**
+ * Shared exam rows live in core (core.exams, core.exam_schedules, core.exam_seating, core.question_bank); the OS
+ * keeps duty rules and the rooms of each paper in os.exam_plans, and the bank's topic / type / competency inside
+ * question_bank.content (MAP-TABLES B.20).
+ */
+const SCHED = `s.*, s.exam_date::text as date, coalesce((select ep.schedule_rooms -> s.id::text from os.exam_plans ep where ep.exam_id = s.exam_id), '[]'::jsonb) as room_ids`;
+const BANK_MATCH = `(content->>'topic_id') = $2::text and content->>'question_type' = $3 and marks = $4 and difficulty = $5`;
+
 export async function createExam(ctx: Ctx, input: { name: string; exam_type_id?: string | null; term_id?: string | null; starts_on: string; ends_on: string; programme_ids: string[] }) {
   need(ctx, 'exams', 'create');
   return run(ctx, async (c, sys) => {
-    const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
+    const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [ctx.branchId]);
     const exam = await insert<{ id: string }>(c, 'core.exams', { org_id: ctx.orgId, branch_id: ctx.branchId, academic_year_id: ay?.id ?? null, ...input, status: 'planning' });
+    await insert(c, 'os.exam_plans', { org_id: ctx.orgId, branch_id: ctx.branchId, exam_id: exam.id });
     await insert(c, 'core.calendar_events', { org_id: ctx.orgId, branch_id: ctx.branchId, layer: 'exam', title: input.name, starts_on: input.starts_on, ends_on: input.ends_on, linked_type: 'exam', linked_id: exam.id });
     // Task pack: printing and answer-script collection for the coordinator.
     const coord = (await staffWithRole(c, ctx.orgId, 'academic_coordinator', ctx.branchId))[0] ?? ctx.staffId;
@@ -59,11 +68,16 @@ export async function addSchedule(ctx: Ctx, input: { exam_id: string; programme_
     const warnings: string[] = [];
     const cal = await workCalendar(c, ctx.branchId);
     if (!isWorkingDay(input.date, cal)) warnings.push('not_a_working_day');
-    const clash = await maybe(c, `select 1 from core.exam_schedules where programme_id = $1 and date = $2 and starts_at < $4 and ends_at > $3 and deleted_at is null`, [input.programme_id, input.date, input.starts_at, input.ends_at]);
+    const clash = await maybe(c, `select 1 from core.exam_schedules where programme_id = $1 and exam_date = $2 and starts_at < $4 and ends_at > $3 and deleted_at is null`, [input.programme_id, input.date, input.starts_at, input.ends_at]);
     if (clash) throw new ValidationError('class_already_has_exam_at_this_time');
     const other = await q<{ title: string }>(c, `select title from core.calendar_events where (branch_id = $1 or branch_id is null) and $2::date between starts_on and ends_on and layer in ('event','ptm','holiday') and deleted_at is null`, [ctx.branchId, input.date]);
     for (const o of other) warnings.push(`calendar:${o.title}`);
-    const s = await insert<{ id: string }>(c, 'core.exam_schedules', { org_id: ctx.orgId, branch_id: ctx.branchId, ...input });
+    const s = await insert<{ id: string }>(c, 'core.exam_schedules', { org_id: ctx.orgId, exam_id: input.exam_id, programme_id: input.programme_id, subject_id: input.subject_id, exam_date: input.date, starts_at: input.starts_at, ends_at: input.ends_at });
+    await c.query(
+      `insert into os.exam_plans (org_id, branch_id, exam_id, schedule_rooms) values ($1, $2, $3, jsonb_build_object($4::text, to_jsonb($5::uuid[])))
+       on conflict (exam_id) do update set schedule_rooms = os.exam_plans.schedule_rooms || excluded.schedule_rooms`,
+      [ctx.orgId, ctx.branchId, input.exam_id, s.id, input.room_ids],
+    );
     // Subject teachers of that class: paper submission and correction deadlines.
     const teachers = await q<{ staff_id: string }>(c, `select distinct ta.staff_id from core.teacher_allocations ta join core.sections se on se.id = ta.section_id where se.programme_id = $1 and ta.subject_id = $2`, [input.programme_id, input.subject_id]);
     const exam = await one<{ name: string }>(c, `select name from core.exams where id = $1`, [input.exam_id]);
@@ -82,9 +96,17 @@ export async function examDetail(ctx: Ctx, examId: string) {
   return run(ctx, async (c) => {
     const exam = await maybe(c, `select * from core.exams where id = $1`, [examId]);
     if (!exam) throw new NotFoundError();
-    const schedules = await q(c, `select s.*, cl.name as class_name, sb.name as subject_name from core.exam_schedules s join core.programmes cl on cl.id = s.programme_id join core.subjects sb on sb.id = s.subject_id where s.exam_id = $1 and s.deleted_at is null order by s.date, s.starts_at`, [examId]);
-    const duties = await q(c, `select d.*, st.full_name, r.name as room_name, s.date, s.starts_at, s.ends_at from os.invigilation_duties d join core.exam_schedules s on s.id = d.exam_schedule_id join core.staff st on st.id = d.staff_id left join core.rooms r on r.id = d.room_id where s.exam_id = $1 and d.deleted_at is null order by s.date, s.starts_at`, [examId]);
-    const seating = await q(c, `select sp.*, r.name as room_name from public.seating_plans sp join core.rooms r on r.id = sp.room_id where sp.exam_id = $1 and sp.deleted_at is null order by sp.date, r.name`, [examId]);
+    const schedules = await q(c, `select ${SCHED}, cl.name as class_name, sb.name as subject_name from core.exam_schedules s join core.programmes cl on cl.id = s.programme_id join core.subjects sb on sb.id = s.subject_id where s.exam_id = $1 and s.deleted_at is null order by s.exam_date, s.starts_at`, [examId]);
+    const duties = await q(c, `select d.*, st.full_name, r.name as room_name, s.exam_date::text as date, s.starts_at, s.ends_at from os.invigilation_duties d join core.exam_schedules s on s.id = d.exam_schedule_id join core.staff st on st.id = d.staff_id left join core.rooms r on r.id = d.room_id where s.exam_id = $1 and d.deleted_at is null order by s.exam_date, s.starts_at`, [examId]);
+    // one core.exam_seating row per seat, shown per room and day as before
+    const seating = await q(
+      c,
+      `select es.room_id, r.name as room_name, s.exam_date::text as date,
+              jsonb_agg(jsonb_build_object('seat', es.seat_no, 'student_id', es.student_id, 'programme_id', s.programme_id) order by lpad(coalesce(es.seat_no, ''), 6, '0')) as layout
+         from core.exam_seating es join core.exam_schedules s on s.id = es.exam_schedule_id join core.rooms r on r.id = es.room_id
+        where s.exam_id = $1 and es.deleted_at is null group by es.room_id, r.name, s.exam_date order by s.exam_date, r.name`,
+      [examId],
+    );
     return { exam, schedules, duties, seating };
   });
 }
@@ -93,8 +115,8 @@ export async function examDetail(ctx: Ctx, examId: string) {
 export async function allocateInvigilation(ctx: Ctx, examId: string) {
   need(ctx, 'exams', 'assign');
   return run(ctx, async (c) => {
-    const exam = await one<{ rules: { max_duties_per_day?: number } }>(c, `select rules from core.exams where id = $1`, [examId]);
-    const schedules = await q<{ id: string; programme_id: string; subject_id: string; date: string; starts_at: string; ends_at: string; room_ids: string[] }>(c, `select id, programme_id, subject_id, date::text, starts_at::text, ends_at::text, room_ids from core.exam_schedules where exam_id = $1 and deleted_at is null`, [examId]);
+    const exam = await one<{ rules: { max_duties_per_day?: number } }>(c, `select coalesce((select rules from os.exam_plans where exam_id = $1), '{}'::jsonb) as rules`, [examId]);
+    const schedules = await q<{ id: string; programme_id: string; subject_id: string; date: string; starts_at: string; ends_at: string; room_ids: string[] }>(c, `select s.id, s.programme_id, s.subject_id, s.exam_date::text as date, s.starts_at::text, s.ends_at::text, coalesce((select ep.schedule_rooms -> s.id::text from os.exam_plans ep where ep.exam_id = s.exam_id), '[]'::jsonb) as room_ids from core.exam_schedules s where s.exam_id = $1 and s.deleted_at is null`, [examId]);
     await c.query(`delete from os.invigilation_duties where exam_schedule_id = any($1) and status = 'assigned'`, [schedules.map((s) => s.id)]);
     const staff = await q<{ id: string; full_name: string; load: number }>(c, `select s.id, s.full_name, (select count(*)::int from os.invigilation_duties d where d.staff_id = s.id and d.created_at > now() - interval '180 days') as load from core.staff s where s.branch_id = $1 and s.is_teaching and s.status = 'active' and s.deleted_at is null`, [ctx.branchId]);
     const leave = await q<{ staff_id: string; start_date: string; end_date: string }>(c, `select staff_id, start_date::text, end_date::text from core.leave_requests where branch_id = $1 and status = 'approved'`, [ctx.branchId]);
@@ -135,12 +157,16 @@ registerApprovalHook('invigilation_swap', async (c, req, decision) => {
 export async function generateSeating(ctx: Ctx, examId: string, date: string, roomIds: string[]) {
   need(ctx, 'exams', 'edit');
   return run(ctx, async (c) => {
-    const classes = (await q<{ programme_id: string }>(c, `select distinct programme_id from core.exam_schedules where exam_id = $1 and date = $2`, [examId, date])).map((r) => r.programme_id);
-    const students = await q<{ id: string; programme_id: string; roll_no: number }>(c, `select id, programme_id, coalesce(roll_no, 0) as roll_no from core.students where programme_id = any($1) and status = 'active' and deleted_at is null`, [classes]);
+    const papers = await q<{ id: string; programme_id: string }>(c, `select distinct on (programme_id) id, programme_id from core.exam_schedules where exam_id = $1 and exam_date = $2 and deleted_at is null order by programme_id, starts_at`, [examId, date]);
+    const paperOf = new Map(papers.map((p) => [p.programme_id, p.id]));
+    const classes = papers.map((r) => r.programme_id);
+    const students = await q<{ id: string; programme_id: string; roll_no: number }>(c, `select id, programme_id, case when roll_no ~ '^[0-9]+$' then roll_no::int else 0 end as roll_no from core.students where programme_id = any($1) and status = 'active' and deleted_at is null`, [classes]);
     const rooms = await q<{ id: string; capacity: number }>(c, `select id, capacity from core.rooms where id = any($1) order by name`, [roomIds]);
     const plan = seatingPlan(students.map((s) => ({ id: s.id, classId: s.programme_id, rollNo: s.roll_no })), rooms);
-    await c.query(`delete from public.seating_plans where exam_id = $1 and date = $2`, [examId, date]);
-    for (const r of plan.rooms) await insert(c, 'seating_plans', { org_id: ctx.orgId, branch_id: ctx.branchId, exam_id: examId, date, room_id: r.roomId, layout: r.seats.map((s) => ({ seat: s.seat, student_id: s.studentId, programme_id: s.classId })) });
+    await c.query(`delete from core.exam_seating where exam_schedule_id = any($1)`, [papers.map((p) => p.id)]);
+    for (const r of plan.rooms) {
+      for (const st of r.seats) await insert(c, 'core.exam_seating', { org_id: ctx.orgId, exam_schedule_id: paperOf.get(st.classId), student_id: st.studentId, room_id: r.roomId, seat_no: String(st.seat) });
+    }
     return { rooms: plan.rooms.length, seated: students.length - plan.unseated.length, unseated: plan.unseated.length };
   });
 }
@@ -169,12 +195,26 @@ export async function listBlueprints(ctx: Ctx) {
 
 export async function bankQuestions(ctx: Ctx, filter: { subject_id?: string; programme_id?: string; topic_id?: string }) {
   needModule(ctx, 'exams');
-  return run(ctx, async (c) => q(c, `select qb.*, t.name as topic_name from core.question_bank qb left join os.curriculum_topics t on t.id = qb.topic_id where qb.org_id = $1 and qb.deleted_at is null and ($2::uuid is null or qb.subject_id = $2) and ($3::uuid is null or qb.programme_id = $3) and ($4::uuid is null or qb.topic_id = $4) order by qb.created_at desc limit 500`, [ctx.orgId, filter.subject_id ?? null, filter.programme_id ?? null, filter.topic_id ?? null]));
+  return run(ctx, async (c) => q(c, `select qb.*, (qb.content->>'topic_id')::uuid as topic_id, qb.content->>'question_type' as question_type, coalesce((qb.content->>'competency')::boolean, false) as competency, t.name as topic_name
+         from core.question_bank qb left join os.curriculum_topics t on t.id = (qb.content->>'topic_id')::uuid
+        where qb.org_id = $1 and qb.deleted_at is null and ($2::uuid is null or qb.subject_id = $2) and ($3::uuid is null or qb.programme_id = $3) and ($4::uuid is null or qb.content->>'topic_id' = $4::text) order by qb.created_at desc limit 500`, [ctx.orgId, filter.subject_id ?? null, filter.programme_id ?? null, filter.topic_id ?? null]));
 }
 
 export async function addBankQuestion(ctx: Ctx, input: { subject_id: string; programme_id: string; topic_id: string; question_type: string; difficulty: 'easy' | 'medium' | 'hard'; marks: number; bloom?: string; competency?: boolean; content: { text: string; options?: string[]; answer: string; marking?: unknown[] }; tags?: string[] }) {
   need(ctx, 'question_papers', 'create');
-  return run(ctx, async (c) => insert(c, 'core.question_bank', { org_id: ctx.orgId, branch_id: ctx.branchId, ...input, status: 'approved', source: 'manual', tags: input.tags ?? [] }));
+  return run(ctx, async (c) =>
+    insert(c, 'core.question_bank', {
+      org_id: ctx.orgId,
+      subject_id: input.subject_id,
+      programme_id: input.programme_id,
+      difficulty: input.difficulty,
+      marks: input.marks,
+      bloom: input.bloom ?? null,
+      content: { ...input.content, topic_id: input.topic_id, question_type: input.question_type, competency: !!input.competency, tags: input.tags ?? [] },
+      status: 'approved',
+      source: 'manual',
+    }),
+  );
 }
 
 // ---------------------------------------------------------------- papers
@@ -214,7 +254,7 @@ export async function generatePaper(ctx: Ctx, input: { blueprint_id: string; exa
       const missing: typeof plan.slots = [];
       for (const s of plan.slots) {
         if (input.source !== 'ai') {
-          const cand = await q<{ id: string; content: { text: string; options?: string[]; answer: string; marking?: { step: string; marks: number }[] } }>(c, `select id, content from core.question_bank where org_id = $1 and topic_id = $2 and question_type = $3 and marks = $4 and difficulty = $5 and status = 'approved' and deleted_at is null order by random()`, [ctx.orgId, s.topicId, s.questionType, s.marks, s.difficulty]);
+          const cand = await q<{ id: string; content: { text: string; options?: string[]; answer: string; marking?: { step: string; marks: number }[] } }>(c, `select id, content from core.question_bank where org_id = $1 and ${BANK_MATCH} and status = 'approved' and deleted_at is null order by random()`, [ctx.orgId, s.topicId, s.questionType, s.marks, s.difficulty]);
           const pick = cand.find((x) => !used.has(x.id));
           if (pick) {
             used.add(pick.id);
@@ -316,7 +356,7 @@ export async function paperReview(ctx: Ctx, id: string, input: { action: 'submit
           // Approved questions are saved to the school's question bank.
           await sys(async () => {
             for (const qn of p.questions.filter((x) => x.source === 'ai')) {
-              await insert(c, 'core.question_bank', { org_id: p.org_id, branch_id: p.branch_id, subject_id: p.subject_id, programme_id: p.programme_id, topic_id: qn.topicId, question_type: qn.questionType, difficulty: qn.difficulty, marks: qn.marks, content: { text: qn.text, options: qn.options, answer: qn.answer, marking: qn.marking }, status: 'approved', source: 'paper' });
+              await insert(c, 'core.question_bank', { org_id: p.org_id, subject_id: p.subject_id, programme_id: p.programme_id, difficulty: qn.difficulty, marks: qn.marks, content: { text: qn.text, options: qn.options, answer: qn.answer, marking: qn.marking, topic_id: qn.topicId, question_type: qn.questionType }, status: 'approved', source: 'paper' });
             }
           });
         }
@@ -329,7 +369,7 @@ export async function paperReview(ctx: Ctx, id: string, input: { action: 'submit
         const qn = p.questions.find((x) => x.no === input.question_no);
         if (!qn) throw new NotFoundError('question');
         const usedIds = new Set(p.questions.map((x) => x.bank_id).filter(Boolean));
-        const cand = await q<{ id: string; content: { text: string; options?: string[]; answer: string; marking?: { step: string; marks: number }[] } }>(c, `select id, content from core.question_bank where org_id = $1 and topic_id = $2 and question_type = $3 and marks = $4 and difficulty = $5 and status = 'approved' and deleted_at is null`, [p.org_id, qn.topicId, qn.questionType, qn.marks, qn.difficulty]);
+        const cand = await q<{ id: string; content: { text: string; options?: string[]; answer: string; marking?: { step: string; marks: number }[] } }>(c, `select id, content from core.question_bank where org_id = $1 and ${BANK_MATCH} and status = 'approved' and deleted_at is null`, [p.org_id, qn.topicId, qn.questionType, qn.marks, qn.difficulty]);
         const pick = cand.find((x) => !usedIds.has(x.id));
         let replacement: PaperContent;
         if (pick) replacement = { ...qn, text: pick.content.text, options: pick.content.options, answer: pick.content.answer, marking: pick.content.marking ?? [{ step: 'Answer', marks: qn.marks }], source: 'bank', bank_id: pick.id };

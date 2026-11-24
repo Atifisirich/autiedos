@@ -25,20 +25,31 @@ import {
   type StudentMark,
 } from '@autoed/shared';
 import { ForbiddenError, NotFoundError, ValidationError, insert, maybe, one, q, update, type Tx } from '../db';
-import { branchInfo, need, needModule, rank, run, workCalendar, localToday, now, staffWithRole, type Ctx } from '../core';
+import { branchInfo, fileId, need, needModule, rank, run, workCalendar, localToday, now, staffWithRole, type Ctx } from '../core';
 import { notify } from '../notify';
 import { getWhatsApp } from '../adapters/channels';
 import { registerApprovalHook, submitApproval } from './approvals';
 import { systemTask } from './tasks';
 import { generateForAbsence, cancelForLeave } from './timetable';
 
+/** core.wings stores day | am_pm | period; the OS screens and rules use daily_once | daily_twice | period. */
+const MODE = `case w.student_attendance_mode when 'am_pm' then 'daily_twice' when 'period' then 'period' else 'daily_once' end`;
+/** core.students.roll_no is text: numeric roll numbers sort as numbers. */
+const ROLL = `case when roll_no ~ '^[0-9]+$' then lpad(roll_no, 6, '0') else roll_no end`;
+
 // ---------------------------------------------------------------- staff attendance
 async function ruleFor(c: Tx, branchId: string, positionId: string | null) {
   return (
     (await maybe<{ shift_start: string; shift_end: string; grace_minutes: number; half_day_after_minutes: number; early_exit_minutes: number; checkin_cutoff: string; selfie_retention_days: number; student_cutoff: string; student_edit_window_minutes: number; student_threshold_pct: number; parent_absent_alert: boolean }>(
       c,
-      `select shift_start::text, shift_end::text, grace_minutes, half_day_after_minutes, early_exit_minutes, checkin_cutoff::text, selfie_retention_days, student_cutoff::text, student_edit_window_minutes, student_threshold_pct, parent_absent_alert
-       from core.attendance_rules where branch_id = $1 and (position_id = $2 or position_id is null) and deleted_at is null order by position_id nulls last limit 1`,
+      // core.attendance_rules: grace / half day / student cut-off are columns, the other OS rules live in settings
+      `select coalesce(settings->>'shift_start', '08:00') as shift_start, coalesce(settings->>'shift_end', '15:30') as shift_end,
+              coalesce(grace_minutes, 10) as grace_minutes, coalesce(half_day_after_minutes, 120) as half_day_after_minutes,
+              coalesce((settings->>'early_exit_minutes')::int, 30) as early_exit_minutes, coalesce(settings->>'checkin_cutoff', '08:30') as checkin_cutoff,
+              coalesce((settings->>'selfie_retention_days')::int, 90) as selfie_retention_days, coalesce(student_cutoff::text, '09:30') as student_cutoff,
+              coalesce((settings->>'student_edit_window_minutes')::int, 120) as student_edit_window_minutes, coalesce((settings->>'student_threshold_pct')::numeric, 75) as student_threshold_pct,
+              coalesce((settings->>'parent_absent_alert')::boolean, false) as parent_absent_alert
+       from core.attendance_rules where branch_id = $1 and applies_to = 'staff' and (position_id = $2 or position_id is null) and deleted_at is null order by position_id nulls last limit 1`,
       [branchId, positionId],
     )) ?? { shift_start: '08:00', shift_end: '15:30', grace_minutes: 10, half_day_after_minutes: 120, early_exit_minutes: 30, checkin_cutoff: '08:30', selfie_retention_days: 90, student_cutoff: '09:30', student_edit_window_minutes: 120, student_threshold_pct: 75, parent_absent_alert: false }
   );
@@ -62,7 +73,7 @@ export async function checkIn(ctx: Ctx, input: { kind: 'in' | 'out'; lat: number
     if (input.kind === 'in') {
       if (existing?.check_in_at) return { status: 'already_checked_in', at: existing.check_in_at };
       const st = staffStatus(shiftOf(rule), local.minutes, null);
-      const row = { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, date: local.date, check_in_at: at.toISOString(), check_in_lat: input.lat, check_in_lng: input.lng, check_in_distance_m: geo.distanceM, selfie_path: input.selfie_path ?? null, source: 'app', status: st.status, late_minutes: st.lateMinutes };
+      const row = { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, date: local.date, check_in_at: at.toISOString(), check_in_lat: input.lat, check_in_lng: input.lng, check_in_distance_m: geo.distanceM, selfie_file_id: input.selfie_path ? await fileId(c, ctx.orgId, input.selfie_path, 'staff_attendance') : null, source: 'app', status: st.status, late_minutes: st.lateMinutes };
       if (existing) await update(c, 'core.staff_attendance', existing.id, row);
       else await insert(c, 'core.staff_attendance', row);
       return { status: st.status, late_minutes: st.lateMinutes, distance_m: geo.distanceM };
@@ -82,7 +93,7 @@ export async function importBiometric(ctx: Ctx, input: { device_type: string; ma
     const b = await branchInfo(c, ctx.branchId);
     const { punches, errors } = parseBiometricRows(input.rows, input.mapping);
     const staff = new Map((await q<{ id: string; employee_code: string; position_id: string | null }>(c, `select id, employee_code, position_id from core.staff where org_id = $1 and deleted_at is null and employee_code is not null`, [ctx.orgId])).map((s) => [s.employee_code.toUpperCase(), s]));
-    const imp = await insert<{ id: string }>(c, 'core.attendance_imports', { org_id: ctx.orgId, branch_id: ctx.branchId, device_type: input.device_type, mapping: input.mapping, file_name: input.file_name ?? null, rows_total: input.rows.length });
+    const imp = await insert<{ id: string }>(c, 'core.attendance_imports', { org_id: ctx.orgId, branch_id: ctx.branchId, kind: 'staff', source: input.device_type, status: 'processing', row_count: input.rows.length, summary: { mapping: input.mapping, file_name: input.file_name ?? null } });
     const conflicts: unknown[] = [];
     const rowErrors: unknown[] = [...errors];
     let merged = 0;
@@ -97,13 +108,13 @@ export async function importBiometric(ctx: Ctx, input: { device_type: string; ma
       const m = mergePunch(ex ? { checkIn: hm(ex.check_in_at), checkOut: hm(ex.check_out_at), source: ex.source } : null, p);
       const rule = await ruleFor(c, ctx.branchId, s.position_id);
       const st = staffStatus(shiftOf(rule), m.checkIn ? hhmmToMinutes(m.checkIn) : null, m.checkOut ? hhmmToMinutes(m.checkOut) : null);
-      const row = { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: s.id, date: p.date, check_in_at: m.checkIn ? fromLocal(p.date, m.checkIn, b.timezone).toISOString() : null, check_out_at: m.checkOut ? fromLocal(p.date, m.checkOut, b.timezone).toISOString() : null, source: m.source, status: st.status, late_minutes: st.lateMinutes, early_exit: st.earlyExit, conflict: m.conflict.length ? m.conflict : null, import_id: imp.id };
+      const row = { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: s.id, date: p.date, check_in_at: m.checkIn ? fromLocal(p.date, m.checkIn, b.timezone).toISOString() : null, check_out_at: m.checkOut ? fromLocal(p.date, m.checkOut, b.timezone).toISOString() : null, source: m.source, status: st.status, late_minutes: st.lateMinutes, early_exit: st.earlyExit, conflict: m.conflict.length > 0, note: m.conflict.length ? JSON.stringify(m.conflict) : null, import_id: imp.id };
       if (ex) await update(c, 'core.staff_attendance', ex.id, row);
       else await insert(c, 'core.staff_attendance', row);
       if (m.conflict.length) conflicts.push({ staff_id: s.id, employee_code: p.employeeCode, date: p.date, conflict: m.conflict });
       merged++;
     }
-    await update(c, 'core.attendance_imports', imp.id, { rows_merged: merged, conflicts, errors: rowErrors });
+    await update(c, 'core.attendance_imports', imp.id, { status: 'done', error_count: rowErrors.length, summary: { mapping: input.mapping, file_name: input.file_name ?? null, rows_merged: merged, conflicts, errors: rowErrors } });
     if (input.save_mapping) {
       const settings = { ...(b.settings as Record<string, unknown>), biometric_mappings: { ...(((b.settings as Record<string, unknown>).biometric_mappings as Record<string, unknown>) ?? {}), [input.device_type]: input.mapping } };
       await c.query(`update core.branches set settings = $2 where id = $1`, [ctx.branchId, JSON.stringify(settings)]);
@@ -203,7 +214,7 @@ export async function attendanceExceptions(ctx: Ctx, date?: string) {
        order by s.full_name`,
       [ctx.branchId, d],
     );
-    const pendingReg = await q(c, `select r.id, r.title, s.full_name from core.approval_requests r join core.approval_types t on t.id = r.approval_type_id join core.staff s on s.id = r.applicant_id where r.branch_id = $1 and t.key = 'regularisation' and r.status = 'pending'`, [ctx.branchId]);
+    const pendingReg = await q(c, `select r.id, r.title, s.full_name from core.approval_requests r join core.approval_types t on t.id = r.approval_type_id join core.staff s on s.id = r.applicant_staff_id where r.branch_id = $1 and t.key = 'regularisation' and r.status = 'pending'`, [ctx.branchId]);
     return { date: d, exceptions: rows, regularisations: pendingReg };
   });
 }
@@ -225,7 +236,7 @@ export async function absenceSweep(c: Tx, branchId: string, at: Date = now()): P
   );
   let n = 0;
   for (const s of missing) {
-    await c.query(`insert into core.staff_attendance (org_id, branch_id, staff_id, date, source, status) values ($1,$2,$3,$4,'manual','absent') on conflict (staff_id, date) do nothing`, [b.org_id, branchId, s.id, local.date]);
+    await c.query(`insert into core.staff_attendance (org_id, branch_id, staff_id, date, source, status) values ($1,$2,$3,$4,'manual','absent') on conflict (org_id, staff_id, date) do nothing`, [b.org_id, branchId, s.id, local.date]);
     n += await generateForAbsence(c, { orgId: b.org_id, branchId, staffId: s.id, date: local.date, source: 'absence' });
   }
   return n;
@@ -234,14 +245,15 @@ export async function absenceSweep(c: Tx, branchId: string, at: Date = now()): P
 export async function purgeSelfies(c: Tx, at: Date = now()): Promise<number> {
   const rows = await q<{ id: string; selfie_path: string }>(
     c,
-    `select sa.id, sa.selfie_path from core.staff_attendance sa join core.attendance_rules ar on ar.branch_id = sa.branch_id and ar.position_id is null
-     where sa.selfie_path is not null and sa.date < ($1::date - ar.selfie_retention_days)`,
+    `select sa.id, f.storage_path as selfie_path from core.staff_attendance sa join core.files f on f.id = sa.selfie_file_id
+       left join core.attendance_rules ar on ar.branch_id = sa.branch_id and ar.position_id is null and ar.applies_to = 'staff' and ar.deleted_at is null
+     where sa.selfie_file_id is not null and sa.date < ($1::date - coalesce((ar.settings->>'selfie_retention_days')::int, 90))`,
     [at.toISOString().slice(0, 10)],
   );
   const { deleteObject } = await import('../adapters/channels');
   for (const r of rows) {
     await deleteObject(r.selfie_path).catch(() => undefined);
-    await c.query(`update core.staff_attendance set selfie_path = null where id = $1`, [r.id]);
+    await c.query(`update core.staff_attendance set selfie_file_id = null where id = $1`, [r.id]);
   }
   return rows.length;
 }
@@ -261,11 +273,11 @@ async function canMarkSection(c: Tx, ctx: Ctx, sectionId: string): Promise<boole
 export async function rosterForMarking(ctx: Ctx, sectionId: string, date: string, sessionKey: string) {
   needModule(ctx, 'student_attendance');
   return run(ctx, async (c) => {
-    const section = await maybe<{ id: string; name: string; class_name: string; mode: string }>(c, `select se.id, se.name, cl.name as class_name, w.student_attendance_mode as mode from core.sections se join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id where se.id = $1`, [sectionId]);
+    const section = await maybe<{ id: string; name: string; class_name: string; mode: string }>(c, `select se.id, se.name, cl.name as class_name, ${MODE} as mode from core.sections se join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id where se.id = $1`, [sectionId]);
     if (!section) throw new NotFoundError();
-    const students = await q<{ id: string; full_name: string; roll_no: number }>(c, `select id, full_name, roll_no from core.students where section_id = $1 and status = 'active' and deleted_at is null order by roll_no, full_name`, [sectionId]);
+    const students = await q<{ id: string; full_name: string; roll_no: number }>(c, `select id, full_name, roll_no from core.students where section_id = $1 and status = 'active' and deleted_at is null order by ${ROLL}, full_name`, [sectionId]);
     const session = await maybe<{ id: string; status: string; submitted_at: string | null }>(c, `select id, status, submitted_at from core.student_attendance_sessions where section_id = $1 and date = $2 and session_key = $3`, [sectionId, date, sessionKey]);
-    const marks = session ? await q<{ student_id: string; status: StudentMark; note: string | null }>(c, `select student_id, status, note from core.student_attendance_marks where session_id = $1`, [session.id]) : [];
+    const marks = session ? await q<{ student_id: string; status: StudentMark; note: string | null }>(c, `select student_id, case status when 'on_leave' then 'leave' else status end as status, note from core.student_attendance_marks where session_id = $1`, [session.id]) : [];
     const rule = await ruleFor(c, ctx.branchId, null);
     const editable = !session?.submitted_at ? 'open' : editPolicy(new Date(session.submitted_at), ctx.now, rule.student_edit_window_minutes);
     return { section, session, editable, students: students.map((s) => ({ ...s, status: marks.find((m) => m.student_id === s.id)?.status ?? 'present', note: marks.find((m) => m.student_id === s.id)?.note ?? null })) };
@@ -276,7 +288,7 @@ export async function submitStudentAttendance(ctx: Ctx, input: { section_id: str
   need(ctx, 'student_attendance', 'create');
   return run(ctx, async (c, sys) => {
     if (!(await canMarkSection(c, ctx, input.section_id))) throw new ForbiddenError('not_your_section');
-    const section = await one<{ branch_id: string; org_id: string; class_teacher_id: string | null; name: string; class_name: string }>(c, `select se.branch_id, se.org_id, se.class_teacher_id, se.name, cl.name as class_name from core.sections se join core.programmes cl on cl.id = se.programme_id where se.id = $1`, [input.section_id]);
+    const section = await one<{ branch_id: string; org_id: string; class_teacher_id: string | null; name: string; class_name: string }>(c, `select cl.branch_id, se.org_id, se.class_teacher_id, se.name, cl.name as class_name from core.sections se join core.programmes cl on cl.id = se.programme_id where se.id = $1`, [input.section_id]);
     const roster = new Set((await q<{ id: string }>(c, `select id from core.students where section_id = $1 and deleted_at is null`, [input.section_id])).map((s) => s.id));
     for (const m of input.marks) if (!roster.has(m.student_id)) throw new ValidationError('student_not_in_section');
     const existing = await maybe<{ id: string; submitted_at: string | null; client_id: string | null }>(c, `select id, submitted_at, client_id from core.student_attendance_sessions where section_id = $1 and date = $2 and session_key = $3`, [input.section_id, input.date, input.session_key]);
@@ -292,9 +304,9 @@ export async function submitStudentAttendance(ctx: Ctx, input: { section_id: str
     }
     const sessionId = await sys(async () => {
       const s = existing
-        ? await update<{ id: string }>(c, 'core.student_attendance_sessions', existing.id, { edit_reason: input.edit_reason ?? null, marked_by: ctx.staffId, client_id: input.client_id ?? existing.client_id })
-        : await insert<{ id: string }>(c, 'core.student_attendance_sessions', { org_id: ctx.orgId, branch_id: section.branch_id, section_id: input.section_id, date: input.date, session_key: input.session_key, marked_by: ctx.staffId, status: 'submitted', submitted_at: ctx.now.toISOString(), client_id: input.client_id ?? null });
-      await writeMarks(c, ctx.orgId, section.branch_id, s.id, input.marks);
+        ? await update<{ id: string }>(c, 'core.student_attendance_sessions', existing.id, { edit_reason: input.edit_reason ?? null, marked_by_staff_id: ctx.staffId, marked_by_name: ctx.staff.full_name, client_id: input.client_id ?? existing.client_id })
+        : await insert<{ id: string }>(c, 'core.student_attendance_sessions', { org_id: ctx.orgId, section_id: input.section_id, date: input.date, session_key: input.session_key, marked_by_staff_id: ctx.staffId, marked_by_name: ctx.staff.full_name, status: 'submitted', submitted_at: ctx.now.toISOString(), client_id: input.client_id ?? null });
+      await writeMarks(c, ctx.orgId, s.id, input.date, input.session_key, input.marks);
       // resolve any reminder task for this section/day
       await c.query(`update os.tasks set status = 'done', completed_at = now() where system_key like $1 and status = 'todo'`, [`att:${input.section_id}:${input.date}%`]);
       return s.id;
@@ -307,31 +319,40 @@ export async function submitStudentAttendance(ctx: Ctx, input: { section_id: str
   });
 }
 
-async function writeMarks(c: Tx, orgId: string, branchId: string, sessionId: string, marks: { student_id: string; status: StudentMark; note?: string }[]) {
+/** OS mark 'leave' is core 'on_leave' (R10); the core row also carries the date and session key. */
+const coreMark = (m: string) => (m === 'leave' ? 'on_leave' : m);
+
+async function writeMarks(c: Tx, orgId: string, sessionId: string, date: string, sessionKey: string, marks: { student_id: string; status: StudentMark; note?: string }[]) {
   for (const m of marks) {
     await c.query(
-      `insert into core.student_attendance_marks (org_id, branch_id, session_id, student_id, status, note) values ($1,$2,$3,$4,$5,$6)
-       on conflict (session_id, student_id) do update set status = excluded.status, note = excluded.note`,
-      [orgId, branchId, sessionId, m.student_id, m.status, m.note ?? null],
+      `insert into core.student_attendance_marks (org_id, session_id, student_id, date, session_key, source, status, note) values ($1,$2,$3,$4,$5,'teacher',$6,$7)
+       on conflict (org_id, student_id, date, session_key) do update set status = excluded.status, note = excluded.note, session_id = excluded.session_id`,
+      [orgId, sessionId, m.student_id, date, sessionKey, coreMark(m.status), m.note ?? null],
     );
   }
 }
 
 registerApprovalHook('attendance_edit', async (c, req, decision) => {
   if (decision !== 'approved') return;
-  const d = req.data as { session_id: string; marks: { student_id: string; status: StudentMark; note?: string }[]; edit_reason?: string };
-  await writeMarks(c, req.org_id, req.branch_id, d.session_id, d.marks);
+  const d = req.data as { session_id: string; date: string; session_key: string; marks: { student_id: string; status: StudentMark; note?: string }[]; edit_reason?: string };
+  await writeMarks(c, req.org_id, d.session_id, d.date, d.session_key, d.marks);
   await c.query(`update core.student_attendance_sessions set edit_reason = $2, edit_approval_request_id = $3 where id = $1`, [d.session_id, d.edit_reason ?? null, req.id]);
 });
 
 /** Optional per branch: absent alert to parents over WhatsApp (CRM messaging adapter). */
 async function parentAbsentAlerts(c: Tx, orgId: string, branchId: string, studentIds: string[], date: string) {
-  const students = await q<{ id: string; full_name: string; parent_phone: string | null }>(c, `select id, full_name, parent_phone from core.students where id = any($1)`, [studentIds]);
+  // the parent phone is the primary guardian's (core.guardians of the student's household)
+  const students = await q<{ id: string; full_name: string; parent_phone: string | null }>(
+    c,
+    `select st.id, st.full_name, (select g.phone from core.guardians g where g.household_id = st.household_id and g.deleted_at is null and g.phone is not null order by g.is_primary desc, g.created_at limit 1) as parent_phone
+       from core.students st where st.id = any($1)`,
+    [studentIds],
+  );
   const wa = getWhatsApp();
   for (const s of students) {
     if (!s.parent_phone) continue;
     const r = await wa.send({ to: s.parent_phone, template: 'os_student_absent', language: 'en', variables: [s.full_name, date] });
-    await insert(c, 'message_usage', { org_id: orgId, branch_id: branchId, channel: 'whatsapp', template_key: 'os_student_absent', status: r.ok ? 'sent' : 'failed', units: 1, provider_ref: r.ref ?? null });
+    await insert(c, 'core.outbox', { org_id: orgId, branch_id: branchId, product_key: 'os', channel: 'whatsapp', to_address: s.parent_phone, event_key: 'student.absent', provider: 'os_student_absent', student_id: s.id, status: r.ok ? 'sent' : 'failed', units: 1, provider_ref: r.ref ?? null, sent_at: new Date().toISOString() });
   }
 }
 
@@ -346,8 +367,8 @@ export async function unmarkedSweep(c: Tx, branchId: string, at: Date = now()): 
   if (local.minutes < cutoff) return 0;
   const sections = await q<{ id: string; name: string; class_name: string; class_teacher_id: string | null; mode: 'daily_once' | 'daily_twice' | 'period'; wing_id: string }>(
     c,
-    `select se.id, se.name, cl.name as class_name, se.class_teacher_id, w.student_attendance_mode as mode, w.id as wing_id from core.sections se join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id
-     where se.branch_id = $1 and se.deleted_at is null`,
+    `select se.id, se.name, cl.name as class_name, se.class_teacher_id, ${MODE} as mode, w.id as wing_id from core.sections se join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id
+     where cl.branch_id = $1 and se.deleted_at is null`,
     [branchId],
   );
   let n = 0;
@@ -377,16 +398,16 @@ export async function studentDaySummary(ctx: Ctx, date: string) {
       c,
       `select se.id as section_id, cl.name || ' ' || se.name as section, w.name as wing,
          exists (select 1 from core.student_attendance_sessions s where s.section_id = se.id and s.date = $2) as marked,
-         (select array_agg(m.status) from core.student_attendance_marks m join core.student_attendance_sessions s on s.id = m.session_id where s.section_id = se.id and s.date = $2 and s.session_key in ('day','am','p1')) as marks,
+         (select array_agg(case m.status when 'on_leave' then 'leave' else m.status end) from core.student_attendance_marks m join core.student_attendance_sessions s on s.id = m.session_id where s.section_id = se.id and s.date = $2 and s.session_key in ('day','am','p1')) as marks,
          (select count(*)::int from core.students st where st.section_id = se.id and st.status = 'active') as total
-       from core.sections se join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id where se.branch_id = $1 and se.deleted_at is null order by cl.seq, se.name`,
+       from core.sections se join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id where cl.branch_id = $1 and se.deleted_at is null order by cl.seq, se.name`,
       [ctx.branchId, date],
     );
     const absentees = await q(
       c,
-      `select st.id, st.full_name, st.roll_no, cl.name || ' ' || se.name as section, m.status from core.student_attendance_marks m join core.student_attendance_sessions s on s.id = m.session_id
+      `select st.id, st.full_name, st.roll_no, cl.name || ' ' || se.name as section, case m.status when 'on_leave' then 'leave' else m.status end as status from core.student_attendance_marks m join core.student_attendance_sessions s on s.id = m.session_id
        join core.students st on st.id = m.student_id join core.sections se on se.id = st.section_id join core.programmes cl on cl.id = se.programme_id
-       where s.branch_id = $1 and s.date = $2 and m.status in ('absent','leave') order by section, st.roll_no`,
+       where st.branch_id = $1 and s.date = $2 and m.status in ('absent','on_leave') order by section, st.roll_no`,
       [ctx.branchId, date],
     );
     return { date, sections: rows.map((r) => ({ ...r, summary: r.marks ? daySummary(r.marks) : null, pct: r.marks ? attendancePct(r.marks) : null })), absentees };
@@ -399,10 +420,10 @@ export async function studentAlerts(ctx: Ctx, from: string, to: string) {
     const rule = await ruleFor(c, ctx.branchId, null);
     const rows = await q<{ student_id: string; full_name: string; section: string; marks: StudentMark[] }>(
       c,
-      `select st.id as student_id, st.full_name, cl.name || ' ' || se.name as section, array_agg(m.status order by s.date) as marks
+      `select st.id as student_id, st.full_name, cl.name || ' ' || se.name as section, array_agg(case m.status when 'on_leave' then 'leave' else m.status end order by s.date) as marks
        from core.student_attendance_marks m join core.student_attendance_sessions s on s.id = m.session_id join core.students st on st.id = m.student_id
        join core.sections se on se.id = st.section_id join core.programmes cl on cl.id = se.programme_id
-       where s.branch_id = $1 and s.date between $2 and $3 and s.session_key in ('day','am','p1') group by 1, 2, 3`,
+       where st.branch_id = $1 and s.date between $2 and $3 and s.session_key in ('day','am','p1') group by 1, 2, 3`,
       [ctx.branchId, from, to],
     );
     const enriched = rows.map((r) => ({ student_id: r.student_id, full_name: r.full_name, section: r.section, pct: attendancePct(r.marks), consecutive_absences: consecutiveAbsences(r.marks) }));
@@ -414,10 +435,10 @@ export async function studentAlerts(ctx: Ctx, from: string, to: string) {
 export async function studentRegister(ctx: Ctx, sectionId: string, month: string) {
   need(ctx, 'student_attendance', 'view');
   return run(ctx, async (c) => {
-    const students = await q<{ id: string; full_name: string; roll_no: number }>(c, `select id, full_name, roll_no from core.students where section_id = $1 and deleted_at is null order by roll_no`, [sectionId]);
+    const students = await q<{ id: string; full_name: string; roll_no: number }>(c, `select id, full_name, roll_no from core.students where section_id = $1 and deleted_at is null order by ${ROLL}`, [sectionId]);
     const marks = await q<{ student_id: string; date: string; status: StudentMark }>(
       c,
-      `select m.student_id, s.date::text, m.status from core.student_attendance_marks m join core.student_attendance_sessions s on s.id = m.session_id where s.section_id = $1 and to_char(s.date, 'YYYY-MM') = $2 and s.session_key in ('day','am','p1')`,
+      `select m.student_id, s.date::text, case m.status when 'on_leave' then 'leave' else m.status end as status from core.student_attendance_marks m join core.student_attendance_sessions s on s.id = m.session_id where s.section_id = $1 and to_char(s.date, 'YYYY-MM') = $2 and s.session_key in ('day','am','p1')`,
       [sectionId, month],
     );
     const dates = [...new Set(marks.map((m) => m.date))].sort();
@@ -437,9 +458,9 @@ export async function mySections(ctx: Ctx) {
   return run(ctx, async (c) =>
     q(
       c,
-      `select distinct se.id, cl.name || ' ' || se.name as name, w.student_attendance_mode as mode, cl.seq, se.class_teacher_id = $1 as is_class_teacher
+      `select distinct se.id, cl.name || ' ' || se.name as name, ${MODE} as mode, cl.seq, se.class_teacher_id = $1 as is_class_teacher
        from core.sections se join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id
-       where se.branch_id = $2 and se.deleted_at is null and (se.class_teacher_id = $1 or exists (select 1 from core.teacher_allocations ta where ta.section_id = se.id and ta.staff_id = $1 and ta.deleted_at is null) or $3)
+       where cl.branch_id = $2 and se.deleted_at is null and (se.class_teacher_id = $1 or exists (select 1 from core.teacher_allocations ta where ta.section_id = se.id and ta.staff_id = $1 and ta.deleted_at is null) or $3)
        order by cl.seq, name`,
       [ctx.staffId, ctx.branchId, rank(ctx, 'student_attendance', 'edit') >= 4],
     ),
@@ -448,7 +469,7 @@ export async function mySections(ctx: Ctx) {
 
 // ---------------------------------------------------------------- leave
 async function leaveCtx(c: Tx, staffId: string, branchId: string) {
-  const ay = await maybe<{ id: string; starts_on: string; ends_on: string }>(c, `select id, starts_on::text, ends_on::text from core.academic_years where branch_id = $1 and is_current and deleted_at is null`, [branchId]);
+  const ay = await maybe<{ id: string; starts_on: string; ends_on: string }>(c, `select id, starts_on::text, ends_on::text from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [branchId]);
   if (!ay) throw new ValidationError('no_current_academic_year');
   const cal = await workCalendar(c, branchId, ay.starts_on, ay.ends_on);
   const staff = await one<{ joined_on: string | null; org_id: string; department_id: string | null }>(c, `select joined_on::text, org_id, department_id from core.staff where id = $1`, [staffId]);
@@ -511,7 +532,7 @@ export async function applyLeave(ctx: Ctx, input: { leave_type_id: string; start
   return run(ctx, async (c, sys) => {
     const p = await preview(c, ctx, input);
     if (p.errors.length) throw new ValidationError('leave_invalid', { errors: p.errors });
-    const lr = await insert<{ id: string }>(c, 'core.leave_requests', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, leave_type_id: input.leave_type_id, start_date: input.start_date, end_date: input.end_date, half_day: input.half_day, hours: input.hours ?? null, days: p.days, reason: input.reason ?? null, attachment_path: input.attachment_path ?? null, handover_note: input.handover_note ?? null, parent_request_id: input.parent_request_id ?? null, status: 'pending' });
+    const lr = await insert<{ id: string }>(c, 'core.leave_requests', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, leave_type_id: input.leave_type_id, start_date: input.start_date, end_date: input.end_date, half_day: input.half_day, hours: input.hours ?? null, days: p.days, reason: input.reason ?? null, attachment_file_id: input.attachment_path ? await fileId(c, ctx.orgId, input.attachment_path, 'leave_request') : null, handover_note: input.handover_note ?? null, parent_request_id: input.parent_request_id ?? null, status: 'pending' });
     const req = await sys(() => submitApproval(c, { orgId: ctx.orgId, branchId: ctx.branchId, applicantId: ctx.staffId, typeKey: 'leave', title: `${p.balance.name} · ${input.start_date}${input.end_date !== input.start_date ? ` → ${input.end_date}` : ''}`, data: { days: p.days, leave_type: p.balance.key, start_date: input.start_date, end_date: input.end_date }, linkedType: 'leave_request', linkedId: lr.id, actorName: ctx.staff.full_name }));
     await sys(() => c.query(`update core.leave_requests set approval_request_id = $2, status = case when $3 = 'approved' then 'approved' else status end where id = $1`, [lr.id, req.id, req.status]));
     return { id: lr.id, approval_id: req.id, days: p.days, clash_count: p.clash_count };

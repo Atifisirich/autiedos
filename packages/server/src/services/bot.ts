@@ -207,7 +207,7 @@ export async function escalateToSupport(ctx: Ctx, conversationId: string) {
     const conv = await maybe<{ messages: BotMessage[] }>(c, `select messages from os.bot_conversations where id = $1`, [conversationId]);
     if (!conv) throw new NotFoundError();
     const lastQ = [...conv.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
-    const t = await insert<{ id: string }>(c, 'core.support_tickets', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, subject: lastQ.slice(0, 200), body: conv.messages.map((m) => `${m.role}: ${m.content}`).join('\n'), conversation_id: conversationId });
+    const t = await insert<{ id: string }>(c, 'core.support_tickets', { org_id: ctx.orgId, product_key: 'os', user_id: ctx.userId, staff_id: ctx.staffId, kind: 'ticket', subject: lastQ.slice(0, 200), body: conv.messages.map((m) => `${m.role}: ${m.content}`).join('\n'), linked_id: conversationId });
     await update(c, 'os.bot_conversations', conversationId, { status: 'escalated' });
     return { id: t.id };
   });

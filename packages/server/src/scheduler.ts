@@ -28,7 +28,7 @@ registerJob('timetable_generate', async (job) => {
   try {
     return await runGeneration(job.org_id, String(job.payload.version_id));
   } catch (e) {
-    await svc(job.org_id, (c) => c.query(`update core.timetable_versions set status = 'failed' where id = $1`, [job.payload.version_id]));
+    await svc(job.org_id, (c) => c.query(`update core.timetable_versions set status = 'draft', generated_at = null, unplaced = '{"failed": true}'::jsonb where id = $1`, [job.payload.version_id]));
     throw e;
   }
 });
@@ -141,7 +141,7 @@ export async function tick(at: Date = now()): Promise<{ enqueued: number; ran: A
       await e('circulars', `circ:${bucket(5)}`);
       await e('report_schedules', `rs:${bucket(5)}`);
       await e('deliver_notifications', `deliver:${bucket(1)}`);
-      const branches = await q<{ id: string; timezone: string; settings: { day_close_time?: string; digest_time?: string } }>(c, `select id, time_zone as timezone, settings from core.branches where active and org_id = $1`, [orgId]);
+      const branches = await q<{ id: string; timezone: string; settings: { day_close_time?: string; digest_time?: string } }>(c, `select id, coalesce(time_zone, 'Asia/Kolkata') as timezone, settings from core.branches where active and org_id = $1`, [orgId]);
       let orgDaily = false;
       for (const b of branches) {
         const local = toLocal(at, b.timezone);

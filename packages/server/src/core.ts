@@ -158,11 +158,16 @@ export async function run<T>(ctx: Ctx, fn: (c: Tx, sys: Sys) => Promise<T>): Pro
     const sys: Sys = async (f) => {
       if (!ctx.systemUserId) throw new ForbiddenError('product_not_available');
       await setClaims(c, ctx.systemUserId, { onBehalfOf: ctx.userId, device: ctx.device, staffId: ctx.staffId });
+      let out: Awaited<ReturnType<typeof f>>;
       try {
-        return await f();
-      } finally {
-        await setClaims(c, ctx.userId, { device: ctx.device, staffId: ctx.staffId });
+        out = await f();
+      } catch (e) {
+        // the transaction is aborted anyway: keep the original error, do not mask it with the claims restore
+        await setClaims(c, ctx.userId, { device: ctx.device, staffId: ctx.staffId }).catch(() => undefined);
+        throw e;
       }
+      await setClaims(c, ctx.userId, { device: ctx.device, staffId: ctx.staffId });
+      return out;
     };
     return fn(c, sys);
   });
@@ -184,7 +189,7 @@ export interface BranchSettings {
 export async function branchInfo(c: Tx, branchId: string) {
   return one<{ id: string; org_id: string; name: string; timezone: string; working_days: number[]; settings: BranchSettings; latitude: number | null; longitude: number | null; geofence_radius_m: number }>(
     c,
-    `select id, org_id, name, time_zone as timezone, working_days, settings, latitude, longitude, geofence_radius_m from core.branches where id = $1`,
+    `select id, org_id, name, coalesce(time_zone, 'Asia/Kolkata') as timezone, working_days, settings, latitude, longitude, geofence_radius_m from core.branches where id = $1`,
     [branchId],
   );
 }
@@ -217,6 +222,22 @@ export async function staffWithRole(c: Tx, orgId: string, roleKey: string, branc
     [orgId, roleKey, branchId],
   );
   return rows.map((r) => r.id);
+}
+
+/**
+ * core.files row for an uploaded object path (R9: shared tables reference files by id). Idempotent per path.
+ * The object path always starts with the org id (storage policy, plan 4.7).
+ */
+export async function fileId(c: Tx, orgId: string, path: string, ownerType: string): Promise<string> {
+  if (!path.startsWith(`${orgId}/`)) throw new ForbiddenError('bad_path');
+  const ex = await maybe<{ id: string }>(c, `select id from core.files where bucket = 'os-files' and storage_path = $1`, [path]);
+  if (ex) return ex.id;
+  const r = await one<{ id: string }>(
+    c,
+    `insert into core.files (org_id, bucket, storage_path, file_name, owner_type, product_key, uploaded_by) values ($1, 'os-files', $2, $3, $4, 'os', app.uid()) returning id`,
+    [orgId, path, path.split('/').pop() ?? path, ownerType],
+  );
+  return r.id;
 }
 
 /** Active delegate for a manager on a date (PRD 4.2). */

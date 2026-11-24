@@ -78,7 +78,7 @@ async function actorRoles(c: Tx, ctx: Ctx, t: TaskRow): Promise<ActorRole[]> {
   if (t.owner_id === ctx.staffId) roles.push('owner');
   if (t.assigner_id === ctx.staffId) roles.push('assigner');
   if (t.assigner_id && t.assigner_id !== ctx.staffId) {
-    const subs = await one<{ ids: string[] }>(c, `select app.subordinates_of($1) as ids`, [ctx.staffId]);
+    const subs = await one<{ ids: string[] }>(c, `select os.subordinates_of($1) as ids`, [ctx.staffId]);
     if (subs.ids.includes(t.assigner_id)) roles.push('above_assigner');
   }
   // Branch-wide task authority (e.g. principal) counts as "above".
@@ -267,7 +267,7 @@ export async function listTasks(ctx: Ctx, opts: { view: 'mine' | 'assigned' | 't
     const p = (v: unknown) => (params.push(v), `$${params.length}`);
     if (opts.view === 'mine') where.push(`(t.owner_id = ${p(ctx.staffId)} or exists (select 1 from os.task_assignees ta where ta.task_id = t.id and ta.staff_id = ${p(ctx.staffId)} and ta.kind = 'collaborator')) and not t.is_group_parent`);
     if (opts.view === 'assigned') where.push(`t.assigner_id = ${p(ctx.staffId)} and t.owner_id is distinct from ${p(ctx.staffId)} and t.parent_task_id is null`);
-    if (opts.view === 'team') where.push(`t.owner_id = any(app.subordinates_of(${p(ctx.staffId)})) and not t.is_group_parent`);
+    if (opts.view === 'team') where.push(`t.owner_id = any(os.subordinates_of(${p(ctx.staffId)})) and not t.is_group_parent`);
     if (opts.view === 'all') where.push(`t.branch_id = ${p(ctx.branchId)}`);
     if (opts.status === 'open') where.push(`t.status in ('todo','in_progress','blocked','reopened','requested')`);
     else if (opts.status === 'overdue') where.push(`t.due_at < now() and t.status in ('todo','in_progress','blocked','reopened')`);
@@ -294,7 +294,7 @@ export async function getTask(ctx: Ctx, id: string) {
     const attachments = await q(c, `select * from os.task_attachments where task_id = $1 and deleted_at is null order by created_at`, [id]);
     const children = await q(c, `${LIST_SELECT} where t.parent_task_id = $1 and t.deleted_at is null order by t.created_at`, [id]);
     const people = await q(c, `select ta.kind, ta.staff_id, s.full_name from os.task_assignees ta join core.staff s on s.id = ta.staff_id where ta.task_id = $1 and ta.deleted_at is null`, [id]);
-    const custom = await q(c, `select v.value, f.key, f.label, f.field_type from public.custom_field_values v join core.custom_fields f on f.id = v.field_id where v.entity_id = $1 and v.deleted_at is null`, [id]);
+    const custom = await q(c, `select t.custom -> f.key as value, f.key, coalesce(f.label_i18n, to_jsonb(f.label)) as label, f.field_type from os.tasks t join core.custom_fields f on f.org_id = t.org_id and f.entity = 'task' and f.deleted_at is null where t.id = $1 and t.custom ? f.key`, [id]);
     const roles = await actorRoles(c, ctx, full);
     return { ...task, ...full, owner_name: task.owner_name, assigner_name: task.assigner_name, category_name: task.category_name, overdue: task.overdue, events, comments, attachments, children, people, custom, my_roles: roles };
   });
@@ -531,7 +531,7 @@ export async function teamView(ctx: Ctx) {
   return run(ctx, async (c) =>
     q(
       c,
-      `with team as (select unnest(app.subordinates_of($1)) as id)
+      `with team as (select unnest(os.subordinates_of($1)) as id)
        select s.id, s.full_name, p.name as position,
          count(t.id) filter (where t.status in ('todo','in_progress','blocked','reopened')) as open,
          count(t.id) filter (where t.status in ('todo','in_progress','blocked','reopened') and t.due_at < now()) as overdue,
@@ -764,7 +764,7 @@ export async function generateRecurrences(c: Tx, day: string, onlyId?: string): 
   let created = 0;
   for (const r of recs) {
     const cal = await workCalendar(c, r.branch_id);
-    const terms = r.frequency === 'term' ? (await q<{ starts_on: string }>(c, `select starts_on::text from core.terms where branch_id = $1 and deleted_at is null`, [r.branch_id])).map((t) => t.starts_on) : [];
+    const terms = r.frequency === 'term' ? (await q<{ starts_on: string }>(c, `select t.starts_on::text from core.terms t join core.academic_years y on y.id = t.academic_year_id where (y.branch_id = $1 or y.branch_id is null) and y.org_id = $2 and t.starts_on is not null and t.deleted_at is null`, [r.branch_id, r.org_id])).map((t) => t.starts_on) : [];
     const dates = recurrenceDates({ frequency: r.frequency, intervalN: r.interval_n, weekdays: r.weekdays, monthDay: r.month_day, customDates: r.custom_dates ?? [], startsOn: r.starts_on, endsOn: r.ends_on, skipHolidays: r.skip_holidays, termStarts: terms }, day, day, cal);
     for (const d of dates) {
       let owners = r.target.staff_ids ?? [];

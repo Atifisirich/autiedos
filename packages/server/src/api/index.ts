@@ -5,9 +5,9 @@
  */
 import { ZodError, z, type ZodTypeAny } from 'zod';
 import * as S from '@autoed/shared';
-import { UnauthorizedError, loadCtx, rank, type Ctx } from '../core';
+import { UnauthorizedError, loadCtx, needProduct, rank, type Ctx } from '../core';
 import { verifySession, issueSession, devLogin, verifySupabaseToken, endSession, rateLimit } from '../auth';
-import { asService, maybe } from '../db';
+import { asUser, maybe } from '../db';
 import * as tasks from '../services/tasks';
 import * as approvals from '../services/approvals';
 import * as att from '../services/attendance';
@@ -57,6 +57,8 @@ interface Route {
 }
 
 const routes: Route[] = [];
+/** Routes that answer without the OS product (patterns as compiled). */
+const PRODUCT_FREE = new Set<string>();
 function compile(path: string) {
   const keys: string[] = [];
   const pattern = new RegExp(`^${path.replace(/:(\w+)/g, (_, k) => (keys.push(k), '([^/]+)'))}$`);
@@ -131,6 +133,7 @@ pub('GET', '/files/(.+)', async ({ p, q }) => {
 
 // ---------------------------------------------------------------- me, inbox, devices, files
 r('GET', '/me', ({ ctx }) => platform.me(ctx));
+PRODUCT_FREE.add(`GET ${compile('/me').pattern.source}`);
 r('PATCH', '/me', ({ ctx, b }) => platform.updateProfile(ctx, b), S.profileSchema);
 r('GET', '/my-day', ({ ctx, q }) => tasks.myDay(ctx, q.date));
 r('GET', '/inbox', ({ ctx, q }) => platform.inbox(ctx, { unread: q.unread === '1' }));
@@ -142,7 +145,7 @@ r('GET', '/devices', ({ ctx }) => platform.devices(ctx));
 r('POST', '/devices/:id/revoke', ({ ctx, p }) => platform.revokeDevice(ctx, p.id!));
 r('POST', '/uploads', ({ ctx, b }) => platform.uploadUrl(ctx, b), S.uploadUrlSchema);
 r('POST', '/downloads', ({ ctx, b }) => platform.downloadUrl(ctx, b.path), z.object({ path: z.string() }));
-r('GET', '/calendar-link', async ({ ctx }) => ({ token: admin.calendarToken(ctx.staffId) }));
+r('GET', '/calendar-link', async ({ ctx }) => ({ token: admin.calendarToken(ctx.orgId, ctx.staffId) }));
 r('GET', '/support-access', ({ ctx }) => platform.viewAsLog(ctx));
 
 // ---------------------------------------------------------------- offline sync (mobile outbox)
@@ -433,18 +436,18 @@ async function lookups(ctx: Ctx) {
   const { q } = await import('../db');
   return run(ctx, async (c) => ({
     staff: await q(c, `select id, full_name, department_id, wing_id, branch_id, is_teaching from core.staff where org_id = $1 and status in ('active','invited') and deleted_at is null order by full_name`, [ctx.orgId]),
-    sections: await q(c, `select se.id, cl.name || ' ' || se.name as name, se.programme_id, cl.wing_id from core.sections se join core.programmes cl on cl.id = se.programme_id where se.branch_id = $1 and se.deleted_at is null order by cl.seq, se.name`, [ctx.branchId]),
-    classes: await q(c, `select id, name, wing_id, grade_level from core.programmes where branch_id = $1 and deleted_at is null order by seq`, [ctx.branchId]),
+    sections: await q(c, `select se.id, cl.name || ' ' || se.name as name, se.programme_id, cl.wing_id from core.sections se join core.programmes cl on cl.id = se.programme_id where cl.branch_id = $1 and se.deleted_at is null order by cl.seq, se.name`, [ctx.branchId]),
+    classes: await q(c, `select id, name, wing_id, level as grade_level from core.programmes where branch_id = $1 and deleted_at is null order by seq`, [ctx.branchId]),
     subjects: await q(c, `select id, name, code, content_language, department_id from core.subjects where org_id = $1 and (branch_id is null or branch_id = $2) and deleted_at is null order by name`, [ctx.orgId, ctx.branchId]),
     wings: await q(c, `select id, name, board from core.wings where branch_id = $1 and deleted_at is null order by seq`, [ctx.branchId]),
     departments: await q(c, `select id, name from core.departments where org_id = $1 and deleted_at is null order by name`, [ctx.orgId]),
-    rooms: await q(c, `select id, name, room_type, capacity, qr_token from core.rooms where branch_id = $1 and deleted_at is null order by name`, [ctx.branchId]),
+    rooms: await q(c, `select id, name, kind as room_type, capacity, qr_token from core.rooms where branch_id = $1 and deleted_at is null order by name`, [ctx.branchId]),
     roles: await q(c, `select id, key, name from os.roles where org_id = $1 and deleted_at is null order by name`, [ctx.orgId]),
     positions: await q(c, `select id, key, name from core.positions where org_id = $1 and deleted_at is null order by rank`, [ctx.orgId]),
     task_categories: await q(c, `select id, key, name, name_i18n, color, default_proof, default_verification from os.task_categories where org_id = $1 and deleted_at is null order by name`, [ctx.orgId]),
     leave_types: await q(c, `select id, key, name, name_i18n, unit, half_day_allowed from core.leave_types where org_id = $1 and active and deleted_at is null order by name`, [ctx.orgId]),
     ticket_categories: await q(c, `select id, key, name, name_i18n from core.ticket_categories where org_id = $1 and deleted_at is null order by name`, [ctx.orgId]),
-    exam_types: await q(c, `select id, key, name, name_i18n from core.exam_types where org_id = $1 and deleted_at is null`, [ctx.orgId]),
+    exam_types: await q(c, `select id, key, name, '{}'::jsonb as name_i18n from core.exam_types where org_id = $1 and deleted_at is null order by seq`, [ctx.orgId]),
     event_templates: await q(c, `select id, key, name, name_i18n from os.event_templates where org_id = $1 and deleted_at is null`, [ctx.orgId]),
     approval_types: await q(c, `select id, key, name, name_i18n, form_schema, is_system from core.approval_types where org_id = $1 and active and deleted_at is null`, [ctx.orgId]),
     appraisal_cycles: await q(c, `select id, name, released from os.appraisal_cycles where org_id = $1 and deleted_at is null order by starts_on desc`, [ctx.orgId]),
@@ -462,7 +465,11 @@ function errorResponse(e: unknown): ApiResponse {
   if (e instanceof ZodError) return { status: 422, json: { error: 'validation_failed', details: e.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) } };
   const err = e as { status?: number; message?: string; details?: unknown; code?: string };
   if (err.status) return { status: err.status, json: { error: err.message, details: err.details } };
-  if (err.code === '42501') return { status: 403, json: { error: 'forbidden' } };
+  if (err.code === '42501') {
+    if (process.env.DEBUG_API) console.error('[api] 42501', err.message, (e as Error).stack?.split('\n').find((l) => l.includes('/services/')));
+    return { status: 403, json: { error: 'forbidden' } };
+  }
+  if (err.code && process.env.DEBUG_API) console.error('[api] sql', err.code, err.message, (e as Error).stack?.split('\n').find((l) => l.includes('/services/')));
   if (err.code === '23505') return { status: 409, json: { error: 'duplicate' } };
   if (err.code === '23503') return { status: 422, json: { error: 'invalid_reference' } };
   if (err.code === '23514' || err.code === '22P02') return { status: 422, json: { error: 'invalid_value' } };
@@ -497,19 +504,23 @@ export async function dispatch(req: ApiRequest, existingCtx?: Ctx): Promise<ApiR
     const session = existingCtx ? { userId: existingCtx.userId } : await verifySession(bearer(req));
     if (route.superAdmin) return { status: 200, json: await route.superAdmin({ userId: session.userId, p: params, b: body, q: req.query }) };
     let userId = session.userId;
-    // Super admin "view as": time-limited, read-only, logged and visible to the school.
+    // Super admin "view as": an open support session (core.support_sessions, app.start_support_session), read-only,
+    // audited and visible to the school; the screens show the school's director view.
     const viewAs = req.headers['x-view-as'];
     if (viewAs && !existingCtx) {
       await platform.requireSuperAdmin(userId);
-      const s = await asService((c) => maybe<{ org_id: string; expires_at: string }>(c, `select org_id, expires_at from public.view_as_sessions where id = $1 and admin_user_id = $2`, [viewAs, userId]));
-      if (!s || new Date(s.expires_at) < new Date()) throw new UnauthorizedError('view_as_expired');
+      const s = await asUser({ userId }, (c) => maybe<{ org_id: string; open: boolean }>(c, `select org_id, (ended_at is null and expires_at > now()) as open from core.support_sessions where id = $1 and platform_user_id = $2`, [viewAs, userId]));
+      if (!s?.open) throw new UnauthorizedError('view_as_expired');
       if (method !== 'GET') return { status: 403, json: { error: 'view_as_is_read_only' } };
-      const as = await asService((c) => maybe<{ user_id: string }>(c, `select s.user_id from core.staff s join os.staff_roles sr on sr.staff_id = s.id join os.roles r on r.id = sr.role_id where s.org_id = $1 and r.key in ('director','chairman','principal') order by case r.key when 'director' then 1 when 'chairman' then 2 else 3 end limit 1`, [s.org_id]));
+      const as = await asUser({ userId }, (c) => maybe<{ user_id: string }>(c, `select s.user_id from core.staff s join os.staff_roles sr on sr.staff_id = s.id join os.roles r on r.id = sr.role_id where s.org_id = $1 and s.user_id is not null and r.key in ('director','chairman','principal') order by case r.key when 'director' then 1 when 'chairman' then 2 else 3 end limit 1`, [s.org_id]));
       if (!as) throw new UnauthorizedError();
       userId = as.user_id;
     }
     if (route.aiLimited && !rateLimit(`ai:${userId}`, Number(process.env.AI_RATE_PER_MINUTE ?? 20))) return { status: 429, json: { error: 'rate_limited' } };
     const ctx = existingCtx ?? (await loadCtx(userId, { branchId: req.headers['x-branch-id'] ?? null, device: req.headers['x-device'] ?? req.headers['user-agent']?.slice(0, 120) ?? null, lang: req.headers['x-lang'] ?? null }));
+    // Layer 2 product check (plan 4.3): every OS route needs the OS product for the org AND the user; /me answers
+    // anyway so the app can show "not part of your plan" instead of failing.
+    if (!PRODUCT_FREE.has(`${method} ${route.pattern.source}`)) needProduct(ctx, 'os');
     const out = await route.handler!({ ctx, p: params, b: body, q: req.query, req });
     if (out && typeof out === 'object' && 'binary' in (out as object) && 'status' in (out as object)) return out as ApiResponse;
     return { status: 200, json: out ?? { ok: true } };

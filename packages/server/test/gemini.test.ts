@@ -5,7 +5,7 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { asService, closePool, one, q } from '../src/db';
+import { asOwner, asSystem, closePool, one, q } from '../src/db';
 import { AiProviderError, AiRefusalError, GeminiProvider, assertAiConfig, geminiFromEnv, getAiProvider, setAiProvider, type AiModels, type AiRequest } from '../src/adapters/ai';
 import { generate } from '../src/services/ai';
 
@@ -132,22 +132,23 @@ describe('gemini through the generation pipeline', () => {
   let original: AiModels;
   const answer = z.object({ answer: z.string() });
   beforeAll(async () => {
-    const r = await asService((c) => one<{ org_id: string; id: string }>(c, `select b.org_id, b.id from core.branches b join core.organizations o on o.id = b.org_id where o.slug = 'demo' and b.code = 'GACH'`));
+    const r = await asOwner((c) => one<{ org_id: string; id: string }>(c, `select b.org_id, b.id from core.branches b join core.organizations o on o.id = b.org_id where o.slug = 'demo' and b.code = 'GACH'`));
     org = r.org_id;
     branch = r.id;
     // The seeded ai_models row holds named placeholders until real IDs are set (migration 20261124100000).
-    const s = await asService((c) => one<{ value: AiModels }>(c, `select value from core.platform_settings where key = 'ai_models'`));
+    const s = await asOwner((c) => one<{ value: AiModels }>(c, `select value from core.platform_settings where org_id is null and key = 'ai_models'`));
     expect(s.value.strong).toMatch(/PLACEHOLDER/);
     original = s.value;
-    await asService((c) => c.query(`update core.platform_settings set value = $1 where key = 'ai_models'`, [JSON.stringify(MODELS)]));
+    await asOwner((c) => c.query(`update core.platform_settings set value = $1 where org_id is null and key = 'ai_models'`, [JSON.stringify(MODELS)]));
   });
   afterAll(async () => {
-    await asService((c) => c.query(`update core.platform_settings set value = $1 where key = 'ai_models'`, [JSON.stringify(original)]));
+    await asOwner((c) => c.query(`update core.platform_settings set value = $1 where org_id is null and key = 'ai_models'`, [JSON.stringify(original)]));
     await closePool();
   });
 
+  // the pipeline runs as the org's OS system actor (inside sys() in the services)
   const run = (extra: { prompt?: string } = {}) =>
-    asService((c) =>
+    asSystem(org, (c) =>
       generate(c, {
         orgId: org,
         branchId: branch,
@@ -163,7 +164,7 @@ describe('gemini through the generation pipeline', () => {
         logInput: { test: 'gemini' },
       }),
     );
-  const usage = () => asService((c) => one<{ n: number; total: number }>(c, `select count(*)::int as n, coalesce(sum(credits), 0) as total from public.ai_credit_ledger where kind = 'usage' and action = 'daily_plan' and branch_id = $1`, [branch]));
+  const usage = () => asOwner((c) => one<{ n: number; total: number }>(c, `select count(*)::int as n, coalesce(sum(credits), 0) as total from billing.ai_credit_ledger where kind = 'usage' and action = 'daily_plan' and branch_id = $1`, [branch]));
 
   it('invalid JSON then valid: regenerates, charges once, records a gemini generation', async () => {
     const f = vi.fn().mockResolvedValueOnce(ok('garbage')).mockResolvedValueOnce(ok('{"answer":"  fine  "}'));
@@ -176,7 +177,7 @@ describe('gemini through the generation pipeline', () => {
     expect(f).toHaveBeenCalledTimes(2);
     const retryPrompt = JSON.parse(((f.mock.calls[1] as unknown as [string, RequestInit])[1].body as string)).contents[0].parts[0].text as string;
     expect(retryPrompt).toContain('failed these checks');
-    const gen = await asService((c) => one<{ status: string; provider: string; attempts: number; input_tokens: number; output_tokens: number; provider_cost: number; credits: number }>(c, `select * from core.ai_generations where id = $1`, [r.generationId]));
+    const gen = await asOwner((c) => one<{ status: string; provider: string; attempts: number; input_tokens: number; output_tokens: number; provider_cost: number; credits: number }>(c, `select * from core.ai_generations where id = $1`, [r.generationId]));
     expect(gen).toMatchObject({ status: 'ok', provider: 'gemini', attempts: 2, input_tokens: 200, output_tokens: 150, credits: 1 });
     expect(Number(gen.provider_cost)).toBeCloseTo((200 * 2 + 150 * 10) / 1e6, 8);
     const after = await usage();
@@ -191,7 +192,7 @@ describe('gemini through the generation pipeline', () => {
     await expect(run()).rejects.toMatchObject({ message: 'ai_output_invalid' });
     expect(f).toHaveBeenCalledTimes(3);
     expect((await usage()).n).toBe(before.n);
-    const gen = await asService((c) => one<{ status: string; credits: number; attempts: number }>(c, `select status, credits, attempts from core.ai_generations where provider = 'gemini' and status = 'invalid' order by created_at desc limit 1`));
+    const gen = await asOwner((c) => one<{ status: string; credits: number; attempts: number }>(c, `select status, credits, attempts from core.ai_generations where provider = 'gemini' and status = 'invalid' order by created_at desc limit 1`));
     expect(gen).toMatchObject({ status: 'invalid', credits: 0, attempts: 3 });
   });
 
@@ -201,7 +202,7 @@ describe('gemini through the generation pipeline', () => {
     const before = await usage();
     await expect(run()).rejects.toMatchObject({ message: 'ai_unavailable' });
     expect((await usage()).n).toBe(before.n);
-    const gen = await asService((c) => one<{ status: string; credits: number; error: string }>(c, `select status, credits, error from core.ai_generations where provider = 'gemini' and status = 'failed' order by created_at desc limit 1`));
+    const gen = await asOwner((c) => one<{ status: string; credits: number; error: string }>(c, `select status, credits, error from core.ai_generations where provider = 'gemini' and status = 'failed' order by created_at desc limit 1`));
     expect(gen.credits).toBe(0);
     expect(gen.error).toContain('gemini_http_429');
   });
@@ -216,7 +217,7 @@ describe('gemini through the generation pipeline', () => {
   it('the privacy filter blocks contact data before anything is sent to Gemini', async () => {
     const f = vi.fn(async () => ok('{"answer":"never"}'));
     setAiProvider(provider(f));
-    const rows = () => asService((c) => q(c, `select 1 from core.ai_generations where provider = 'gemini'`));
+    const rows = () => asOwner((c) => q(c, `select 1 from core.ai_generations where provider = 'gemini'`));
     const before = (await rows()).length;
     await expect(run({ prompt: 'Contact the parent on 9876543210 about the plan.' })).rejects.toMatchObject({ message: 'personal_data_in_prompt' });
     await expect(run({ prompt: 'Email parent@example.com' })).rejects.toMatchObject({ message: 'personal_data_in_prompt' });

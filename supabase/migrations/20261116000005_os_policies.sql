@@ -337,7 +337,7 @@ revoke execute on all functions in schema os from public;
 grant usage on schema os to authenticated, os_server, service_role;
 grant execute on all functions in schema os to authenticated, os_server, service_role;
 revoke execute on function os.std(text), os.apply_rls(text, text, text, text, text, text), os.core_scope(text, text, text, text),
-  os.sync_access(uuid), os.system_user_id(uuid), os.active_orgs(), os.dev_login_user(text), os.enqueue_job(text, jsonb, timestamptz, text, integer),
+  os.sync_access(uuid), os.system_user_id(uuid), os.active_orgs(), os.dev_login_user(text), os.branch_org_id(uuid), os.ensure_staff_login(text, text, text, uuid), os.enqueue_job(text, jsonb, timestamptz, text, integer),
   os.trg_sync_access(), os.trg_sync_access_ins(), os.trg_sync_access_del()
   from authenticated;
 revoke execute on function os.std(text), os.apply_rls(text, text, text, text, text, text), os.core_scope(text, text, text, text),

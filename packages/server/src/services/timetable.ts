@@ -2,12 +2,16 @@
  * Timetable (PRD 5.3) and substitution (PRD 5.4).
  */
 import { generateTimetable, detectClashes, clashesForMove, rankSubstitutes, isoWeekday, addDays, type GenInput, type TTEntry, type TeacherLimits, type SubCandidate } from '@autoed/shared';
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError, insert, insertMany, maybe, one, q, update, asService, type Tx } from '../db';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError, insert, insertMany, maybe, one, q, update, asSystem, type Tx } from '../db';
 import { branchInfo, need, needModule, run, localToday, staffWithRole, type Ctx } from '../core';
 import { notify } from '../notify';
 import { enqueue } from '../jobs';
 import { systemTask } from './tasks';
 
+/**
+ * core.timetable_versions.status is draft | generating | published | archived; the OS shows a generated draft as
+ * 'generated' (generated_at set) and a failed run as 'failed' (marker in unplaced).
+ */
 // ---------------------------------------------------------------- inputs
 export async function listAllocations(ctx: Ctx) {
   needModule(ctx, 'timetable');
@@ -17,7 +21,7 @@ export async function listAllocations(ctx: Ctx) {
       `select ta.*, s.full_name as staff_name, cl.name || ' ' || se.name as section_name, sb.name as subject_name, co.full_name as co_teacher_name
        from core.teacher_allocations ta join core.staff s on s.id = ta.staff_id join core.sections se on se.id = ta.section_id join core.programmes cl on cl.id = se.programme_id
        join core.subjects sb on sb.id = ta.subject_id left join core.staff co on co.id = ta.co_teacher_id
-       where ta.branch_id = $1 and ta.deleted_at is null order by cl.seq, se.name, sb.name`,
+       where cl.branch_id = $1 and ta.deleted_at is null order by cl.seq, se.name, sb.name`,
       [ctx.branchId],
     ),
   );
@@ -26,16 +30,20 @@ export async function listAllocations(ctx: Ctx) {
 export async function saveAllocation(ctx: Ctx, input: { id?: string; staff_id: string; section_id: string; subject_id: string; periods_per_week: number; double_periods: number; co_teacher_id?: string | null; group_key?: string | null; combined_key?: string | null; room_type?: string | null }) {
   need(ctx, 'timetable', 'configure');
   return run(ctx, async (c) => {
-    const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
-    const row = { org_id: ctx.orgId, branch_id: ctx.branchId, academic_year_id: ay?.id ?? null, ...input };
-    if (input.id) return update(c, 'core.teacher_allocations', input.id, row);
-    return insert(c, 'core.teacher_allocations', row, { onConflict: '(section_id, subject_id, staff_id) do update set periods_per_week = excluded.periods_per_week, double_periods = excluded.double_periods, co_teacher_id = excluded.co_teacher_id, group_key = excluded.group_key, combined_key = excluded.combined_key, room_type = excluded.room_type, deleted_at = null' });
+    const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [ctx.branchId]);
+    const { id, ...fields } = input;
+    const row = { org_id: ctx.orgId, academic_year_id: ay?.id ?? null, ...fields };
+    if (id) return update(c, 'core.teacher_allocations', id, row);
+    // one allocation per section + subject + teacher (core.teacher_allocations has no unique key for it)
+    const ex = await maybe<{ id: string }>(c, `select id from core.teacher_allocations where section_id = $1 and subject_id = $2 and staff_id = $3 order by deleted_at nulls first limit 1`, [input.section_id, input.subject_id, input.staff_id]);
+    if (ex) return update(c, 'core.teacher_allocations', ex.id, { ...row, deleted_at: null });
+    return insert(c, 'core.teacher_allocations', row);
   });
 }
 
 /** Builds the generator input from the database (teachers, limits, unavailable slots, fixed slots, rooms). */
 export async function buildGenInput(c: Tx, branchId: string, lockedFromVersion?: string | null): Promise<GenInput> {
-  const sections = await q<{ id: string; class_teacher_id: string | null; wing_id: string }>(c, `select se.id, se.class_teacher_id, cl.wing_id from core.sections se join core.programmes cl on cl.id = se.programme_id where se.branch_id = $1 and se.deleted_at is null`, [branchId]);
+  const sections = await q<{ id: string; class_teacher_id: string | null; wing_id: string }>(c, `select se.id, se.class_teacher_id, cl.wing_id from core.sections se join core.programmes cl on cl.id = se.programme_id where cl.branch_id = $1 and se.deleted_at is null`, [branchId]);
   const bells = await q<{ wing_id: string | null; days: number[]; n: number }>(
     c,
     `select bs.wing_id, bs.days, count(p.id) filter (where p.kind = 'period')::int as n from core.bell_schedules bs join core.periods p on p.bell_schedule_id = bs.id and p.deleted_at is null
@@ -53,7 +61,7 @@ export async function buildGenInput(c: Tx, branchId: string, lockedFromVersion?:
   const allocs = await q<{ id: string; section_id: string; subject_id: string; staff_id: string; periods_per_week: number; double_periods: number; group_key: string | null; combined_key: string | null; co_teacher_id: string | null; room_type: string | null; is_core: boolean }>(
     c,
     `select ta.id, ta.section_id, ta.subject_id, ta.staff_id, ta.periods_per_week, ta.double_periods, ta.group_key, ta.combined_key, ta.co_teacher_id, ta.room_type, sb.is_core
-     from core.teacher_allocations ta join core.subjects sb on sb.id = ta.subject_id where ta.branch_id = $1 and ta.deleted_at is null and ta.periods_per_week > 0`,
+     from core.teacher_allocations ta join core.subjects sb on sb.id = ta.subject_id join core.sections se on se.id = ta.section_id join core.programmes pr on pr.id = se.programme_id where pr.branch_id = $1 and ta.deleted_at is null and ta.periods_per_week > 0`,
     [branchId],
   );
   const staffIds = [...new Set(allocs.flatMap((a) => [a.staff_id, a.co_teacher_id].filter((x): x is string => !!x)))];
@@ -66,7 +74,7 @@ export async function buildGenInput(c: Tx, branchId: string, lockedFromVersion?:
     if (t) t.unavailable.push({ day: Number(k.data.day), periodSeq: Number(k.data.period_seq) });
   }
   const fixedSlots = constraints.filter((x) => x.kind === 'fixed_slot').map((k) => ({ sectionId: (k.data.section_id as string) ?? null, day: Number(k.data.day), periodSeq: Number(k.data.period_seq), label: String(k.data.label ?? 'Fixed') }));
-  const rooms = await q<{ id: string; room_type: string }>(c, `select id, room_type from core.rooms where branch_id = $1 and deleted_at is null and room_type <> 'classroom'`, [branchId]);
+  const rooms = await q<{ id: string; room_type: string }>(c, `select id, kind as room_type from core.rooms where branch_id = $1 and deleted_at is null and kind <> 'classroom'`, [branchId]);
   const locked = lockedFromVersion
     ? (await q<{ day: number; period_seq: number; section_id: string; subject_id: string | null; staff_id: string | null; room_id: string | null; group_key: string | null }>(c, `select day, period_seq, section_id, subject_id, staff_id, room_id, group_key from core.timetable_entries where version_id = $1 and locked and fixed_label is null and deleted_at is null`, [lockedFromVersion])).map((e) => ({ day: e.day, periodSeq: e.period_seq, sectionId: e.section_id, subjectId: e.subject_id, staffId: e.staff_id, roomId: e.room_id, groupKey: e.group_key, combinedKey: null }))
     : [];
@@ -85,30 +93,30 @@ export async function buildGenInput(c: Tx, branchId: string, lockedFromVersion?:
 export async function startGeneration(ctx: Ctx, input: { name: string; keep_locked_from_version_id?: string | null }) {
   need(ctx, 'timetable', 'configure');
   return run(ctx, async (c, sys) => {
-    const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
+    const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [ctx.branchId]);
     const v = await insert<{ id: string }>(c, 'core.timetable_versions', { org_id: ctx.orgId, branch_id: ctx.branchId, academic_year_id: ay?.id ?? null, name: input.name, status: 'generating', based_on_version_id: input.keep_locked_from_version_id ?? null });
-    const jobId = await sys(() => enqueue(c, 'timetable_generate', { version_id: v.id, branch_id: ctx.branchId, locked_from: input.keep_locked_from_version_id ?? null }, { orgId: ctx.orgId, branchId: ctx.branchId, dedupeKey: `ttgen:${v.id}`, maxAttempts: 2 }));
+    const jobId = await sys(() => enqueue(c, 'timetable_generate', { version_id: v.id, branch_id: ctx.branchId, locked_from: input.keep_locked_from_version_id ?? null }, { branchId: ctx.branchId, dedupeKey: `ttgen:${v.id}`, maxAttempts: 2 }));
     await sys(() => c.query(`update core.timetable_versions set job_id = $2 where id = $1`, [v.id, jobId]));
     return { version_id: v.id, job_id: jobId };
   });
 }
 
-export async function runGeneration(versionId: string): Promise<{ entries: number; unplaced: number; ms: number }> {
-  return asService(async (c) => {
+export async function runGeneration(orgId: string, versionId: string): Promise<{ entries: number; unplaced: number; ms: number }> {
+  return asSystem(orgId, async (c) => {
     const v = await one<{ id: string; org_id: string; branch_id: string; based_on_version_id: string | null }>(c, `select id, org_id, branch_id, based_on_version_id from core.timetable_versions where id = $1`, [versionId]);
     const input = await buildGenInput(c, v.branch_id, v.based_on_version_id);
     const res = generateTimetable(input);
-    const homeRoom = new Map((await q<{ id: string; room_id: string | null }>(c, `select id, room_id from core.sections where branch_id = $1`, [v.branch_id])).map((r) => [r.id, r.room_id]));
+    const homeRoom = new Map((await q<{ id: string; room_id: string | null }>(c, `select se.id, se.room_id from core.sections se join core.programmes p on p.id = se.programme_id where p.branch_id = $1`, [v.branch_id])).map((r) => [r.id, r.room_id]));
     await c.query(`delete from core.timetable_entries where version_id = $1`, [v.id]);
-    await insertMany(c, 'core.timetable_entries', res.entries.map((e) => ({ org_id: v.org_id, branch_id: v.branch_id, version_id: v.id, day: e.day, period_seq: e.periodSeq, section_id: e.sectionId, subject_id: e.subjectId, staff_id: e.staffId, room_id: e.roomId ?? homeRoom.get(e.sectionId) ?? null, group_key: e.groupKey, fixed_label: e.fixedLabel ?? null, locked: !!e.locked })));
-    await c.query(`update core.timetable_versions set status = 'generated', generated_at = now(), unplaced = $2, score = $3 where id = $1`, [v.id, JSON.stringify(res.unplaced), res.score]);
+    await insertMany(c, 'core.timetable_entries', res.entries.map((e) => ({ org_id: v.org_id, version_id: v.id, day: e.day, period_seq: e.periodSeq, section_id: e.sectionId, subject_id: e.subjectId, staff_id: e.staffId, room_id: e.roomId ?? homeRoom.get(e.sectionId) ?? null, group_key: e.groupKey, fixed_label: e.fixedLabel ?? null, locked: !!e.locked })));
+    await c.query(`update core.timetable_versions set status = 'draft', generated_at = now(), unplaced = $2, score = $3 where id = $1`, [v.id, JSON.stringify(res.unplaced), res.score]);
     return { entries: res.entries.length, unplaced: res.unplaced.length, ms: res.stats.ms };
   });
 }
 
 export async function versions(ctx: Ctx) {
   needModule(ctx, 'timetable');
-  return run(ctx, async (c) => q(c, `select id, name, status, effective_from, generated_at, unplaced, score, created_at from core.timetable_versions where branch_id = $1 and deleted_at is null order by created_at desc`, [ctx.branchId]));
+  return run(ctx, async (c) => q(c, `select id, name, (case when status = 'draft' and generated_at is not null then 'generated' when status = 'draft' and (unplaced ? 'failed') then 'failed' else status end) as status, effective_from, generated_at, unplaced, score, created_at from core.timetable_versions where branch_id = $1 and deleted_at is null order by created_at desc`, [ctx.branchId]));
 }
 
 export async function currentVersionId(c: Tx, branchId: string, date: string): Promise<string | null> {
@@ -138,7 +146,7 @@ export async function grid(ctx: Ctx, input: { version_id?: string; by: 'section'
        where bs.branch_id = $1 and bs.active and p.kind = 'period' and p.deleted_at is null order by p.teaching_index, bs.wing_id nulls first`,
       [ctx.branchId],
     );
-    const version = await one(c, `select id, name, status, effective_from, unplaced from core.timetable_versions where id = $1`, [versionId]);
+    const version = await one(c, `select id, name, (case when status = 'draft' and generated_at is not null then 'generated' when status = 'draft' and (unplaced ? 'failed') then 'failed' else status end) as status, effective_from, unplaced from core.timetable_versions where id = $1`, [versionId]);
     return { version, entries, periods };
   });
 }
@@ -191,7 +199,7 @@ export async function editTimetable(ctx: Ctx, versionId: string, op: { op: 'move
     if (op.op === 'set') {
       const p = proposed[0]!;
       if (op.entry_id) await update(c, 'core.timetable_entries', op.entry_id, { day: p.day, period_seq: p.periodSeq, section_id: p.sectionId, subject_id: p.subjectId, staff_id: p.staffId, room_id: p.roomId });
-      else await insert(c, 'core.timetable_entries', { org_id: ctx.orgId, branch_id: v.branch_id, version_id: versionId, day: p.day, period_seq: p.periodSeq, section_id: p.sectionId, subject_id: p.subjectId, staff_id: p.staffId, room_id: p.roomId });
+      else await insert(c, 'core.timetable_entries', { org_id: ctx.orgId, version_id: versionId, day: p.day, period_seq: p.periodSeq, section_id: p.sectionId, subject_id: p.subjectId, staff_id: p.staffId, room_id: p.roomId });
     }
     return { applied: true, clashes };
   });
@@ -214,8 +222,8 @@ export async function createRevision(ctx: Ctx, fromVersionId: string, name: stri
     const src = await one<{ academic_year_id: string | null; branch_id: string }>(c, `select academic_year_id, branch_id from core.timetable_versions where id = $1`, [fromVersionId]);
     const v = await insert<{ id: string }>(c, 'core.timetable_versions', { org_id: ctx.orgId, branch_id: src.branch_id, academic_year_id: src.academic_year_id, name, status: 'draft', based_on_version_id: fromVersionId });
     await c.query(
-      `insert into core.timetable_entries (org_id, branch_id, version_id, day, period_seq, section_id, subject_id, staff_id, room_id, locked, group_key, fixed_label)
-       select org_id, branch_id, $2, day, period_seq, section_id, subject_id, staff_id, room_id, locked, group_key, fixed_label from core.timetable_entries where version_id = $1 and deleted_at is null`,
+      `insert into core.timetable_entries (org_id, version_id, day, period_seq, section_id, subject_id, staff_id, room_id, locked, group_key, fixed_label)
+       select org_id, $2, day, period_seq, section_id, subject_id, staff_id, room_id, locked, group_key, fixed_label from core.timetable_entries where version_id = $1 and deleted_at is null`,
       [fromVersionId, v.id],
     );
     return { version_id: v.id };
@@ -336,7 +344,7 @@ async function candidatesFor(c: Tx, branchId: string, versionId: string, date: s
        (exists (select 1 from core.timetable_entries e where e.version_id = $2 and e.staff_id = s.id and e.day = $4 and e.period_seq = $5)
          or exists (select 1 from os.substitutions su where su.substitute_staff_id = s.id and su.date = $3 and su.period_seq = $5 and su.status = 'assigned')) as busy,
        exists (select 1 from os.duty_assignments da join os.duty_types dt on dt.id = da.duty_type_id where da.staff_id = s.id and da.date = $3 and dt.overlaps_period_seq = $5 and da.status = 'assigned') as on_duty,
-       exists (select 1 from os.invigilation_duties i join core.exam_schedules es on es.id = i.exam_schedule_id where i.staff_id = s.id and es.date = $3 and i.status <> 'swapped') as in_exam,
+       exists (select 1 from os.invigilation_duties i join core.exam_schedules es on es.id = i.exam_schedule_id where i.staff_id = s.id and es.exam_date = $3 and i.status <> 'swapped') as in_exam,
        (exists (select 1 from core.leave_requests lr where lr.staff_id = s.id and lr.status = 'approved' and $3::date between lr.start_date and lr.end_date)
          or exists (select 1 from core.staff_attendance sa where sa.staff_id = s.id and sa.date = $3 and sa.status = 'absent')) as absent,
        ((select count(*) from core.timetable_entries e where e.version_id = $2 and e.staff_id = s.id and e.day = $4)
@@ -393,7 +401,7 @@ export async function markAbsent(ctx: Ctx, input: { staff_id: string; date: stri
     const s = await maybe<{ branch_id: string | null }>(c, `select branch_id from core.staff where id = $1`, [input.staff_id]);
     if (!s?.branch_id || !ctx.branchIds.includes(s.branch_id)) throw new NotFoundError();
     const n = await sys(async () => {
-      await c.query(`insert into core.staff_attendance (org_id, branch_id, staff_id, date, source, status) values ($1,$2,$3,$4,'manual','absent') on conflict (staff_id, date) do update set status = 'absent'`, [ctx.orgId, s.branch_id, input.staff_id, input.date]);
+      await c.query(`insert into core.staff_attendance (org_id, branch_id, staff_id, date, source, status) values ($1,$2,$3,$4,'manual','absent') on conflict (org_id, staff_id, date) do update set status = 'absent'`, [ctx.orgId, s.branch_id, input.staff_id, input.date]);
       return generateForAbsence(c, { orgId: ctx.orgId, branchId: s.branch_id!, staffId: input.staff_id, date: input.date, source: 'manual' });
     });
     return { created: n };

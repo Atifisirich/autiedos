@@ -132,11 +132,16 @@ export async function withSystem<T>(c: Tx, orgId: string, fn: () => Promise<T>):
   if (!sys) throw new ForbiddenError('product_not_available');
   if (cur?.sub === sys) return fn();
   await setClaims(c, sys, { onBehalfOf: cur?.sub || null });
+  const restore = () => c.query(`select set_config('request.jwt.claims', $1, true), set_config('request.jwt.claim.sub', $2, true)`, [cur?.cl ?? '', cur?.sub ?? '']);
+  let out: T;
   try {
-    return await fn();
-  } finally {
-    await c.query(`select set_config('request.jwt.claims', $1, true), set_config('request.jwt.claim.sub', $2, true)`, [cur?.cl ?? '', cur?.sub ?? '']);
+    out = await fn();
+  } catch (e) {
+    await restore().catch(() => undefined); // aborted transaction: keep the original error
+    throw e;
   }
+  await restore();
+  return out;
 }
 
 /** Pre-login work with no user and no org (dev login lookup). Only security definer functions are useful here. */

@@ -34,15 +34,21 @@ export function registerApprovalHook(typeKey: string, fn: ApprovalHook) {
   hooks.set(typeKey, fn);
 }
 
+/** core.approval_requests names the applicant applicant_staff_id; the OS code reads it as applicant_id. */
+function norm<T extends ApprovalRequestRow>(r: T): T {
+  return { ...r, applicant_id: (r as unknown as { applicant_staff_id: string }).applicant_staff_id ?? r.applicant_id };
+}
+
 async function buildChain(c: Tx, orgId: string, branchId: string, typeId: string, applicantId: string, data: Record<string, unknown>, day: string): Promise<{ flowId: string | null; stages: Stage[] }> {
-  const roleIds = (await q<{ role_id: string }>(c, `select role_id from os.staff_roles where staff_id = $1 and deleted_at is null`, [applicantId])).map((r) => r.role_id);
+  // core.approval_flows / steps name OS roles by key (R8: core never references product role ids)
+  const roleKeys = (await q<{ key: string }>(c, `select r.key from os.staff_roles sr join os.roles r on r.id = sr.role_id where sr.staff_id = $1 and sr.deleted_at is null`, [applicantId])).map((r) => r.key);
   const flow =
-    (await maybe<{ id: string }>(c, `select id from core.approval_flows where approval_type_id = $1 and applicant_role_id = any($2) and deleted_at is null order by created_at limit 1`, [typeId, roleIds])) ??
-    (await maybe<{ id: string }>(c, `select id from core.approval_flows where approval_type_id = $1 and applicant_role_id is null and deleted_at is null order by created_at limit 1`, [typeId]));
+    (await maybe<{ id: string }>(c, `select id from core.approval_flows where approval_type_id = $1 and applicant_role_key = any($2) and deleted_at is null order by created_at limit 1`, [typeId, roleKeys])) ??
+    (await maybe<{ id: string }>(c, `select id from core.approval_flows where approval_type_id = $1 and applicant_role_key is null and deleted_at is null order by created_at limit 1`, [typeId]));
   if (!flow) return { flowId: null, stages: [] };
   const steps = await q<{ seq: number; approver_kind: StepDef['approverKind']; approver_role_id: string | null; approver_staff_id: string | null; condition: StepDef['condition']; time_limit_hours: number }>(
     c,
-    `select seq, approver_kind, approver_role_id, approver_staff_id, condition, time_limit_hours from core.approval_steps where flow_id = $1 and deleted_at is null order by seq`,
+    `select seq, approver_kind, approver_role_key as approver_role_id, approver_staff_id, condition, coalesce(time_limit_hours, 48) as time_limit_hours from core.approval_steps where flow_id = $1 and deleted_at is null order by seq`,
     [flow.id],
   );
   const reportsTo = Object.fromEntries((await q<{ id: string; reports_to: string | null }>(c, `select id, reports_to from core.staff where org_id = $1`, [orgId])).map((s) => [s.id, s.reports_to]));
@@ -52,10 +58,10 @@ async function buildChain(c: Tx, orgId: string, branchId: string, typeId: string
       roleHolders[s.approver_role_id] = (
         await q<{ id: string }>(
           c,
-          `select s.id from core.staff s join os.staff_roles sr on sr.staff_id = s.id and sr.deleted_at is null
-           where sr.role_id = $1 and s.status = 'active' and s.deleted_at is null and (s.branch_id = $2 or s.branch_id is null and not exists (
-             select 1 from core.staff s2 join os.staff_roles sr2 on sr2.staff_id = s2.id where sr2.role_id = $1 and s2.branch_id = $2 and s2.status = 'active'))`,
-          [s.approver_role_id, branchId],
+          `select s.id from core.staff s join os.staff_roles sr on sr.staff_id = s.id and sr.deleted_at is null join os.roles r on r.id = sr.role_id
+           where r.key = $1 and r.org_id = $3 and s.status = 'active' and s.deleted_at is null and (s.branch_id = $2 or s.branch_id is null and not exists (
+             select 1 from core.staff s2 join os.staff_roles sr2 on sr2.staff_id = s2.id join os.roles r2 on r2.id = sr2.role_id where r2.key = $1 and r2.org_id = $3 and s2.branch_id = $2 and s2.status = 'active'))`,
+          [s.approver_role_id, branchId, orgId],
         )
       ).map((r) => r.id);
     }
@@ -89,7 +95,10 @@ export async function submitApproval(
     branch_id: input.branchId,
     approval_type_id: type.id,
     flow_id: flowId,
-    applicant_id: input.applicantId,
+    product_key: 'os',
+    applicant_staff_id: input.applicantId,
+    applicant_user_id: (await maybe<{ user_id: string | null }>(c, `select user_id from core.staff where id = $1`, [input.applicantId]))?.user_id ?? null,
+    amount: typeof input.data.amount === 'number' ? input.data.amount : Number.isFinite(Number(input.data.amount)) && input.data.amount !== undefined && input.data.amount !== '' ? Number(input.data.amount) : null,
     title: input.title,
     data: { ...input.data, __chain: stages, __approved_by: [] },
     status: first ? 'pending' : 'approved',
@@ -99,8 +108,8 @@ export async function submitApproval(
     linked_type: input.linkedType ?? null,
     linked_id: input.linkedId ?? null,
     decided_at: first ? null : now().toISOString(),
-  });
-  await insert(c, 'core.approval_actions', { org_id: input.orgId, branch_id: input.branchId, request_id: req.id, step_seq: 0, actor_id: input.applicantId, action: 'submit' });
+  }).then(norm);
+  await insert(c, 'core.approval_actions', { org_id: input.orgId, request_id: req.id, step_seq: 0, actor_staff_id: input.applicantId, action: 'submit' });
   if (first) {
     await notify(c, { orgId: input.orgId, branchId: input.branchId, staffIds: first.approverIds, event: 'approval.pending', titleKey: 'notif.approval.pending', vars: { title: input.title, who: input.actorName }, link: `/os/approvals/${req.id}` });
   } else {
@@ -127,7 +136,7 @@ async function finalize(c: Tx, req: ApprovalRequestRow, decision: 'approved' | '
 export async function approvalAction(ctx: Ctx, id: string, input: { action: 'approve' | 'reject' | 'return' | 'forward' | 'resubmit' | 'cancel'; comment?: string | null; forward_to?: string; data?: Record<string, unknown> }) {
   needModule(ctx, 'approvals');
   return run(ctx, async (c, sys) => {
-    const req = await maybe<ApprovalRequestRow>(c, `select * from core.approval_requests where id = $1 and deleted_at is null for update`, [id]);
+    const req = await maybe<ApprovalRequestRow>(c, `select *, applicant_staff_id as applicant_id from core.approval_requests where id = $1 and deleted_at is null for update`, [id]);
     if (!req) throw new NotFoundError();
     const stages = (req.data.__chain ?? []) as Stage[];
     const approvedBy = (req.data.__approved_by ?? []) as string[];
@@ -138,7 +147,7 @@ export async function approvalAction(ctx: Ctx, id: string, input: { action: 'app
         if (!['pending', 'returned', 'approved'].includes(req.status)) throw new ValidationError('cannot_cancel');
         await sys(async () => {
           await update(c, 'core.approval_requests', id, { status: 'cancelled', pending_approver_ids: [], decided_at: ctx.now.toISOString() });
-          await insert(c, 'core.approval_actions', { org_id: req.org_id, branch_id: req.branch_id, request_id: id, step_seq: req.current_seq, actor_id: ctx.staffId, action: 'cancel', comment: input.comment ?? null });
+          await insert(c, 'core.approval_actions', { org_id: req.org_id, request_id: id, step_seq: req.current_seq, actor_staff_id: ctx.staffId, actor_user_id: ctx.userId, action: 'cancel', comment: input.comment ?? null });
           await finalize(c, { ...req, status: 'cancelled' }, 'cancelled', ctx.staffId);
         });
         return { status: 'cancelled' };
@@ -148,7 +157,7 @@ export async function approvalAction(ctx: Ctx, id: string, input: { action: 'app
       const first = stages[0];
       await sys(async () => {
         await update(c, 'core.approval_requests', id, { status: first ? 'pending' : 'approved', data: { ...data, __approved_by: [] }, current_seq: 1, pending_approver_ids: first?.approverIds ?? [], step_due_at: first ? new Date(ctx.now.getTime() + first.timeLimitHours * 3600000).toISOString() : null });
-        await insert(c, 'core.approval_actions', { org_id: req.org_id, branch_id: req.branch_id, request_id: id, step_seq: 0, actor_id: ctx.staffId, action: 'resubmit', comment: input.comment ?? null });
+        await insert(c, 'core.approval_actions', { org_id: req.org_id, request_id: id, step_seq: 0, actor_staff_id: ctx.staffId, actor_user_id: ctx.userId, action: 'resubmit', comment: input.comment ?? null });
         if (first) await notify(c, { orgId: req.org_id, branchId: req.branch_id, staffIds: first.approverIds, event: 'approval.pending', titleKey: 'notif.approval.pending', vars: { title: req.title, who: ctx.staff.full_name }, link: `/os/approvals/${id}` });
       });
       return { status: 'pending' };
@@ -173,8 +182,8 @@ export async function approvalAction(ctx: Ctx, id: string, input: { action: 'app
       decided_at: res.state.status === 'pending' ? null : ctx.now.toISOString(),
     };
     await sys(async () => {
-      const updated = await update<ApprovalRequestRow>(c, 'core.approval_requests', id, patch);
-      await insert(c, 'core.approval_actions', { org_id: req.org_id, branch_id: req.branch_id, request_id: id, step_seq: req.current_seq, actor_id: ctx.staffId, action: input.action, comment: input.comment ?? null, forwarded_to: input.forward_to ?? null });
+      const updated = norm(await update<ApprovalRequestRow>(c, 'core.approval_requests', id, patch));
+      await insert(c, 'core.approval_actions', { org_id: req.org_id, request_id: id, step_seq: req.current_seq, actor_staff_id: ctx.staffId, actor_user_id: ctx.userId, action: input.action, comment: input.comment ?? null, forwarded_to: input.forward_to ?? null });
       if (res.state.status === 'pending' && res.state.stageIndex !== stageIndex) {
         await notify(c, { orgId: req.org_id, branchId: req.branch_id, staffIds: nextStage?.approverIds ?? [], event: 'approval.pending', titleKey: 'notif.approval.pending', vars: { title: req.title, who: ctx.staff.full_name }, link: `/os/approvals/${id}` });
       } else if (res.state.status !== 'pending') {
@@ -200,12 +209,12 @@ export async function listApprovals(ctx: Ctx, view: 'pending_me' | 'mine' | 'all
   needModule(ctx, 'approvals');
   return run(ctx, async (c) => {
     const where =
-      view === 'pending_me' ? `$1 = any(r.pending_approver_ids) and r.status = 'pending'` : view === 'mine' ? `r.applicant_id = $1` : view === 'decided_by_me' ? `exists (select 1 from core.approval_actions a where a.request_id = r.id and a.actor_id = $1 and a.action in ('approve','reject','return','forward'))` : `r.branch_id = $2`;
+      view === 'pending_me' ? `$1 = any(r.pending_approver_ids) and r.status = 'pending'` : view === 'mine' ? `r.applicant_staff_id = $1` : view === 'decided_by_me' ? `exists (select 1 from core.approval_actions a where a.request_id = r.id and a.actor_staff_id = $1 and a.action in ('approve','reject','return','forward'))` : `r.branch_id = $2`;
     return q(
       c,
       `select r.id, r.title, r.status, r.created_at, r.step_due_at, r.current_seq, r.linked_type, r.linked_id, t.key as type_key, t.name as type_name, t.name_i18n, s.full_name as applicant_name,
          extract(epoch from (coalesce(r.decided_at, now()) - r.created_at)) / 3600 as age_hours
-       from core.approval_requests r join core.approval_types t on t.id = r.approval_type_id join core.staff s on s.id = r.applicant_id
+       from core.approval_requests r join core.approval_types t on t.id = r.approval_type_id join core.staff s on s.id = r.applicant_staff_id
        where r.deleted_at is null and ${where} order by r.created_at desc limit 200`,
       view === 'all' ? [ctx.staffId, ctx.branchId] : [ctx.staffId],
     );
@@ -216,11 +225,11 @@ export async function getApproval(ctx: Ctx, id: string) {
   return run(ctx, async (c) => {
     const r = await maybe<ApprovalRequestRow & Record<string, unknown>>(
       c,
-      `select r.*, t.key as type_key, t.name as type_name, t.form_schema, s.full_name as applicant_name from core.approval_requests r join core.approval_types t on t.id = r.approval_type_id join core.staff s on s.id = r.applicant_id where r.id = $1`,
+      `select r.*, r.applicant_staff_id as applicant_id, t.key as type_key, t.name as type_name, t.form_schema, s.full_name as applicant_name from core.approval_requests r join core.approval_types t on t.id = r.approval_type_id join core.staff s on s.id = r.applicant_staff_id where r.id = $1`,
       [id],
     );
     if (!r) throw new NotFoundError();
-    const actions = await q(c, `select a.*, s.full_name as actor_name, f.full_name as forwarded_name from core.approval_actions a left join core.staff s on s.id = a.actor_id left join core.staff f on f.id = a.forwarded_to where a.request_id = $1 order by a.created_at`, [id]);
+    const actions = await q(c, `select a.*, a.actor_staff_id as actor_id, s.full_name as actor_name, f.full_name as forwarded_name from core.approval_actions a left join core.staff s on s.id = a.actor_staff_id left join core.staff f on f.id = a.forwarded_to where a.request_id = $1 order by a.created_at`, [id]);
     const names = await q<{ id: string; full_name: string }>(c, `select id, full_name from core.staff where id = any($1)`, [((r.data.__chain ?? []) as Stage[]).flatMap((s) => s.approverIds)]);
     const { __chain, __approved_by, ...data } = r.data;
     return { ...r, data, chain: ((__chain ?? []) as Stage[]).map((s) => ({ ...s, approvers: s.approverIds.map((a) => names.find((n) => n.id === a)?.full_name ?? a) })), approved_by: __approved_by ?? [], actions, can_act: r.status === 'pending' && r.pending_approver_ids.includes(ctx.staffId), is_applicant: r.applicant_id === ctx.staffId };
@@ -229,7 +238,7 @@ export async function getApproval(ctx: Ctx, id: string) {
 
 /** Auto-escalation: a step past its time limit escalates to each pending approver's manager. */
 export async function approvalEscalationSweep(c: Tx, at: Date = now()): Promise<number> {
-  const rows = await q<ApprovalRequestRow & { step_due_at: string }>(c, `select * from core.approval_requests where status = 'pending' and step_due_at < $1 and deleted_at is null`, [at.toISOString()]);
+  const rows = await q<ApprovalRequestRow & { step_due_at: string }>(c, `select *, applicant_staff_id as applicant_id from core.approval_requests where status = 'pending' and step_due_at < $1 and deleted_at is null`, [at.toISOString()]);
   let n = 0;
   for (const r of rows) {
     const managers = (await q<{ reports_to: string | null }>(c, `select reports_to from core.staff where id = any($1)`, [r.pending_approver_ids])).map((m) => m.reports_to).filter((m): m is string => !!m && m !== r.applicant_id);
@@ -238,7 +247,7 @@ export async function approvalEscalationSweep(c: Tx, at: Date = now()): Promise<
     const idx = r.current_seq - 1;
     if (stages[idx]) stages[idx] = { ...stages[idx]!, approverIds: [...new Set([...stages[idx]!.approverIds, ...add])], anyOf: true };
     await c.query(`update core.approval_requests set pending_approver_ids = $2, step_due_at = $3, data = $4 where id = $1`, [r.id, [...new Set([...r.pending_approver_ids, ...add])], new Date(at.getTime() + 24 * 3600000).toISOString(), JSON.stringify({ ...r.data, __chain: stages })]);
-    await insert(c, 'core.approval_actions', { org_id: r.org_id, branch_id: r.branch_id, request_id: r.id, step_seq: r.current_seq, actor_id: null, action: 'escalate', comment: 'time_limit_exceeded' });
+    await insert(c, 'core.approval_actions', { org_id: r.org_id, request_id: r.id, step_seq: r.current_seq, actor_staff_id: null, action: 'escalate', comment: 'time_limit_exceeded' });
     await notify(c, { orgId: r.org_id, branchId: r.branch_id, staffIds: [...r.pending_approver_ids, ...add], event: 'task.escalation', titleKey: 'notif.approval.escalated', vars: { title: r.title }, link: `/os/approvals/${r.id}`, dedupeKey: `apesc:${r.id}:${at.toISOString().slice(0, 13)}` });
     n++;
   }
@@ -248,7 +257,7 @@ export async function approvalEscalationSweep(c: Tx, at: Date = now()): Promise<
 export async function approvalTypes(ctx: Ctx) {
   return run(ctx, async (c) => {
     const types = await q<{ id: string }>(c, `select id, key, name, name_i18n, form_schema, task_template, is_system, active from core.approval_types where org_id = $1 and deleted_at is null order by is_system, name`, [ctx.orgId]);
-    const steps = await q(c, `select f.approval_type_id, s.* , r.name as role_name, st.full_name as staff_name from core.approval_flows f join core.approval_steps s on s.flow_id = f.id left join os.roles r on r.id = s.approver_role_id left join core.staff st on st.id = s.approver_staff_id where f.org_id = $1 and f.deleted_at is null and s.deleted_at is null order by s.seq`, [ctx.orgId]);
+    const steps = await q(c, `select f.approval_type_id, s.* , r.id as approver_role_id, r.name as role_name, st.full_name as staff_name from core.approval_flows f join core.approval_steps s on s.flow_id = f.id left join os.roles r on r.org_id = s.org_id and r.key = s.approver_role_key and r.deleted_at is null left join core.staff st on st.id = s.approver_staff_id where f.org_id = $1 and f.deleted_at is null and s.deleted_at is null order by s.seq`, [ctx.orgId]);
     return types.map((t) => ({ ...t, steps: steps.filter((s) => (s as { approval_type_id: string }).approval_type_id === t.id) }));
   });
 }
@@ -257,10 +266,10 @@ export async function approvalTypes(ctx: Ctx) {
 export async function saveApprovalType(ctx: Ctx, input: { key: string; name: string; form_schema: unknown[]; task_template?: unknown[] | null; steps: { seq: number; approver_kind: string; approver_role_id?: string | null; approver_staff_id?: string | null; condition?: unknown; time_limit_hours: number }[] }) {
   need(ctx, 'approvals', 'configure');
   return run(ctx, async (c) => {
-    const type = await insert<{ id: string; is_system: boolean }>(c, 'core.approval_types', { org_id: ctx.orgId, key: input.key, name: input.name, form_schema: input.form_schema, task_template: input.task_template ?? null }, { onConflict: '(org_id, key) do update set name = excluded.name, form_schema = excluded.form_schema, task_template = excluded.task_template, deleted_at = null' });
+    const type = await insert<{ id: string; is_system: boolean }>(c, 'core.approval_types', { org_id: ctx.orgId, product_key: 'os', key: input.key, name: input.name, form_schema: input.form_schema, task_template: input.task_template ?? null }, { onConflict: '(org_id, key) do update set name = excluded.name, form_schema = excluded.form_schema, task_template = excluded.task_template, deleted_at = null' });
     await c.query(`update core.approval_flows set deleted_at = now() where approval_type_id = $1 and deleted_at is null`, [type.id]);
     const flow = await insert<{ id: string }>(c, 'core.approval_flows', { org_id: ctx.orgId, approval_type_id: type.id, name: `${input.name} – flow` });
-    for (const s of input.steps) await insert(c, 'core.approval_steps', { org_id: ctx.orgId, flow_id: flow.id, seq: s.seq, approver_kind: s.approver_kind, approver_role_id: s.approver_role_id ?? null, approver_staff_id: s.approver_staff_id ?? null, condition: s.condition ?? null, time_limit_hours: s.time_limit_hours });
+    for (const s of input.steps) await insert(c, 'core.approval_steps', { org_id: ctx.orgId, flow_id: flow.id, seq: s.seq, approver_kind: s.approver_kind, approver_role_key: s.approver_role_id ? (await one<{ key: string }>(c, `select key from os.roles where id = $1`, [s.approver_role_id])).key : null, approver_staff_id: s.approver_staff_id ?? null, condition: s.condition ?? null, time_limit_hours: s.time_limit_hours });
     return { id: type.id };
   });
 }

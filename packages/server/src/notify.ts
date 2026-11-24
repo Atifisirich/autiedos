@@ -4,7 +4,7 @@
  * batched into a morning and afternoon summary. Text is rendered in each recipient's language.
  */
 import { translate, quietHoursRelease, toLocal, fromLocal, addDays, hhmmToMinutes, isLang, type Lang } from '@autoed/shared';
-import { insert, maybe, q, withSystem, type Tx } from './db';
+import { maybe, q, withSystem, type Tx } from './db';
 import { now } from './core';
 import { enqueue } from './jobs';
 
@@ -52,33 +52,39 @@ async function notifyAsSystem(c: Tx, n: NotifyInput, ids: string[]): Promise<num
     const branchId = n.branchId ?? r.branch_id;
     let deliverAfter = t;
     if (!urgent && branchId) {
-      const b = await maybe<{ settings: { quiet_hours?: { start: string; end: string } }; timezone: string }>(c, `select settings, time_zone as timezone from core.branches where id = $1`, [branchId]);
+      const b = await maybe<{ settings: { quiet_hours?: { start: string; end: string } }; timezone: string }>(c, `select settings, coalesce(time_zone, 'Asia/Kolkata') as timezone from core.branches where id = $1`, [branchId]);
       const qh = b?.settings?.quiet_hours ?? { start: '20:00', end: '06:30' };
       deliverAfter = quietHoursRelease(t, qh.start, qh.end, b?.timezone ?? 'Asia/Kolkata');
       if (n.priority === 'low') deliverAfter = nextBatch(deliverAfter, b?.timezone ?? 'Asia/Kolkata');
     }
     const lang: Lang = isLang(r.language) ? r.language : 'en';
-    const row = await insert<{ id: string } | undefined>(
-      c,
-      'core.notifications',
-      {
-        org_id: n.orgId,
-        user_id: r.user_id,
-        staff_id: r.id,
-        product_key: 'os',
-        event_key: n.event,
-        title: translate(lang, n.titleKey, n.vars),
-        body: n.bodyKey ? translate(lang, n.bodyKey, n.vars) : null,
-        link: n.link ?? null,
-        data: { ...(n.data ?? {}), titleKey: n.titleKey, bodyKey: n.bodyKey, vars: n.vars ?? {}, branch_id: branchId },
-        priority: urgent ? 'urgent' : n.priority ?? 'normal',
+    // No RETURNING and no ON CONFLICT: the recipient's row is not readable by the system actor (core.notifications is
+    // self-only for reads), so a duplicate dedupe key is caught as a unique violation inside a savepoint.
+    await c.query('savepoint notify_one');
+    const res = await c.query(
+      `insert into core.notifications (org_id, user_id, staff_id, product_key, event_key, title, body, link, data, priority, channels, deliver_after, dedupe_key)
+       values ($1,$2,$3,'os',$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [
+        n.orgId,
+        r.user_id,
+        r.id,
+        n.event,
+        translate(lang, n.titleKey, n.vars),
+        n.bodyKey ? translate(lang, n.bodyKey, n.vars) : null,
+        n.link ?? null,
+        JSON.stringify({ ...(n.data ?? {}), titleKey: n.titleKey, bodyKey: n.bodyKey, vars: n.vars ?? {}, branch_id: branchId }),
+        urgent ? 'urgent' : n.priority ?? 'normal',
         channels,
-        deliver_after: deliverAfter.toISOString(),
-        dedupe_key: n.dedupeKey ?? null,
-      },
-      { onConflict: n.dedupeKey ? '(org_id, user_id, dedupe_key) do nothing' : undefined },
-    );
-    if (row) count++;
+        deliverAfter.toISOString(),
+        n.dedupeKey ?? null,
+      ],
+    ).catch(async (e: { code?: string }) => {
+      if (e.code !== '23505') throw e;
+      await c.query('rollback to savepoint notify_one');
+      return { rowCount: 0 };
+    });
+    await c.query('release savepoint notify_one');
+    if (res.rowCount) count++;
   }
   if (count && channels.some((ch) => ch !== 'inapp')) {
     await enqueue(c, 'deliver_notifications', {}, { dedupeKey: `${n.orgId}:deliver:${Math.floor(t.getTime() / 60000)}` });

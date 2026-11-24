@@ -71,7 +71,7 @@ export async function editMap(ctx: Ctx, input: { op: 'rename' | 'reorder' | 'add
   need(ctx, 'lesson_planner', 'configure');
   return run(ctx, async (c) => {
     const own = async (table: string, id: string) => {
-      const r = await maybe<{ org_id: string | null }>(c, `select org_id from public.${table} where id = $1`, [id]);
+      const r = await maybe<{ org_id: string | null }>(c, `select org_id from os.${table} where id = $1`, [id]);
       if (!r || r.org_id !== ctx.orgId) throw new ForbiddenError('clone_the_map_first');
     };
     switch (input.op) {
@@ -123,10 +123,7 @@ export async function addDocument(ctx: Ctx, input: { title: string; kind: string
     const doc = await sys(() => insert<{ id: string }>(c, 'os.reference_documents', { org_id: ctx.orgId, branch_id: ctx.branchId, title: input.title, kind: input.kind, storage_path: input.storage_path, mime: input.mime, size_bytes: input.size_bytes, subject_id: input.subject_id ?? null, programme_id: input.programme_id ?? null, status: input.text ? 'parsed' : 'uploaded' }));
     if (input.text) {
       const { enqueue } = await import('../jobs');
-      await sys(async () => {
-        await c.query(`insert into public.jobs (org_id, branch_id, kind, payload, dedupe_key) values ($1,$2,'embed_document',$3,$4) on conflict do nothing`, [ctx.orgId, ctx.branchId, JSON.stringify({ document_id: doc.id, text: input.text }), `embed:${doc.id}`]);
-        void enqueue;
-      });
+      await sys(() => enqueue(c, 'embed_document', { document_id: doc.id, text: input.text }, { branchId: ctx.branchId, dedupeKey: `${ctx.orgId}:embed:${doc.id}` }));
     }
     return { id: doc.id };
   });
@@ -221,7 +218,7 @@ function planSystemPrompt(board: string, language: string) {
 export async function generateDailyPlan(ctx: Ctx, input: { section_ids: string[]; subject_id: string; topic_id: string; plan_date: string; period_count: number; period_minutes: number; teaching_model: string; resources: string[]; class_profile: { size?: number; ability_mix: string; medium: string }; notes?: string; language?: 'en' | 'hi' | 'te' }) {
   need(ctx, 'lesson_planner', 'create');
   return run(ctx, async (c, sys) => {
-    const sections = await q<{ id: string; wing_id: string; branch_id: string; strength: number; name: string; class_name: string }>(c, `select se.id, cl.wing_id, se.branch_id, se.strength, se.name, cl.name as class_name from core.sections se join core.programmes cl on cl.id = se.programme_id where se.id = any($1)`, [input.section_ids]);
+    const sections = await q<{ id: string; wing_id: string; branch_id: string; strength: number; name: string; class_name: string }>(c, `select se.id, cl.wing_id, cl.branch_id, se.strength, se.name, cl.name as class_name from core.sections se join core.programmes cl on cl.id = se.programme_id where se.id = any($1)`, [input.section_ids]);
     if (sections.length !== input.section_ids.length) throw new NotFoundError('section');
     const subject = await one<{ id: string; name: string; content_language: string }>(c, `select id, name, content_language from core.subjects where id = $1`, [input.subject_id]);
     const tc = await topicContext(c, input.topic_id);
@@ -427,7 +424,7 @@ export async function getPlan(ctx: Ctx, id: string) {
     const reviews = await q(c, `select r.*, s.full_name as reviewer_name from os.lesson_plan_reviews r left join core.staff s on s.id = r.reviewer_id where r.plan_id = $1 order by r.created_at`, [id]);
     const versionsList = await q(c, `select version, note, created_at from os.lesson_plan_versions where plan_id = $1 order by version desc`, [id]);
     const gen = p.ai_generation_id ? await maybe(c, `select credits, model, attempts from core.ai_generations where id = $1`, [p.ai_generation_id]) : null;
-    const org = await one<{ name: string; logo_url: string | null; branding: Record<string, unknown> }>(c, `select name, logo_url, branding from core.organizations where id = $1`, [p.org_id]);
+    const org = await one<{ name: string; logo_url: string | null; branding: Record<string, unknown> }>(c, `select o.name, (select f.storage_path from core.files f where f.id = o.logo_file_id) as logo_url, o.branding from core.organizations o where o.id = $1`, [p.org_id]);
     return { ...p, template, reviews, versions: versionsList, generation: gen, org, can_edit: p.staff_id === ctx.staffId && ['draft', 'returned'].includes(p.status), can_review: await isReviewer(c, ctx, p) };
   });
 }
@@ -683,7 +680,7 @@ async function periodDates(c: Tx, branchId: string, classId: string, subjectId: 
 export async function generateAnnualPlan(ctx: Ctx, input: { programme_id: string; subject_id: string; curriculum_subject_id: string; use_ai: boolean }) {
   need(ctx, 'lesson_planner', 'create');
   return run(ctx, async (c, sys) => {
-    const ay = await one<{ id: string; starts_on: string; ends_on: string }>(c, `select id, starts_on::text, ends_on::text from core.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
+    const ay = await one<{ id: string; starts_on: string; ends_on: string }>(c, `select id, starts_on::text, ends_on::text from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [ctx.branchId]);
     const chapters = await q<{ id: string; name: string; est_periods: number; weight: number }>(c, `select t.id, t.name, t.est_periods, t.weight from os.curriculum_topics t join os.curriculum_units u on u.id = t.unit_id where u.subject_id = $1 and t.kind = 'chapter' and t.deleted_at is null order by u.seq, t.seq`, [input.curriculum_subject_id]);
     if (!chapters.length) throw new ValidationError('no_chapters');
     let loads = chapters.map((ch) => ({ topicId: ch.id, periods: ch.est_periods }));
@@ -798,13 +795,13 @@ export async function coverageFor(c: Tx, branchId: string, today: string, filter
   const b = await branchInfo(c, branchId);
   const atRisk = b.settings.coverage_at_risk ?? 3;
   const critical = b.settings.coverage_critical ?? 8;
-  const ay = await maybe<{ ends_on: string }>(c, `select ends_on::text from core.academic_years where branch_id = $1 and is_current`, [branchId]);
+  const ay = await maybe<{ ends_on: string }>(c, `select ends_on::text from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [branchId]);
   const rows = await q<{ section_id: string; section: string; programme_id: string; wing_id: string; subject_id: string; subject: string; staff_id: string; staff_name: string; annual_plan_id: string | null }>(
     c,
     `select ta.section_id, cl.name || ' ' || se.name as section, se.programme_id, cl.wing_id, ta.subject_id, sb.name as subject, ta.staff_id, s.full_name as staff_name,
        (select ap.id from os.annual_plans ap join core.academic_years ay on ay.id = ap.academic_year_id and ay.is_current where ap.programme_id = se.programme_id and ap.subject_id = ta.subject_id and ap.deleted_at is null limit 1) as annual_plan_id
      from core.teacher_allocations ta join core.sections se on se.id = ta.section_id join core.programmes cl on cl.id = se.programme_id join core.subjects sb on sb.id = ta.subject_id join core.staff s on s.id = ta.staff_id
-     where ta.branch_id = $1 and ta.deleted_at is null and sb.is_core and ($2::uuid is null or ta.staff_id = $2) and ($3::uuid is null or se.programme_id = $3) and ($4::uuid is null or ta.subject_id = $4) and ($5::uuid is null or cl.wing_id = $5)
+     where cl.branch_id = $1 and ta.deleted_at is null and sb.is_core and ($2::uuid is null or ta.staff_id = $2) and ($3::uuid is null or se.programme_id = $3) and ($4::uuid is null or ta.subject_id = $4) and ($5::uuid is null or cl.wing_id = $5)
      order by cl.seq, se.name, sb.name`,
     [branchId, filter.staffId ?? null, filter.classId ?? null, filter.subjectId ?? null, filter.wingId ?? null],
   );
@@ -862,7 +859,7 @@ export async function recoveryPlan(ctx: Ctx, input: { section_id: string; subjec
     const sec = await one<{ programme_id: string }>(c, `select programme_id from core.sections where id = $1`, [input.section_id]);
     const plan = await maybe<{ id: string }>(c, `select ap.id from os.annual_plans ap join core.academic_years ay on ay.id = ap.academic_year_id and ay.is_current where ap.programme_id = $1 and ap.subject_id = $2`, [sec.programme_id, input.subject_id]);
     if (!plan) throw new ValidationError('no_annual_plan');
-    const ay = await one<{ ends_on: string }>(c, `select ends_on::text from core.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
+    const ay = await one<{ ends_on: string }>(c, `select ends_on::text from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [ctx.branchId]);
     const today = localToday(ctx);
     const covered = new Set((await q<{ topic_id: string }>(c, `select distinct coalesce(t.parent_topic_id, t.id) as topic_id from os.class_logs l join os.curriculum_topics t on t.id = l.topic_id where l.section_id = $1 and l.subject_id = $2`, [input.section_id, input.subject_id])).map((r) => r.topic_id));
     const remaining = (await q<{ topic_id: string; name: string; planned_periods: number }>(c, `select i.topic_id, t.name, i.planned_periods from os.annual_plan_items i join os.curriculum_topics t on t.id = i.topic_id where i.annual_plan_id = $1 order by i.seq`, [plan.id])).filter((r) => !covered.has(r.topic_id));
@@ -903,12 +900,14 @@ export async function coverageAlertSweep(c: Tx, branchId: string, today: string)
 }
 
 // ---------------------------------------------------------------- class log (6.3)
+/** OS homework fields of a core.class_posts row (type homework). */
+export const HOMEWORK = `h.id, h.org_id, h.section_id, h.subject_id, h.staff_id, h.linked_id as class_log_id, h.body as description, h.due_date::text as due_on, coalesce(h.est_minutes, 0) as est_minutes, h.published_at::date::text as assigned_on, h.created_at`;
 export async function logClass(ctx: Ctx, input: { section_id: string; subject_id: string; date: string; period_seq: number; topic_id?: string | null; lesson_plan_id?: string | null; taught_as_planned: boolean; topic_text?: string | null; classwork?: string | null; remarks?: string | null; homework?: { description: string; due_on: string; est_minutes: number } | null; client_id?: string }) {
   need(ctx, 'class_log', 'create');
   return run(ctx, async (c, sys) => {
     const ex = await maybe<{ id: string; client_id: string | null }>(c, `select id, client_id from os.class_logs where section_id = $1 and date = $2 and period_seq = $3`, [input.section_id, input.date, input.period_seq]);
     if (ex && input.client_id && ex.client_id === input.client_id) return { id: ex.id, status: 'duplicate' };
-    const sec = await one<{ branch_id: string }>(c, `select branch_id from core.sections where id = $1`, [input.section_id]);
+    const sec = await one<{ branch_id: string }>(c, `select p.branch_id from core.sections se join core.programmes p on p.id = se.programme_id where se.id = $1`, [input.section_id]);
     let topicText = input.topic_text ?? null;
     let topicId = input.topic_id ?? null;
     if (input.taught_as_planned && input.lesson_plan_id) {
@@ -918,7 +917,8 @@ export async function logClass(ctx: Ctx, input: { section_id: string; subject_id
     }
     const row = { org_id: ctx.orgId, branch_id: sec.branch_id, section_id: input.section_id, subject_id: input.subject_id, staff_id: ctx.staffId, date: input.date, period_seq: input.period_seq, topic_id: topicId, lesson_plan_id: input.lesson_plan_id ?? null, taught_as_planned: input.taught_as_planned, topic_text: topicText, classwork: input.classwork ?? null, remarks: input.remarks ?? null, client_id: input.client_id ?? null };
     const log = ex ? await sys(() => update<{ id: string }>(c, 'os.class_logs', ex.id, row)) : await insert<{ id: string }>(c, 'os.class_logs', row);
-    if (input.homework) await insert(c, 'homework', { org_id: ctx.orgId, branch_id: sec.branch_id, class_log_id: log.id, section_id: input.section_id, subject_id: input.subject_id, staff_id: ctx.staffId, assigned_on: input.date, due_on: input.homework.due_on, description: input.homework.description, est_minutes: input.homework.est_minutes });
+    // homework is a shared class post (core.class_posts, type homework) linked to the class log
+    if (input.homework) await insert(c, 'core.class_posts', { org_id: ctx.orgId, type: 'homework', linked_type: 'class_log', linked_id: log.id, section_id: input.section_id, subject_id: input.subject_id, staff_id: ctx.staffId, title: input.homework.description.slice(0, 120), body: input.homework.description, due_date: input.homework.due_on, est_minutes: input.homework.est_minutes, status: 'published', published_at: new Date(`${input.date}T09:00:00+05:30`).toISOString() });
     if (input.lesson_plan_id) await sys(() => c.query(`update os.lesson_plans set status = 'delivered', delivered_at = coalesce(delivered_at, now()) where id = $1 and status = 'approved'`, [input.lesson_plan_id]));
     return { id: log.id };
   });
@@ -928,7 +928,7 @@ export async function sectionLog(ctx: Ctx, sectionId: string, from: string, to: 
   needModule(ctx, 'class_log');
   return run(ctx, async (c) => ({
     logs: await q(c, `select l.*, s.full_name as teacher, sb.name as subject from os.class_logs l join core.staff s on s.id = l.staff_id join core.subjects sb on sb.id = l.subject_id where l.section_id = $1 and l.date between $2 and $3 and l.deleted_at is null order by l.date desc, l.period_seq`, [sectionId, from, to]),
-    homework: await q(c, `select h.*, sb.name as subject from public.homework h join core.subjects sb on sb.id = h.subject_id where h.section_id = $1 and h.due_on between $2 and $3 and h.deleted_at is null order by h.due_on`, [sectionId, from, to]),
+    homework: await q(c, `select ${HOMEWORK}, sb.name as subject from core.class_posts h join core.subjects sb on sb.id = h.subject_id where h.type = 'homework' and h.section_id = $1 and h.due_date between $2 and $3 and h.deleted_at is null order by h.due_date`, [sectionId, from, to]),
   }));
 }
 
@@ -938,8 +938,8 @@ export async function homeworkLoadView(ctx: Ctx, from: string, to: string) {
   return run(ctx, async (c) => {
     const rows = await q<{ section_id: string; section: string; due_on: string; est_minutes: number; limit_minutes: number }>(
       c,
-      `select h.section_id, cl.name || ' ' || se.name as section, h.due_on::text, h.est_minutes, w.homework_limit_minutes as limit_minutes from public.homework h join core.sections se on se.id = h.section_id join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id
-       where h.branch_id = $1 and h.due_on between $2 and $3 and h.deleted_at is null`,
+      `select h.section_id, cl.name || ' ' || se.name as section, h.due_date::text as due_on, coalesce(h.est_minutes, 0) as est_minutes, w.homework_limit_minutes as limit_minutes from core.class_posts h join core.sections se on se.id = h.section_id join core.programmes cl on cl.id = se.programme_id join core.wings w on w.id = cl.wing_id
+       where h.type = 'homework' and cl.branch_id = $1 and h.due_date between $2 and $3 and h.deleted_at is null`,
       [ctx.branchId, from, to],
     );
     const names = new Map(rows.map((r) => [r.section_id, { section: r.section, limit: r.limit_minutes }]));
@@ -955,7 +955,7 @@ export async function addNotebookCheck(ctx: Ctx, input: { section_id: string; su
   need(ctx, 'class_log', input.kind === 'spot_check' ? 'verify' : 'create');
   return run(ctx, async (c, sys) => {
     const vals = Object.values(input.rubric);
-    const sec = await one<{ branch_id: string }>(c, `select branch_id from core.sections where id = $1`, [input.section_id]);
+    const sec = await one<{ branch_id: string }>(c, `select p.branch_id from core.sections se join core.programmes p on p.id = se.programme_id where se.id = $1`, [input.section_id]);
     return sys(() => insert(c, 'os.notebook_checks', { org_id: ctx.orgId, branch_id: sec.branch_id, ...input, checked_by: ctx.staffId, score: vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null }));
   });
 }
@@ -1001,7 +1001,7 @@ export async function planDeadlineSweep(c: Tx, branchId: string, today: string):
   const rule = await maybe<{ due_weekday: number; due_time: string }>(c, `select due_weekday, due_time::text from os.plan_submission_rules where org_id = $1 and level = 'weekly' and active and deleted_at is null limit 1`, [b.org_id]);
   if (!rule || isoWeekday(today) !== 1) return 0;
   const due = addDays(today, rule.due_weekday - 1);
-  const teachers = await q<{ id: string }>(c, `select distinct ta.staff_id as id from core.teacher_allocations ta join core.staff s on s.id = ta.staff_id where ta.branch_id = $1 and s.status = 'active' and ta.deleted_at is null`, [branchId]);
+  const teachers = await q<{ id: string }>(c, `select distinct ta.staff_id as id from core.teacher_allocations ta join core.staff s on s.id = ta.staff_id where s.branch_id = $1 and s.status = 'active' and ta.deleted_at is null`, [branchId]);
   const { fromLocal } = await import('@autoed/shared');
   let n = 0;
   for (const t of teachers) {

@@ -87,20 +87,21 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
     const org = await insert<{ id: string }>(c, 'core.organizations', {
       name: orgName,
       kind: 'school',
+      time_zone: 'Asia/Kolkata',
       slug,
       preset_key: 'dual',
       branding: { header: orgName, footer: 'Hyderabad · demo.school', color: '#1d4ed8' },
       settings: { plan_bank_group_sharing: true },
-      setup_step: 8,
+      setup_step: '8',
       setup_completed_at: new Date().toISOString(),
     });
     const orgId = org.id;
     const b1 = await insert<{ id: string }>(c, 'core.branches', {
-      org_id: orgId, name: 'Gachibowli Campus (CBSE)', code: 'GACH', state_code: '36', address: 'Gachibowli, Hyderabad', latitude: 17.4401, longitude: 78.3489, geofence_radius_m: 250,
+      org_id: orgId, name: 'Gachibowli Campus (CBSE)', code: 'GACH', state_code: '36', time_zone: 'Asia/Kolkata', address: 'Gachibowli, Hyderabad', latitude: 17.4401, longitude: 78.3489, geofence_radius_m: 250,
       settings: { quiet_hours: { start: '20:00', end: '06:30' }, day_close_time: '17:30', substitution_mode: 'confirm', digest_time: '07:30', coverage_at_risk: 3, coverage_critical: 8, bot_enabled: true },
     });
     const b2 = await insert<{ id: string }>(c, 'core.branches', {
-      org_id: orgId, name: 'Kondapur Campus (Cambridge)', code: 'KOND', state_code: '36', address: 'Kondapur, Hyderabad', latitude: 17.46, longitude: 78.357, geofence_radius_m: 200,
+      org_id: orgId, name: 'Kondapur Campus (Cambridge)', code: 'KOND', state_code: '36', time_zone: 'Asia/Kolkata', address: 'Kondapur, Hyderabad', latitude: 17.46, longitude: 78.357, geofence_radius_m: 200,
       settings: { quiet_hours: { start: '20:00', end: '06:30' }, day_close_time: '17:30', substitution_mode: 'auto', digest_time: '07:30', coverage_at_risk: 3, coverage_critical: 8, bot_enabled: true },
     });
     const branchIds = [b1.id, b2.id];
