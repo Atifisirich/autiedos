@@ -37,7 +37,7 @@ export function ImportSheet({ kind, onDone }: { kind: string; onDone?: () => voi
       ) : (
         <div className="flex items-center gap-2">
           <p className="text-green-700">{t('setup.dryRunOk', { created: res.created, updated: res.updated })}</p>
-          <Button size="sm" disabled={a.busy} onClick={async () => { const r = await a.run(() => post<Result>('/setup/import', { kind, rows, dry_run: false })); if (r) (setDone(r), setRes(null), onDone?.()); }}>{t('setup.importNow')}</Button>
+          <Button size="sm" disabled={a.busy} onClick={async () => { const r = await a.run(() => post<Result>('/setup/import', { kind, rows, dry_run: false })); if (r) { setDone(r); setRes(null); onDone?.(); } }}>{t('setup.importNow')}</Button>
         </div>
       ))}
       {done && <p className="text-green-700">{t('setup.imported', { created: done.created, updated: done.updated })}</p>}

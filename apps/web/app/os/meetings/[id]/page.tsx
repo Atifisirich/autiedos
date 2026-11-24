@@ -16,7 +16,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const [att, setAtt] = useState<Record<string, boolean>>({});
   const [actions, setActions] = useState<{ description: string; owner_id: string; due_on: string }[]>([]);
   useEffect(() => {
-    if (m.data) (setMinutes(m.data.minutes ?? ''), setAtt(m.data.attendance ?? {}));
+    if (m.data) { setMinutes(m.data.minutes ?? ''); setAtt(m.data.attendance ?? {}); }
   }, [m.data]);
   if (!m.data) return m.error ? <ErrorBox error={m.error} /> : <Loading />;
   const x = m.data;

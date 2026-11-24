@@ -51,7 +51,7 @@ export default function Roles() {
           <Field label={t('common.description')}><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
           <Field label={t('setup.copyFrom')}><Select value={f.copy_from_role_id} onChange={(e) => setF({ ...f, copy_from_role_id: e.target.value })} placeholder={t('common.optional')} options={(m.data?.roles ?? []).map((x) => ({ value: x.id, label: x.name }))} /></Field>
           <ErrorBox error={a.error} />
-          <Button disabled={!f.key || f.name.length < 2 || a.busy} onClick={async () => { const x = await a.run(() => post<{ id: string }>('/roles', { key: f.key, name: f.name, description: f.description || undefined, copy_from_role_id: f.copy_from_role_id || undefined })); if (x) (setOpen(false), setRole(x.id), m.reload()); }}>{t('common.save')}</Button>
+          <Button disabled={!f.key || f.name.length < 2 || a.busy} onClick={async () => { const x = await a.run(() => post<{ id: string }>('/roles', { key: f.key, name: f.name, description: f.description || undefined, copy_from_role_id: f.copy_from_role_id || undefined })); if (x) { setOpen(false); setRole(x.id); m.reload(); } }}>{t('common.save')}</Button>
         </div>
       </Modal>
     </div>

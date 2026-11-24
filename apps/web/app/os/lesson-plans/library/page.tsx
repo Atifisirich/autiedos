@@ -45,7 +45,7 @@ export default function Library() {
                 const text = /^text\//.test(file!.type) || /\.(md|txt|csv)$/i.test(file!.name) ? await file!.text() : undefined;
                 return post('/documents', { title: f.title, kind: f.kind, storage_path, mime: file!.type || 'application/octet-stream', size_bytes: file!.size, subject_id: f.subject_id || null, programme_id: f.programme_id || null, text });
               });
-              if (r) (setFile(null), setF({ ...f, title: '' }), docs.reload());
+              if (r) { setFile(null); setF({ ...f, title: '' }); docs.reload(); }
             }}>{t('library.upload')}</Button>
           </Card>
           <Card title={t('library.search')} actions={<div className="flex gap-2"><Input aria-label={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} className="w-64" /><Button size="sm" disabled={!q} onClick={async () => setResults((await a.run(() => get<any[]>(`/documents/search?q=${encodeURIComponent(q)}`))) ?? null)}>{t('common.search')}</Button></div>}>

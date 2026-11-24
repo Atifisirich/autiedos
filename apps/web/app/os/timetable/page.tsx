@@ -107,7 +107,7 @@ export default function Timetable() {
             { key: 'actions', header: '', render: (r) => (
               <div className="flex gap-1">
                 <Button size="sm" variant="ghost" onClick={() => (setVersion(r.id), setTab('grid'))}>{t('common.open')}</Button>
-                {can('timetable', 'edit') && r.status !== 'draft' && <Button size="sm" variant="secondary" onClick={async () => { const x = await a.run(() => post<{ version_id: string }>(`/timetable/versions/${r.id}/revision`, { name: `${r.name} (${t('timetable.revision')})` })); if (x) (versions.reload(), setVersion(x.version_id)); }}>{t('timetable.revise')}</Button>}
+                {can('timetable', 'edit') && r.status !== 'draft' && <Button size="sm" variant="secondary" onClick={async () => { const x = await a.run(() => post<{ version_id: string }>(`/timetable/versions/${r.id}/revision`, { name: `${r.name} (${t('timetable.revision')})` })); if (x) { versions.reload(); setVersion(x.version_id); } }}>{t('timetable.revise')}</Button>}
                 {can('timetable', 'approve') && r.status === 'draft' && <Button size="sm" onClick={() => (setVersion(r.id), setPublishOpen(true))}>{t('timetable.publish')}</Button>}
               </div>
             ) },

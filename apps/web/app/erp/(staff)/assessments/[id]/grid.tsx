@@ -30,7 +30,7 @@ export function MarksGrid({ assessmentId, max, rows, locked }: { assessmentId: s
     setBusy(false);
   };
   const filled = vals.filter((v) => v.trim() !== '').length;
-  const nums = vals.map((v) => Number(v)).filter((n, i) => vals[i]!!.trim() !== '' && !isNaN(n));
+  const nums = vals.map((v) => Number(v)).filter((n, i) => vals[i]!.trim() !== '' && !isNaN(n));
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">

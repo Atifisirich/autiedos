@@ -83,7 +83,7 @@ export default function Admin() {
             <p className="text-xs text-slate-500">{t('admin.viewAsHint')}</p>
             <Field label={t('tasks.reason')}><Input value={view.reason} onChange={(e) => setView({ ...view, reason: e.target.value })} /></Field>
             <Field label={t('admin.minutes')}><Input type="number" min={5} max={120} value={view.minutes} onChange={(e) => setView({ ...view, minutes: Number(e.target.value) })} /></Field>
-            <Button disabled={view.reason.length < 5 || a.busy} onClick={async () => { const r = await a.run(() => post<{ session_id: string }>('/admin/view-as', view)); if (r) (setViewAs(r.session_id), window.location.assign('/os')); }}>{t('admin.start')}</Button>
+            <Button disabled={view.reason.length < 5 || a.busy} onClick={async () => { const r = await a.run(() => post<{ session_id: string }>('/admin/view-as', view)); if (r) { setViewAs(r.session_id); window.location.assign('/os'); } }}>{t('admin.start')}</Button>
           </div>
         )}
       </Modal>

@@ -104,7 +104,7 @@ export default function TaskDetail({ params }: { params: Promise<{ id: string }>
                 e.preventDefault();
                 const mentions = (lk?.staff ?? []).filter((s) => comment.includes(`@${s.full_name}`)).map((s) => s.id);
                 const r = await a.run(() => post(`/tasks/${id}/comments`, { body: comment, kind: 'comment', mentions }));
-                if (r) (setComment(''), task.reload());
+                if (r) { setComment(''); task.reload(); }
               }}
             >
               <Input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('tasks.commentPlaceholder')} aria-label={t('tasks.comments')} />

@@ -49,7 +49,7 @@ export default function Appraisal() {
             </Grid>
             <Button disabled={!tr.title || !tr.attended_on || a.busy} onClick={async () => {
               const r = await a.run(async () => post('/trainings', { staff_id: tr.staff_id || undefined, title: tr.title, provider: tr.provider || undefined, attended_on: tr.attended_on, hours: Number(tr.hours), certificate_path: cert ? await uploadFile(cert, 'certificate') : null }));
-              if (r) (setTr({ ...tr, title: '', provider: '' }), trainings.reload());
+              if (r) { setTr({ ...tr, title: '', provider: '' }); trainings.reload(); }
             }}>{t('common.save')}</Button>
             <ErrorBox error={a.error} />
           </Card>

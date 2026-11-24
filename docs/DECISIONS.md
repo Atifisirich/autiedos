@@ -16,7 +16,7 @@ Each entry: what was decided, why, and how to change it. Anything that is school
 3. **Dev login.** `AUTH_PROVIDER=dev` allows email-only sign-in for demos and tests. It is refused unless
    that variable is set, and `.env.example` leaves it unset.
 4. **Jobs without a queue service.** Reminders, escalations, recurring tasks, digests and generation
-   run from a `jobs` table driven by `/api/cron/tick` (Vercel cron every minute, `CRON_SECRET`). Chosen so no extra
+   run from a `jobs` table driven by `/api/cron/tick` (Vercel cron every minute on Pro; once a day on Hobby, see `docs/staging.md`; `CRON_SECRET`). Chosen so no extra
    infrastructure is needed; a long timetable generation is a job that the UI polls.
 5. **Local development database.** Plain Postgres 16 with pgvector plus `supabase/local/shim.sql`
    (emulates the `auth` schema, roles and storage). The same migrations apply unchanged to Supabase.

@@ -69,7 +69,7 @@ export default function Leave() {
               <Button disabled={a.busy || !preview || preview.errors.filter((e: string) => e !== 'document_required' || !file).length > 0} onClick={async () => {
                 const attachment_path = file ? await uploadFile(file, 'leave_doc') : null;
                 const r = await a.run(() => post('/leave', { ...f, hours: f.hours ? Number(f.hours) : null, attachment_path }));
-                if (r) (setDone(true), bal.reload(), setF({ leave_type_id: '', start_date: '', end_date: '', half_day: 'none', hours: '', reason: '', handover_note: '' }));
+                if (r) { setDone(true); bal.reload(); setF({ leave_type_id: '', start_date: '', end_date: '', half_day: 'none', hours: '', reason: '', handover_note: '' }); }
               }}>{t('common.submit')}</Button>
             </div>
           )}

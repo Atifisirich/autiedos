@@ -8,7 +8,7 @@ import { useCurriculum } from '@/lib/curriculum';
 import { Badge, Button, Card, Checkbox, DateText, ErrorBox, Field, Grid, Input, PageHeader, Select, Table, Tabs, Textarea, useAction } from '@/components/ui';
 
 export default function ClassLog() {
-  const { t, can, me } = useApp();
+  const { t, can } = useApp();
   const lk = useLookups();
   const [tab, setTab] = useState('log');
   const today = new Date().toISOString().slice(0, 10);
@@ -57,7 +57,7 @@ export default function ClassLog() {
               {saved && <p className="text-sm text-green-700">{saved}</p>}
               <Button disabled={!f.section_id || !f.subject_id || a.busy} onClick={async () => {
                 const r = await a.run(() => post('/class-log', { section_id: f.section_id, subject_id: f.subject_id, date: f.date, period_seq: f.period_seq, topic_id: f.topic_id || null, taught_as_planned: f.taught_as_planned, topic_text: f.topic_text || null, classwork: f.classwork || null, remarks: f.remarks || null, homework: f.hw ? { description: f.hw_desc, due_on: f.hw_due, est_minutes: f.hw_min } : null, client_id: crypto.randomUUID() }));
-                if (r) (setSaved(t('classLog.saved')), log.reload());
+                if (r) { setSaved(t('classLog.saved')); log.reload(); }
               }}>{t('common.save')}</Button>
             </div>
           </Card>

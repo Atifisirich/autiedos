@@ -55,7 +55,7 @@ export default function Compliance() {
                 const body = { name: edit.name, category: edit.category, owner_id: edit.owner_id || null, issued_on: edit.issued_on || null, expires_on: edit.expires_on || null, notes: edit.notes || undefined, documents };
                 return edit.id ? api('PUT', `/compliance/${edit.id}`, body) : post('/compliance', body);
               });
-              if (ok) (setEdit(null), setFile(null), list.reload());
+              if (ok) { setEdit(null); setFile(null); list.reload(); }
             }}>{t('common.save')}</Button>
           </div>
         )}

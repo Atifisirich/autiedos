@@ -20,7 +20,7 @@ export default function AnnualPlan() {
   const [edits, setEdits] = useState<Record<string, { planned_start: string; planned_end: string; planned_periods: number }>>({});
   const saveItem = async (r: any) => {
     const e = edits[r.id];
-    if (e && (await a.run(() => api('PATCH', `/annual-plans/items/${r.id}`, e)))) (setEdits(({ [r.id]: _, ...rest }) => rest), plan.reload());
+    if (e && (await a.run(() => api('PATCH', `/annual-plans/items/${r.id}`, e)))) { setEdits(({ [r.id]: _, ...rest }) => rest); plan.reload(); }
   };
   return (
     <div>

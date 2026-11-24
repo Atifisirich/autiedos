@@ -82,7 +82,7 @@ function Year({ onSaved }: { onSaved: () => void }) {
       const hh = (x: number) => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
       out.push({ label: `P${i}`, kind: 'period', starts_at: hh(m), ends_at: hh(m + 40) });
       m += 40;
-      if (i === 4) (out.push({ label: 'Lunch', kind: 'break', starts_at: hh(m), ends_at: hh(m + 30) }), (m += 30));
+      if (i === 4) { out.push({ label: 'Lunch', kind: 'break', starts_at: hh(m), ends_at: hh(m + 30) }); (m += 30); }
     }
     return out;
   });

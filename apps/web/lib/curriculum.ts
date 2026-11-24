@@ -29,7 +29,7 @@ export function useCurriculum(lk: Lookups | null, sectionId: string, subjectId: 
         const match = subjects.find((s) => s.grade_level === cls.grade_level && (s.name.toLowerCase().includes(name) || name.includes(s.name.toLowerCase())));
         if (match) {
           const tree = await get<{ chapters: ChapterNode[] }[]>(`/curriculum/subjects/${match.id}`);
-          if (!cancelled) (setCs(match.id), setChapters(tree.flatMap((u) => u.chapters)));
+          if (!cancelled) { setCs(match.id); setChapters(tree.flatMap((u) => u.chapters)); }
           return;
         }
       }

@@ -33,7 +33,7 @@ export default function PlanDetail({ params }: { params: Promise<{ id: string }>
   const save = async () => (await a.run(() => api('PATCH', `/lesson-plans/${id}`, { content, note: editing ?? undefined }))) && (setEditing(null), plan.reload());
   const sectionAction = async (section: string, action: string) => {
     const r = await a.run(() => post<{ content: Record<string, unknown> }>(`/lesson-plans/${id}/section`, { section, action, language: action === 'translate' ? (lang === 'en' ? 'hi' : 'en') : undefined }));
-    if (r) (setContent(r.content), plan.reload());
+    if (r) { setContent(r.content); plan.reload(); }
   };
   return (
     <div>

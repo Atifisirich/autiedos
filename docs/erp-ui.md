@@ -32,7 +32,7 @@ PostgREST cannot embed across schemas, so an erp row that points to a core row (
 
 ### Sign-in
 
-* Production: the Supabase Auth access token is posted to `/api/erp/session`, which stores it in the `erp_token` cookie.
+* Production: Supabase Auth (e-mail code, or e-mail and password); the access token is posted to `/api/erp/session`, which stores it in the `erp_token` cookie.
 * Local development: `POST /api/erp/dev-login {email}` looks the user up in `auth.users` and signs an HS256 JWT with `ERP_JWT_SECRET`. It answers 404 unless `ERP_AUTH_PROVIDER=dev`. It never runs in production.
 
 Environment variables: `ERP_AUTH_PROVIDER=dev`, `ERP_JWT_SECRET`, `ERP_DATA_API_URL` (plain PostgREST, for example `http://127.0.0.1:3400`; when unset the Supabase URL is used), `ERP_ANON_KEY`, `ERP_SERVER_TOKEN`, `DATABASE_URL` (dev shim only).
@@ -57,7 +57,7 @@ New migrations (all additive, no existing migration touched):
 
 ```
 DATABASE_URL=postgres://postgres@localhost:54322/erpui pnpm db:reset:platform      # or: node scripts/db.mjs migrate --platform-only
-DATABASE_URL=... node scripts/seed-erp-demo.mjs && node scripts/seed-erp-demo-extras.mjs
+DATABASE_URL=... node scripts/seed-erp-demo.mjs && node scripts/seed-erp-demo-extras.mjs   # ERP_DEMO_DOMAIN=erp.demo.school when the OS demo school shares the database
 DATABASE_URL=... node scripts/erp-dev-postgrest.mjs                                  # port 3400
 ERP_AUTH_PROVIDER=dev ERP_DATA_API_URL=http://127.0.0.1:3400 ERP_JWT_SECRET=... DATABASE_URL=... pnpm --filter @autoed/web dev -p 3100
 BASE_URL=http://localhost:3100 DATABASE_URL=... node apps/web/e2e/erp-smoke.mjs

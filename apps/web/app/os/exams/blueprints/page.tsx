@@ -72,7 +72,7 @@ export default function Blueprints() {
               const { id, ...rest } = f;
               const weights = Object.fromEntries(Object.entries(f.chapter_weightage).filter(([, v]) => v > 0));
               const r = await a.run(() => post<{ id: string }>('/exams/blueprints', { ...rest, ...(id ? { id } : {}), programme_id: f.programme_id || null, subject_id: f.subject_id || null, chapter_weightage: weights, instructions: f.instructions || undefined }));
-              if (r) (setF({ ...f, id: r.id }), list.reload());
+              if (r) { setF({ ...f, id: r.id }); list.reload(); }
             }}>{t('common.save')}</Button>
           </div>
         </Card>

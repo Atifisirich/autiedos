@@ -47,7 +47,7 @@ Key server concepts:
 * Permissions: `os.has_permission(user, module, action, target)` with scopes own/team/department/wing/branch/group; OS roles are
   mirrored into derived core roles (`os.sync_access`). In code: `need`, `needModule`, `rank`.
 * Auth: Supabase OTP -> `POST /auth/session` -> HS256 session token (`AUTH_JWT_SECRET`), per-device revocable. `AUTH_PROVIDER=dev` enables email-only login for demos/tests.
-* Jobs: `jobs` table driven by `/api/cron/tick` (Vercel cron every minute, `CRON_SECRET`); handlers in `scheduler.ts`.
+* Jobs: `jobs` table driven by `/api/cron/tick` (Vercel cron every minute on Pro; once a day on Hobby, see `docs/staging.md`; `CRON_SECRET`); handlers in `scheduler.ts`.
 * AI: `adapters/ai.ts` (Google Gemini via REST, JSON-schema output, validate + repair, up to 3 attempts, cost only on success), `mockAi.ts` in dev and tests. See `docs/adr/ai-gemini.md`.
   Models are rows in `platform_settings` (`ai_models`: strong, fast, optional prices; seeded as named placeholders until verified), credit costs in `ai_action_costs`.
 * Translations: edit `packages/shared/src/i18n/source/*.txt` (`key | English | Hindi | Telugu`), run `pnpm i18n:build`, then `pnpm lint`.

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useApp } from '@/lib/app';
 import { api, post, useApi } from '@/lib/api';
-import { Badge, Button, Card, Checkbox, ErrorBox, Field, Grid, Input, Modal, PageHeader, Select, cx, useAction } from '@/components/ui';
+import { Button, Card, Checkbox, ErrorBox, Field, Grid, Input, Modal, PageHeader, Select, cx, useAction } from '@/components/ui';
 
 const LAYERS = ['holiday', 'exam', 'event', 'ptm', 'staff_meeting', 'training', 'deadline'] as const;
 const COLORS: Record<string, string> = { holiday: 'bg-red-100', exam: 'bg-purple-100', event: 'bg-blue-100', ptm: 'bg-amber-100', staff_meeting: 'bg-slate-200', training: 'bg-green-100', deadline: 'bg-orange-100' };
@@ -56,7 +56,7 @@ export default function Calendar() {
             <ErrorBox error={a.error} />
             <Button disabled={!edit.title || a.busy} onClick={async () => {
               const body = { layer: edit.layer, title: edit.title, starts_on: edit.starts_on, ends_on: edit.ends_on, starts_at: edit.starts_at || null, ends_at: edit.ends_at || null, group_level: edit.group_level };
-              if (await a.run(() => (edit.id ? api('PUT', `/calendar/${edit.id}`, body) : post('/calendar', body)))) (setEdit(null), ev.reload());
+              if (await a.run(() => (edit.id ? api('PUT', `/calendar/${edit.id}`, body) : post('/calendar', body)))) { setEdit(null); ev.reload(); }
             }}>{t('common.save')}</Button>
           </div>
         )}
