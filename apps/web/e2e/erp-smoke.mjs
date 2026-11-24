@@ -18,11 +18,13 @@ const BASE = process.env.BASE_URL ?? 'http://localhost:3100';
 const SHOTS = process.env.SMOKE_SHOTS;
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? 'postgres://postgres@localhost:54322/erpui' });
 await db.connect();
+const ORG = (await db.query(`select id from core.organizations where slug = 'demo-school'`)).rows[0]?.id;
+if (!ORG) throw new Error('Demo school not seeded: run scripts/seed-erp-demo.mjs first');
 const one = async (sql) => (await db.query(sql)).rows[0]?.id;
 const ids = {
-  student: await one(`select id from core.students order by admission_no limit 1`), staff: await one(`select id from core.staff where email = 'teacher@demo.school'`),
-  assessment: await one(`select id from erp.assessments limit 1`), section: await one(`select id from core.sections order by name limit 1`), form: await one(`select id from erp.forms limit 1`),
-  ticket: await one(`select id from core.tickets limit 1`), receipt: await one(`select id from erp.receipts limit 1`), rc: await one(`select id from erp.report_cards limit 1`),
+  student: await one(`select id from core.students where org_id = '${ORG}' order by admission_no limit 1`), staff: await one(`select id from core.staff where org_id = '${ORG}' and email = 'teacher@demo.school'`),
+  assessment: await one(`select id from erp.assessments where org_id = '${ORG}' limit 1`), section: await one(`select id from core.sections where org_id = '${ORG}' order by name limit 1`), form: await one(`select id from erp.forms where org_id = '${ORG}' limit 1`),
+  ticket: await one(`select id from core.tickets where org_id = '${ORG}' limit 1`), receipt: await one(`select id from erp.receipts where org_id = '${ORG}' limit 1`), rc: await one(`select id from erp.report_cards where org_id = '${ORG}' limit 1`),
 };
 const entities = (await import('node:fs')).readFileSync(new URL('../lib/erp/entities.gen.ts', import.meta.url), 'utf8').match(/"table":"([a-z_0-9]+)"/g).map((m) => m.slice(9, -1));
 
@@ -93,7 +95,7 @@ for (const [email, extra] of process.env.SMOKE_FLOWS_ONLY ? [] : [['admin@demo.s
   await s.page.fill('input[name=g1_phone]', `98${stamp}0${stamp.slice(0, 2)}`);
   await s.page.click('button:has-text("Admit student")');
   await s.page.waitForURL(/\/erp\/students\/[0-9a-f-]{36}/, { timeout: 60000 }).catch(() => {});
-  const row = (await db.query(`select id, admission_no, status from core.students where first_name = $1`, [first])).rows[0];
+  const row = (await db.query(`select id, admission_no, status from core.students where org_id = '${ORG}' and first_name = $1`, [first])).rows[0];
   if (!row) problems.push(`flow admit: student ${first} was not created (url ${s.page.url()})`);
   else { await open(s, `/erp/students/${row.id}`, email); if (!(await s.page.locator('body').innerText()).includes(first)) problems.push('flow admit: student page does not show the new name'); await shot(s.page, 'admit'); }
   await s.ctx.close();
@@ -102,7 +104,7 @@ for (const [email, extra] of process.env.SMOKE_FLOWS_ONLY ? [] : [['admin@demo.s
 // ------------------------------------------------------------------ flow 2: mark attendance (as the class teacher)
 {
   const email = 'teacher@demo.school', s = await session(email);
-  const sec = await one(`select s.id from core.sections s join core.staff t on t.id = s.class_teacher_id where t.email = 'teacher@demo.school' limit 1`);
+  const sec = await one(`select s.id from core.sections s join core.staff t on t.id = s.class_teacher_id where s.org_id = '${ORG}' and t.email = 'teacher@demo.school' limit 1`);
   await db.query(`delete from core.student_attendance_marks where session_id in (select id from core.student_attendance_sessions where section_id = $1 and date = current_date)`, [sec]);
   await db.query(`delete from core.student_attendance_sessions where section_id = $1 and date = current_date`, [sec]);
   await open(s, `/erp/attendance/roll/${sec}`, email);
@@ -121,17 +123,17 @@ for (const [email, extra] of process.env.SMOKE_FLOWS_ONLY ? [] : [['admin@demo.s
 // ------------------------------------------------------------------ flow 3: collect a fee, receipt
 {
   const email = 'accounts@demo.school', s = await session(email);
-  const student = await one(`select d.student_id as id from erp.fee_demands d where d.status in ('due','partial') and d.student_id not in (select student_id from erp.fee_demands where status = 'paid') order by d.due_date limit 1`);
-  const before = (await db.query(`select count(*)::int as n from erp.receipts`)).rows[0].n;
+  const student = await one(`select d.student_id as id from erp.fee_demands d where d.org_id = '${ORG}' and d.status in ('due','partial') and d.student_id not in (select student_id from erp.fee_demands where status = 'paid') order by d.due_date limit 1`);
+  const before = (await db.query(`select count(*)::int as n from erp.receipts where org_id = '${ORG}'`)).rows[0].n;
   await open(s, `/erp/fees/counter?student=${student}`, email);
   s.page.on('dialog', (d) => d.accept());
   await s.page.click('button:has-text("Save and print receipt")');
   await s.page.waitForLoadState('networkidle');
   await s.page.waitForTimeout(1000);
-  const after = (await db.query(`select count(*)::int as n from erp.receipts`)).rows[0].n;
+  const after = (await db.query(`select count(*)::int as n from erp.receipts where org_id = '${ORG}'`)).rows[0].n;
   if (after !== before + 1) problems.push(`flow fee: expected one new receipt, got ${after - before} (url ${s.page.url()})`);
   else {
-    const rc = (await db.query(`select id, receipt_no, total from erp.receipts order by created_at desc limit 1`)).rows[0];
+    const rc = (await db.query(`select id, receipt_no, total from erp.receipts where org_id = '${ORG}' order by created_at desc limit 1`)).rows[0];
     await open(s, `/erp/receipt/${rc.id}`, email);
     if (!(await s.page.locator('body').innerText()).includes(rc.receipt_no)) problems.push('flow fee: receipt page does not show the receipt number');
     const v = (await db.query(`select count(*)::int as n from erp.vouchers where ref_id = $1`, [rc.id]).catch(() => ({ rows: [{ n: 1 }] }))).rows[0].n;
