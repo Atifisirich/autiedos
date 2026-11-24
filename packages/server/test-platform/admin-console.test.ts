@@ -57,9 +57,12 @@ describe('create a client in one step (T2: a CRM-only client has nothing in OS o
     expect(w.provisioner.created).toContain(crm.adminId);
 
     const users = await w.call('GET', `/clients/${crm.orgId}/users`);
-    expect(users.json).toHaveLength(1);
-    expect(users.json[0]).toMatchObject({ user_id: crm.adminId, status: 'invited', kind: 'staff', email });
-    expect(users.json[0].access).toMatchObject([{ product_key: 'crm', role_key: 'admin' }]);
+    // the CRM adds one automation actor per org (crm.provision_org); the invited admin is the only human
+    const humans = users.json.filter((x: { display_name?: string }) => x.display_name !== 'AutoEd CRM automation');
+    expect(humans).toHaveLength(1);
+    expect(users.json.length).toBeLessThanOrEqual(2);
+    expect(humans[0]).toMatchObject({ user_id: crm.adminId, status: 'invited', kind: 'staff', email });
+    expect(humans[0].access).toMatchObject([{ product_key: 'crm', role_key: 'admin' }]);
     const detail = await w.call('GET', `/clients/${crm.orgId}`);
     expect(detail.json.branches).toHaveLength(1);
     expect(detail.json.billing_account).toMatchObject({ legal_name: 'CRM Only Education Pvt Ltd', state_code: '36' });
