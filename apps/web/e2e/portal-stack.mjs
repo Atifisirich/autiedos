@@ -43,7 +43,7 @@ export function sessionFor(user, expiresInSec = 3600) {
   };
 }
 
-export async function start({ databaseUrl = process.env.DATABASE_URL, pgrstPort = 3399, port = 3400, bin = process.env.POSTGREST_BIN ?? '/tmp/claude-0/scratch/pgrst/postgrest' } = {}) {
+export async function start({ databaseUrl = process.env.DATABASE_URL, pgrstPort = 3649, port = 3650, bin = process.env.POSTGREST_BIN ?? '/tmp/claude-0/scratch/pgrst/postgrest' } = {}) {
   const db = new pg.Pool({ connectionString: databaseUrl, max: 2 });
   const ROLE = 'portal_authenticator';
   await db.query(`do $$ begin if not exists (select 1 from pg_roles where rolname = '${ROLE}') then create role ${ROLE} login noinherit nobypassrls; end if; end $$`);

@@ -5,6 +5,7 @@
  *
  *   ERP_SERVER_DATABASE_URL   a login as the `erp_server` role (production)
  *   DATABASE_URL              development only: any superuser login; the route switches to the role with SET LOCAL ROLE
+ *   ERP_SERVER_SET_ROLE=1     with a dedicated URL that is a superuser (e2e): still switch to the role, to prove its grants
  */
 import pg from 'pg';
 
@@ -17,7 +18,7 @@ function getPool(): pg.Pool | null {
   const fallback = process.env.NODE_ENV !== 'production' ? process.env.DATABASE_URL : undefined;
   const url = dedicated ?? fallback;
   if (!url) return null;
-  switchRole = !dedicated;
+  switchRole = !dedicated || process.env.ERP_SERVER_SET_ROLE === '1';
   pool = new pg.Pool({ connectionString: url, max: 3, ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined });
   return pool;
 }
