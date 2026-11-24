@@ -27,6 +27,12 @@ language sql stable set search_path = '' as $$
 $$;
 
 -- ---------------------------------------------------------------- identity
+-- The signed-in user (sub claim). Security definer so that policies evaluated by the product server roles
+-- do not need USAGE on Supabase's `auth` schema: those roles are granted core + their own schema only.
+-- Policies call app.uid(), never auth.uid().
+create or replace function app.uid() returns uuid
+language sql stable security definer set search_path = '' as $$ select auth.uid() $$;
+
 create or replace function app.is_platform_admin() returns boolean
 language sql stable security definer set search_path = '' as $$
   select auth.uid() is not null

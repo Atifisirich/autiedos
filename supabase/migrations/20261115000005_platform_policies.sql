@@ -8,7 +8,7 @@ select app.apply_rls('core', 'products', 'global', null, null);
 select app.apply_rls('core', 'product_modules', 'global', null, null);
 
 alter table core.platform_admins enable row level security;
-create policy sel on core.platform_admins for select using (user_id = auth.uid() or app.is_platform_admin());
+create policy sel on core.platform_admins for select using (user_id = app.uid() or app.is_platform_admin());
 select app.enable_audit('core', 'platform_admins');
 
 -- ---------------------------------------------------------------- core: tenancy
@@ -40,19 +40,19 @@ select app.enable_audit('core', 'org_branch_products', true);
 -- ---------------------------------------------------------------- core: identity and roles
 -- A user sees their own link; user admins (users.view in any product) see the org's list.
 alter table core.org_users enable row level security;
-create policy sel on core.org_users for select using (user_id = auth.uid() or app.can_any_product('users', 'view', org_id));
+create policy sel on core.org_users for select using (user_id = app.uid() or app.can_any_product('users', 'view', org_id));
 create policy ins on core.org_users for insert with check (app.can_any_product('users', 'manage', org_id));
 create policy upd on core.org_users for update using (app.can_any_product('users', 'manage', org_id)) with check (app.can_any_product('users', 'manage', org_id));
 create policy del on core.org_users for delete using (app.can_any_product('users', 'manage', org_id));
 select app.enable_audit('core', 'org_users', true);
 
 alter table core.user_branch_access enable row level security;
-create policy sel on core.user_branch_access for select using (user_id = auth.uid() or app.can_any_product('users', 'view', org_id));
+create policy sel on core.user_branch_access for select using (user_id = app.uid() or app.can_any_product('users', 'view', org_id));
 create policy wr on core.user_branch_access for all using (app.can_any_product('users', 'manage', org_id)) with check (app.can_any_product('users', 'manage', org_id));
 select app.enable_audit('core', 'user_branch_access', true);
 
 alter table core.learner_links enable row level security;
-create policy sel on core.learner_links for select using (user_id = auth.uid() or app.can_any_product('users', 'view', org_id));
+create policy sel on core.learner_links for select using (user_id = app.uid() or app.can_any_product('users', 'view', org_id));
 create policy wr on core.learner_links for all using (app.can_any_product('users', 'manage', org_id)) with check (app.can_any_product('users', 'manage', org_id));
 select app.enable_audit('core', 'learner_links', true);
 
@@ -71,7 +71,7 @@ create policy wr on core.role_permissions for all
 select app.enable_audit('core', 'role_permissions', true);
 
 alter table core.user_product_access enable row level security;
-create policy sel on core.user_product_access for select using (user_id = auth.uid() or app.can_any_product('users', 'view', org_id));
+create policy sel on core.user_product_access for select using (user_id = app.uid() or app.can_any_product('users', 'view', org_id));
 create policy wr on core.user_product_access for all
   using (app.can(product_key, 'users', 'manage', org_id)) with check (app.can(product_key, 'users', 'manage', org_id));
 select app.enable_audit('core', 'user_product_access', true);
@@ -79,12 +79,12 @@ select app.enable_audit('core', 'user_product_access', true);
 -- ---------------------------------------------------------------- core: login security (read-only to users)
 alter table core.user_security enable row level security;
 create policy sel on core.user_security for select using (
-  user_id = auth.uid() or app.is_platform_admin() or (org_id is not null and app.can_any_product('users', 'view', org_id)));
+  user_id = app.uid() or app.is_platform_admin() or (org_id is not null and app.can_any_product('users', 'view', org_id)));
 select app.enable_audit('core', 'user_security');
 
 alter table core.login_events enable row level security;
 create policy sel on core.login_events for select using (
-  user_id = auth.uid() or app.is_platform_admin() or (org_id is not null and app.can_any_product('users', 'view', org_id)));
+  user_id = app.uid() or app.is_platform_admin() or (org_id is not null and app.can_any_product('users', 'view', org_id)));
 -- login_events is itself a log: no audit trigger (reviewed exception in harness T7).
 
 alter table core.support_sessions enable row level security;
