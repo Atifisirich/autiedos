@@ -33,7 +33,11 @@ ap-south-1, free plan) and the owner's Vercel Hobby team (project `autoed-platfo
 
 ## Vercel
 
-* Root directory `apps/web`, framework Next.js, Node 22, pnpm workspace install from the repository root.
+* Root directory `apps/web`, framework Next.js, Node 22, pnpm workspace install from the repository root, functions in `bom1`.
+* Vercel treats this branch as the project's production branch, so a push creates a *production* build. The project's
+  "Ignored Build Step" skips every production build (`VERCEL_ENV=production` -> exit 0); previews are created with the Vercel
+  MCP `create_deployment` (git source = this branch, no target) and are reachable at the branch alias
+  `autoed-platform-staging-git-cla-2fab22-atif60002-9526s-projects.vercel.app`. Production has no environment variables.
 * Environment (Preview only): one connection string per role through the Supavisor **transaction** pooler
   (`postgres://<role>.cixiopoeudhyxbmsgyyl:<password>@aws-1-ap-south-1.pooler.supabase.com:6543/postgres`, `DATABASE_SSL=true`):
   `OS_DATABASE_URL`, `CRM_DATABASE_URL`, `ERP_SERVER_DATABASE_URL`, `ADMIN_DATABASE_URL` / `PLATFORM_ADMIN_DATABASE_URL`,
@@ -52,7 +56,8 @@ ap-south-1, free plan) and the owner's Vercel Hobby team (project `autoed-platfo
 * ERP staff: `/erp/login` with an `@erp.demo.school` login and the demo password (Supabase Auth). The ERP's dev sign-in is off
   whenever `NODE_ENV=production`, which is always the case on Vercel.
 * ERP families: `/erp/signin` (password) with the ERP parent login.
-* CRM: `@demo.test` logins (Greenfield Demo School). The CRM's own e-mail-only sign-in refuses on real Supabase by design.
+* CRM: `@demo.test` logins (Greenfield Demo School) through `/login` (they are staff, so the demo e-mail sign-in accepts them).
+  The CRM's own `/crm/login` e-mail-only sign-in refuses on real Supabase by design.
 * Platform console: `/admin` needs Supabase Auth (its dev login is off in production).
 
 ## Known gaps on hosted Supabase
