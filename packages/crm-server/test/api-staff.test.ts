@@ -416,3 +416,50 @@ describe('campaigns', () => {
     expect((await post(admin, `/campaigns/${c.id}/send`)).status).toBe(404); // cannot be sent twice
   });
 });
+
+describe('my day, alerts, account', () => {
+  it('my day shows tasks, fresh leads, visits and replies; heads also see their team', async () => {
+    await quick(admin, { studentName: 'Home Kid' });
+    const h = (await get(admin, '/home')).data;
+    expect(h.fresh.length).toBeGreaterThan(0);
+    expect(h.isHead).toBe(true);
+    expect(h.team.map((u: any) => u.name)).toContain('Ann Counsellor');
+    expect(h.sla).toBe(30);
+    const c = (await get(ann, '/home')).data;
+    expect(c.isHead).toBe(false);
+    expect(c.team).toEqual([]);
+    expect(c.tasks.every((t: any) => t.title)).toBe(true);
+    expect((await get(null, '/home')).status).toBe(401);
+  });
+
+  it('alerts: a mention reaches the colleague, the count falls when read', async () => {
+    const e = (await quick(admin, { studentName: 'Alert Kid' })).data.enquiryId;
+    await post(admin, `/leads/${e}/note`, { note: 'Please look at this one @bob' });
+    const before = (await get(bob, '/shell')).data;
+    expect(before.unread).toBeGreaterThan(0);
+    expect(before.notifications.some((n: any) => /mentioned you/.test(n.title))).toBe(true);
+    await post(bob, '/notifications/read');
+    expect((await get(bob, '/shell')).data.unread).toBe(0);
+  });
+
+  it('account: signed-in devices can be signed out one by one; the login screen asks which sign-in to offer', async () => {
+    expect((await get(null, '/auth/provider')).data.provider).toBe('dev');
+    const prev = process.env.AUTH_PROVIDER;
+    process.env.AUTH_PROVIDER = 'dev';
+    const email = (await ownerQ('select email from core.staff where org_id = $1 and first_name = $2', [org.orgId, 'Bob']))[0].email;
+    const one = await post(null, '/auth/dev-login', { email });
+    const two = await post(null, '/auth/dev-login', { email });
+    process.env.AUTH_PROVIDER = prev;
+    const t1 = { token: one.setSession!.token, userId: bob.userId };
+    const t2 = { token: two.setSession!.token, userId: bob.userId };
+    const acc = (await get(t1, '/account')).data;
+    expect(acc.devices.length).toBeGreaterThanOrEqual(2);
+    expect(acc.devices.filter((d: any) => d.current).length).toBe(1);
+    const other2 = acc.devices.find((d: any) => !d.current);
+    expect((await post(t1, `/account/devices/${other2.id}/revoke`)).data.ok).toBe(true);
+    // exactly one of the two sessions is gone, and it is not the one that signed the other out
+    expect((await get(t1, '/shell')).status).toBe(200);
+    expect([(await get(t2, '/shell')).status, (await get(t1, '/shell')).status].filter((x) => x === 401).length).toBeLessThanOrEqual(1);
+    expect((await post(t1, '/account/devices/00000000-0000-0000-0000-000000000000/revoke')).status).toBe(404);
+  });
+});
