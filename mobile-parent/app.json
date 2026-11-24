@@ -9,7 +9,7 @@
     "plugins": ["expo-router", "expo-secure-store", ["expo-notifications", { "color": "#1d4ed8" }]],
     "ios": { "bundleIdentifier": "in.autoed.parent", "supportsTablet": false },
     "android": { "package": "in.autoed.parent" },
-    "extra": { "supabaseUrl": "https://example.supabase.co", "supabaseAnonKey": "", "webBase": "https://app.autoed.in", "eas": { "projectId": "2c9722ee-12e5-4253-b901-7e3448ae54f1" } },
+    "extra": { "supabaseUrl": "https://cixiopoeudhyxbmsgyyl.supabase.co", "supabaseAnonKey": "sb_publishable_uGgqhLjNjb4KxYq6T2VHeA_WaVAIz84", "webBase": "https://app.autoed.in", "eas": { "projectId": "2c9722ee-12e5-4253-b901-7e3448ae54f1" } },
     "experiments": { "typedRoutes": false }
   }
 }
