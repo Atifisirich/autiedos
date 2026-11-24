@@ -14,6 +14,7 @@ import type pg from 'pg';
 import { owner } from './helpers';
 import { seedCore } from './fixture-core';
 import { seedCompliance } from './fixture-compliance';
+import { seedErp } from './fixture-erp';
 import { resetPlatformDatabase } from './global-setup';
 
 export type World = Awaited<ReturnType<typeof buildWorld>>;
@@ -127,6 +128,10 @@ async function build(c: pg.PoolClient) {
   // a student login linked to itself only (its sibling in the same household is not linked)
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'self')`, [A.id, u.aStudent, learnerA]);
 
+  // ERP rows (20261118000001..9): one row per erp table for A and B, receipts through erp.post_receipts, ERP roles in A
+  const erpA = await seedErp(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, guardian: u.aGuardian, core: coreA, roles: true });
+  const erpB = await seedErp(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, guardian: u.bGuardian, core: coreB });
+
   // Per-branch switch: CRM off on a2; an explicit "on" row in B.
   await q(`insert into core.org_branch_products (org_id, branch_id, product_key, enabled) values ($1, $2, 'crm', false), ($3, $4, 'os', true)`, [A.id, A.branches.a2!, B.id, B.branches.b1!]);
 
@@ -171,5 +176,5 @@ async function build(c: pg.PoolClient) {
     await q(`insert into billing.usage (org_id, product_key, metric, quantity, period_start, period_end) values ($1, 'os', 'ai_credits', 12.5, date_trunc('month', current_date), current_date)`, [o.id]);
   }
 
-  return { A, B, C, D, u, learnerA, learnerB, coreA, coreB };
+  return { A, B, C, D, u, learnerA, learnerB, coreA, coreB, erpA, erpB };
 }

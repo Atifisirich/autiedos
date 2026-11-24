@@ -8,7 +8,8 @@ import { ALL_SCHEMAS, allTables, owner, ownerQuery, PRODUCT_SCHEMAS, ROLE_SCHEMA
 /** Reviewed global tables (plan rule 4). Adding one here needs an ADR / DECISIONS entry. */
 export const GLOBAL_TABLES = ['billing.plans', 'core.platform_admins', 'core.product_modules', 'core.products'];
 /** Tables that are logs themselves and carry no audit trigger. */
-const NO_AUDIT_TRIGGER = ['core.login_events'];
+/** erp.trips / erp.trip_positions are GPS telemetry (a row or update every few seconds per bus): not audited row by row. */
+const NO_AUDIT_TRIGGER = ['core.login_events', 'erp.trip_positions', 'erp.trips'];
 const POLICY_SCHEMAS = ['core', 'crm', 'os', 'erp', 'audit', 'billing'];
 
 afterAll(async () => {
