@@ -182,6 +182,33 @@ await ins('notifications', { user_id: users.admin.uid, staff_id: users.admin.sta
 await ins('class_posts', { type: 'homework', section_id: sections[0].id, subject_id: subjects.MAT, staff_id: users.teacher.staff, title: 'Practice addition sums', body: 'Page 14, questions 1 to 10.', due_date: iso(addDays(today, 2)), status: 'published', published_at: today.toISOString(), allow_submission: true, max_marks: 10 });
 await ins('class_posts', { type: 'diary', section_id: sections[0].id, staff_id: users.teacher.staff, title: 'Bring crayons tomorrow', status: 'published', published_at: today.toISOString() });
 
+// ---------------------------------------------------------------- fees
+const accIncome = (await q(`select id from erp.accounts where org_id = $1 and code = '4000'`, [org]))[0].id;
+const heads = {};
+for (const [name, type] of [['Tuition fee', 'tuition'], ['Admission fee', 'admission'], ['Transport fee', 'transport'], ['Exam fee', 'exam'], ['Late fine', 'fine']]) heads[type] = await erpIns('fee_heads', { name, type, account_id: accIncome });
+await erpIns('concession_types', { name: 'Sibling discount', kind: 'percent', value: 10, head_type: 'tuition', auto_rule: 'sibling' });
+await erpIns('concession_types', { name: 'Merit scholarship', kind: 'fixed', value: 5000, head_type: 'tuition', auto_rule: 'merit', max_amount: 10000 });
+const D0 = (d) => iso(addDays(today, d));
+for (const [pi, p] of progs.entries()) {
+  const plan = await erpIns('fee_plans', { branch_id: main, academic_year_id: year, name: `Class ${pi + 1} day scholar`, programme_id: p, category: 'day scholar' });
+  const items = [];
+  for (const [inst, due] of [['Term 1', D0(-60)], ['Term 2', D0(-5)], ['Term 3', D0(60)]]) items.push(await erpIns('fee_plan_items', { plan_id: plan, head_id: heads.tuition, instalment: inst, amount: 12000 + pi * 1500, due_date: due }));
+  items.push(await erpIns('fee_plan_items', { plan_id: plan, head_id: heads.exam, instalment: 'Annual', amount: 1500, due_date: D0(-60) }));
+  for (const st of students.filter((x) => x.prog === p)) {
+    const [{ branch_id }] = [{ branch_id: main }];
+    for (const it of items) {
+      const r = (await q(`select amount, due_date, head_id, instalment from erp.fee_plan_items where id = $1`, [it]))[0];
+      await erpIns('fee_demands', { student_id: st.id, branch_id, academic_year_id: year, head_id: r.head_id, plan_item_id: it, label: `Class ${pi + 1} day scholar · ${r.instalment}`, amount: r.amount, due_date: r.due_date });
+    }
+  }
+}
+// two families paid Term 1 through the posting function, so receipts, vouchers and the day sheet have data
+for (const st of students.slice(0, 6)) {
+  const dem = await q(`select id, amount from erp.fee_demands where org_id = $1 and student_id = $2 order by due_date limit 2`, [org, st.id]);
+  const payload = { allocations: dem.map((d) => ({ demand_id: d.id, amount: Number(d.amount) })), payments: [{ mode: st.n % 2 ? 'cash' : 'upi', amount: dem.reduce((t, d) => t + Number(d.amount), 0), reference: st.n % 2 ? null : `UPI${100000 + st.n}` }], date: T, idempotency_key: `seed-${st.id}` };
+  await q(`select erp.post_receipts($1, $2::jsonb, $3, 'Prakash Iyer')`, [org, JSON.stringify(payload), users.accounts.uid]);
+}
+
 await c.query('commit');
 console.log(JSON.stringify({ org, branches: { main, east }, year, sections: sections.map((s) => s.name), students: students.length, marks: marked, users: Object.keys(users).length }));
 await c.end();
