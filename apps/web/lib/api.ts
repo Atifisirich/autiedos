@@ -55,6 +55,11 @@ export async function api<T = any>(method: string, path: string, body?: unknown)
   }
   const ct = res.headers.get('content-type') ?? '';
   const data = ct.includes('json') ? await res.json() : null;
+  // The shared sign-in asks for a new password first (core.user_security.must_change_password).
+  if (res.status === 403 && (data as { error?: string })?.error === 'password_change_required' && typeof window !== 'undefined') {
+    window.location.href = '/account/password';
+    throw new ApiError(403, 'password_change_required');
+  }
   if (!res.ok) throw new ApiError(res.status, (data as { error?: string })?.error ?? 'error', (data as { details?: unknown })?.details);
   return data as T;
 }

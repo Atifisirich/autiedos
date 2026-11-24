@@ -1,0 +1,73 @@
+# key | English | Hindi | Telugu
+# Web shell (decision 35: one web app, CRM / ERP / OS) and unified staff sign-in (decision 36: phone OTP, e-mail
+# OTP, password). Hindi and Telugu are a first translation that NEEDS REVIEW BY A NATIVE SPEAKER.
+shell.appName | AutoEd | AutoEd | AutoEd
+shell.yourSchool | Your school | आपका विद्यालय | మీ పాఠశాల
+shell.signedInAs | Signed in as {name} | {name} के रूप में साइन इन | {name}గా సైన్ ఇన్ అయ్యారు
+shell.open | Open {product} | {product} खोलें | {product} తెరవండి
+shell.landing.title | Choose a product | उत्पाद चुनें | ఉత్పత్తిని ఎంచుకోండి
+shell.landing.subtitle | These are the AutoEd products your school uses and you have been given. | ये AutoEd उत्पाद आपके विद्यालय में हैं और आपको दिए गए हैं। | ఇవి మీ పాఠశాల వాడే, మీకు ఇచ్చిన AutoEd ఉత్పత్తులు.
+shell.landing.none | You have not been given any AutoEd product yet. Please contact your school administrator. | आपको अभी कोई AutoEd उत्पाद नहीं दिया गया है। कृपया अपने विद्यालय प्रशासक से संपर्क करें। | మీకు ఇంకా ఏ AutoEd ఉత్పత్తీ ఇవ్వలేదు. దయచేసి మీ పాఠశాల నిర్వాహకుడిని సంప్రదించండి.
+shell.landing.console | Open the platform console | प्लेटफ़ॉर्म कंसोल खोलें | ప్లాట్‌ఫామ్ కన్సోల్ తెరవండి
+shell.product.os.name | AutoEd OS | AutoEd OS | AutoEd OS
+shell.product.os.short | OS | OS | OS
+shell.product.os.blurb | Daily work for staff: tasks, attendance, leave, timetable, lesson plans. | स्टाफ़ का रोज़ का काम: कार्य, उपस्थिति, छुट्टी, समय-सारणी, पाठ योजनाएँ। | సిబ్బంది రోజువారీ పని: పనులు, హాజరు, సెలవు, టైమ్‌టేబుల్, పాఠ ప్రణాళికలు.
+shell.product.crm.name | AutoEd CRM | AutoEd CRM | AutoEd CRM
+shell.product.crm.short | CRM | CRM | CRM
+shell.product.crm.blurb | Admissions: enquiries, follow-ups, campaigns and applications. | प्रवेश: पूछताछ, फ़ॉलो-अप, अभियान और आवेदन। | ప్రవేశాలు: విచారణలు, ఫాలో-అప్‌లు, ప్రచారాలు, దరఖాస్తులు.
+shell.product.erp.name | AutoEd ERP | AutoEd ERP | AutoEd ERP
+shell.product.erp.short | ERP | ERP | ERP
+shell.product.erp.blurb | School records: students, fees, exams, transport and the parent portal. | विद्यालय रिकॉर्ड: विद्यार्थी, शुल्क, परीक्षाएँ, परिवहन और अभिभावक पोर्टल। | పాఠశాల రికార్డులు: విద్యార్థులు, ఫీజులు, పరీక్షలు, రవాణా, తల్లిదండ్రుల పోర్టల్.
+shell.switcher.label | Switch product | उत्पाद बदलें | ఉత్పత్తి మార్చండి
+shell.switcher.choose | Products | उत्पाद | ఉత్పత్తులు
+shell.switcher.allProducts | All products | सभी उत्पाद | అన్ని ఉత్పత్తులు
+shell.notInPlan.title | {product} is not part of your plan | {product} आपकी योजना में शामिल नहीं है | {product} మీ ప్లాన్‌లో భాగం కాదు
+shell.notInPlan.body | {org} does not have {product}, or you have not been given access to it. Please contact your school administrator. | {org} के पास {product} नहीं है, या आपको इसकी पहुँच नहीं दी गई है। कृपया अपने विद्यालय प्रशासक से संपर्क करें। | {org} వద్ద {product} లేదు, లేదా మీకు దానికి ప్రవేశం ఇవ్వలేదు. దయచేసి మీ పాఠశాల నిర్వాహకుడిని సంప్రదించండి.
+shell.login.subtitle | Staff sign-in for CRM, ERP and OS | CRM, ERP और OS के लिए स्टाफ़ साइन-इन | CRM, ERP, OS కోసం సిబ్బంది సైన్-ఇన్
+shell.login.resetSubtitle | Forgot your password? Sign in with a code, then choose a new password. | पासवर्ड भूल गए? कोड से साइन इन करें, फिर नया पासवर्ड चुनें। | పాస్‌వర్డ్ మర్చిపోయారా? కోడ్‌తో సైన్ ఇన్ చేసి, కొత్త పాస్‌వర్డ్ ఎంచుకోండి.
+shell.login.method | Sign-in method | साइन-इन का तरीका | సైన్-ఇన్ పద్ధతి
+shell.login.demo | Demo | डेमो | డెమో
+shell.login.withCode | Code | कोड | కోడ్
+shell.login.withPassword | Password | पासवर्ड | పాస్‌వర్డ్
+shell.login.password | Password | पासवर्ड | పాస్‌వర్డ్
+shell.login.codeSentPhone | If this number is registered with your school, a code has been sent by SMS. | यदि यह नंबर आपके विद्यालय में दर्ज है, तो SMS से कोड भेजा गया है। | ఈ నంబర్ మీ పాఠశాలలో నమోదై ఉంటే, SMS ద్వారా కోడ్ పంపబడింది.
+shell.login.codeSentEmail | If this e-mail is registered with your school, a code has been sent to it. | यदि यह ईमेल आपके विद्यालय में दर्ज है, तो उस पर कोड भेजा गया है। | ఈ ఇమెయిల్ మీ పాఠశాలలో నమోదై ఉంటే, దానికి కోడ్ పంపబడింది.
+shell.login.verifyReset | Verify and set a new password | सत्यापित करें और नया पासवर्ड रखें | ధృవీకరించి కొత్త పాస్‌వర్డ్ పెట్టండి
+shell.login.forgot | Forgot password? | पासवर्ड भूल गए? | పాస్‌వర్డ్ మర్చిపోయారా?
+shell.login.backToSignIn | Back to sign-in | साइन-इन पर वापस | సైన్-ఇన్‌కు తిరిగి
+shell.login.changeIdentity | Use a different number or e-mail | दूसरा नंबर या ईमेल इस्तेमाल करें | వేరే నంబర్ లేదా ఇమెయిల్ వాడండి
+shell.password.changeLink | Change password | पासवर्ड बदलें | పాస్‌వర్డ్ మార్చండి
+shell.password.setLink | Set a password | पासवर्ड रखें | పాస్‌వర్డ్ పెట్టండి
+shell.password.changeTitle | Change your password | अपना पासवर्ड बदलें | మీ పాస్‌వర్డ్ మార్చండి
+shell.password.setTitle | Set a password | पासवर्ड रखें | పాస్‌వర్డ్ పెట్టండి
+shell.password.mustChange | Your school asks you to choose a new password before you continue. | आगे बढ़ने से पहले आपका विद्यालय नया पासवर्ड चुनने को कहता है। | కొనసాగే ముందు కొత్త పాస్‌వర్డ్ ఎంచుకోమని మీ పాఠశాల కోరుతోంది.
+shell.password.rules | At least {min} characters. A short sentence is easy to remember. Not your e-mail or phone number. | कम से कम {min} अक्षर। छोटा वाक्य याद रखना आसान है। अपना ईमेल या फ़ोन नंबर नहीं। | కనీసం {min} అక్షరాలు. చిన్న వాక్యం గుర్తుంచుకోవడం సులభం. మీ ఇమెయిల్ లేదా ఫోన్ నంబర్ కాదు.
+shell.password.current | Current password | वर्तमान पासवर्ड | ప్రస్తుత పాస్‌వర్డ్
+shell.password.new | New password | नया पासवर्ड | కొత్త పాస్‌వర్డ్
+shell.password.confirm | Type the new password again | नया पासवर्ड फिर से लिखें | కొత్త పాస్‌వర్డ్ మళ్లీ టైప్ చేయండి
+shell.password.ok | Looks good. | ठीक है। | బాగుంది.
+shell.password.mismatch | The two new passwords are not the same. | दोनों नए पासवर्ड एक जैसे नहीं हैं। | రెండు కొత్త పాస్‌వర్డ్‌లు ఒకటి కావు.
+shell.password.saved | Password saved. | पासवर्ड सहेज लिया गया। | పాస్‌వర్డ్ సేవ్ అయింది.
+shell.password.save | Save password | पासवर्ड सहेजें | పాస్‌వర్డ్ సేవ్ చేయండి
+shell.password.problem.too_short | Use at least {min} characters. | कम से कम {min} अक्षर रखें। | కనీసం {min} అక్షరాలు వాడండి.
+shell.password.problem.too_long | That password is too long. | यह पासवर्ड बहुत लंबा है। | ఈ పాస్‌వర్డ్ చాలా పొడవుగా ఉంది.
+shell.password.problem.same_as_identifier | Do not use your e-mail or phone number in the password. | पासवर्ड में अपना ईमेल या फ़ोन नंबर न रखें। | పాస్‌వర్డ్‌లో మీ ఇమెయిల్ లేదా ఫోన్ నంబర్ వాడకండి.
+shell.password.problem.too_simple | That password is too easy to guess. | यह पासवर्ड आसानी से अनुमान लगाया जा सकता है। | ఈ పాస్‌వర్డ్‌ను సులభంగా ఊహించవచ్చు.
+shell.password.problem.common | That is a well-known password. Choose another one. | यह जाना-पहचाना पासवर्ड है। कोई दूसरा चुनें। | ఇది అందరికీ తెలిసిన పాస్‌వర్డ్. వేరేది ఎంచుకోండి.
+shell.password.problem.breached | That password has appeared in a data breach. Choose another one. | यह पासवर्ड किसी डेटा लीक में आ चुका है। कोई दूसरा चुनें। | ఈ పాస్‌వర్డ్ డేటా లీక్‌లో బయటపడింది. వేరేది ఎంచుకోండి.
+shell.error.generic | Something went wrong. Please try again. | कुछ गलत हो गया। कृपया फिर से कोशिश करें। | ఏదో పొరపాటు జరిగింది. దయచేసి మళ్లీ ప్రయత్నించండి.
+shell.error.invalid_credentials | That did not work. Check the details and try again. | यह काम नहीं किया। जानकारी जाँचकर फिर कोशिश करें। | ఇది పని చేయలేదు. వివరాలు చూసి మళ్లీ ప్రయత్నించండి.
+shell.error.invalid_code | That code did not work. Check it, or ask for a new one. | यह कोड काम नहीं किया। जाँचें, या नया कोड मँगाएँ। | ఈ కోడ్ పని చేయలేదు. తనిఖీ చేయండి లేదా కొత్త కోడ్ అడగండి.
+shell.error.invalid_identifier | Enter a phone number or an e-mail address. | फ़ोन नंबर या ईमेल पता लिखें। | ఫోన్ నంబర్ లేదా ఇమెయిల్ చిరునామా రాయండి.
+shell.error.account_locked | Too many wrong attempts. The account is locked for 15 minutes, or until your school unlocks it. | बहुत अधिक गलत प्रयास। खाता 15 मिनट के लिए, या विद्यालय द्वारा खोले जाने तक, बंद है। | చాలా తప్పు ప్రయత్నాలు. ఖాతా 15 నిమిషాలు, లేదా పాఠశాల తెరిచే వరకు, లాక్ అయింది.
+shell.error.rate_limited | Too many attempts. Please wait a few minutes and try again. | बहुत अधिक प्रयास। कुछ मिनट रुककर फिर कोशिश करें। | చాలా ప్రయత్నాలు. కొన్ని నిమిషాలు ఆగి మళ్లీ ప్రయత్నించండి.
+shell.error.no_product | Your school has not given you any AutoEd product. Please contact your school administrator. | आपके विद्यालय ने आपको कोई AutoEd उत्पाद नहीं दिया है। कृपया अपने विद्यालय प्रशासक से संपर्क करें। | మీ పాఠశాల మీకు ఏ AutoEd ఉత్పత్తీ ఇవ్వలేదు. దయచేసి మీ పాఠశాల నిర్వాహకుడిని సంప్రదించండి.
+shell.error.account_disabled | This account has been switched off by your school. | आपके विद्यालय ने यह खाता बंद कर दिया है। | మీ పాఠశాల ఈ ఖాతాను నిలిపివేసింది.
+shell.error.unknown_user | That did not work. Check the details and try again. | यह काम नहीं किया। जानकारी जाँचकर फिर कोशिश करें। | ఇది పని చేయలేదు. వివరాలు చూసి మళ్లీ ప్రయత్నించండి.
+shell.error.unauthorized | Please sign in again. | कृपया फिर से साइन इन करें। | దయచేసి మళ్లీ సైన్ ఇన్ చేయండి.
+shell.error.current_password_required | Enter your current password. | अपना वर्तमान पासवर्ड लिखें। | మీ ప్రస్తుత పాస్‌వర్డ్ రాయండి.
+shell.error.current_password_wrong | The current password is not right. | वर्तमान पासवर्ड सही नहीं है। | ప్రస్తుత పాస్‌వర్డ్ సరైనది కాదు.
+shell.error.weak_password | Choose a stronger password. | और मज़बूत पासवर्ड चुनें। | మరింత బలమైన పాస్‌వర్డ్ ఎంచుకోండి.
+shell.error.validation_failed | Check the details and try again. | जानकारी जाँचकर फिर कोशिश करें। | వివరాలు చూసి మళ్లీ ప్రయత్నించండి.
+shell.error.password_change_required | Please choose a new password first. | कृपया पहले नया पासवर्ड चुनें। | దయచేసి ముందుగా కొత్త పాస్‌వర్డ్ ఎంచుకోండి.
+shell.error.auth_provider_error | The sign-in service is not answering. Please try again shortly. | साइन-इन सेवा जवाब नहीं दे रही। थोड़ी देर बाद कोशिश करें। | సైన్-ఇన్ సేవ స్పందించడం లేదు. కొద్దిసేపటి తర్వాత ప్రయత్నించండి.

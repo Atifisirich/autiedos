@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
-export const metadata: Metadata = { title: 'AutoEd OS', description: 'The daily operating system for school staff' };
+// One web app for CRM, ERP and OS (decision 35): the product landing is app/(shell), each product mounts the
+// switcher from components/shell (docs/shell.md).
+export const metadata: Metadata = { title: 'AutoEd', description: 'CRM, ERP and OS for schools, coaching centres and colleges' };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#1d4ed8' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
