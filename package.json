@@ -14,7 +14,9 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "node scripts/build-i18n.mjs && node scripts/check-i18n.mjs",
     "dev": "pnpm --filter @autoed/web dev",
-    "i18n:build": "node scripts/build-i18n.mjs"
+    "i18n:build": "node scripts/build-i18n.mjs",
+    "db:reset:platform": "node scripts/db.mjs reset --platform-only",
+    "test:platform": "pnpm --filter @autoed/server test:platform"
   },
   "devDependencies": {
     "pg": "^8.13.1",
