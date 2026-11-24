@@ -10,7 +10,8 @@
     "./rules": "./src/rules/index.ts",
     "./i18n": "./src/i18n/index.ts",
     "./presets": "./src/presets/index.ts",
-    "./billing": "./src/billing/index.ts"
+    "./billing": "./src/billing/index.ts",
+    "./erp": "./src/erp/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
