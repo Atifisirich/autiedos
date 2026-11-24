@@ -7,3 +7,4 @@ export * from './schemas';
 export * from './i18n';
 export * from './presets';
 export * from './billing';
+export * from './auth';

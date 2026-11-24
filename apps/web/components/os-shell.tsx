@@ -7,6 +7,7 @@ import { useApp } from '@/lib/app';
 import { getViewAs, post, setViewAs, useApi } from '@/lib/api';
 import { cx, Loading } from './ui';
 import { HelpBot } from './help-bot';
+import { ProductSwitcher } from './shell';
 
 const GROUPS = ['day', 'academic', 'admin', 'insight', 'settings'] as const;
 const ICON: Record<string, string> = {
@@ -74,6 +75,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <button className="min-h-[40px] min-w-[40px] rounded md:hidden" onClick={() => setOpen(true)} aria-label={t('nav.menu')}>
             ☰
           </button>
+          <ProductSwitcher current="os" lang={lang} />
           {me.branches.length > 1 && (
             <select aria-label={t('nav.branch')} value={me.branch_id} onChange={(e) => setBranch(e.target.value)} className="min-h-[36px] rounded-md border border-slate-300 px-2 text-sm">
               {me.branches.map((b) => (
