@@ -42,9 +42,9 @@ const asOwner = async (sql: string, params: unknown[] = []) => ownerQuery(sql, p
 // ---------------------------------------------------------------------------------------------- catalogue
 describe('erp catalogue', () => {
   it('has the 126 generated tables of MAP-TABLES (+ the harness probe) and a private OTP table', async () => {
-    expect(erpTables.length).toBe(126);
+    expect(erpTables.length).toBe(127); // 126 generated + erp.substitutions
     const all = await asOwner(`select count(*)::int as n from pg_tables where schemaname = 'erp'`);
-    expect(all[0]!.n).toBe(127);
+    expect(all[0]!.n).toBe(128); // +1: erp.substitutions (20261118100002_erp_ui_substitutions.sql)
     expect((await asOwner(`select count(*)::int as n from pg_tables where schemaname = 'private' and tablename = 'gate_pass_otps'`))[0]!.n).toBe(1);
   });
 
