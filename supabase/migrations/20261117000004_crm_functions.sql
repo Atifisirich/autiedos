@@ -283,6 +283,28 @@ begin
   end if;
 end $$;
 
+-- ---------------------------------------------------------------- CRM users (the old `users` table, as a view)
+-- One row per person with a core.staff row: name, branches (home + extra), manager, CRM role and its permission
+-- matrix, capacity and leave flag. security_invoker: a counsellor sees every colleague's name (core.staff is
+-- readable by staff) but role and capacity columns only where core.user_product_access / crm.counsellor_settings
+-- let them (they are NULL otherwise); the automation user and the CRM server (users.view) see all.
+create view crm.staff_v with (security_invoker = true) as
+select s.org_id, s.user_id as id, s.full_name as name, s.email, s.phone,
+       (s.status = 'active' and s.deleted_at is null) as active,
+       a.role_key, r.name as role_name, r.permissions,
+       coalesce((select jsonb_agg(distinct q.b) from (
+                   select s.branch_id as b where s.branch_id is not null
+                   union select x.branch_id from core.user_branch_access x where x.org_id = s.org_id and x.user_id = s.user_id) q), '[]'::jsonb) as branch_ids,
+       m.user_id as reports_to,
+       coalesce(cs.daily_capacity, 25) as daily_capacity,
+       coalesce(cs.on_leave, false) as on_leave
+  from core.staff s
+  left join core.user_product_access a on a.org_id = s.org_id and a.user_id = s.user_id and a.product_key = 'crm' and a.revoked_at is null
+  left join crm.roles r on r.org_id = a.org_id and r.key = a.role_key
+  left join core.staff m on m.org_id = s.org_id and m.id = s.reports_to and m.deleted_at is null
+  left join crm.counsellor_settings cs on cs.org_id = s.org_id and cs.user_id = s.user_id
+ where s.user_id is not null and s.deleted_at is null;
+
 -- ---------------------------------------------------------------- messaging wallet
 -- The balance and the ledger change only through crm.wallet_post; a request role writing either table
 -- directly is refused by these guards (inside the security definer function current_user is the owner).

@@ -40,4 +40,4 @@ grant execute on function private.enqueue_tick_jobs(text, text) to job_runner, s
 -- Migration-only helper and trigger functions: no request role.
 revoke execute on function crm.apply_rls_scoped(text, text, text, text) from authenticated, crm_server, os_server, erp_server, platform_admin_server, job_runner;
 
-grant select on crm.enquiries_full to authenticated, crm_server, service_role;
+grant select on crm.enquiries_full, crm.staff_v to authenticated, crm_server, service_role;

@@ -296,13 +296,14 @@ create trigger trg_touch before update on crm.payments for each row execute func
 -- product check and the branch / per-branch product switch of app.can().
 select app.apply_rls('crm', 'enquiries', 'product', 'crm', 'leads');
 
--- household visible: some visible enquiry belongs to it (RLS of crm.enquiries applies inside the subquery).
+-- household visible: some visible enquiry belongs to it (RLS of crm.enquiries applies inside the subquery), or the
+-- caller created the row (a family is inserted before its first enquiry, and INSERT ... RETURNING needs the row visible).
 select crm.apply_rls_scoped('households', 'leads',
-  'exists (select 1 from crm.enquiries e where e.org_id = crm.households.org_id and e.household_id = crm.households.id)');
+  'crm.households.created_by = app.uid() or exists (select 1 from crm.enquiries e where e.org_id = crm.households.org_id and e.household_id = crm.households.id)');
 select crm.apply_rls_scoped('guardians', 'leads',
-  'exists (select 1 from crm.enquiries e where e.org_id = crm.guardians.org_id and e.household_id = crm.guardians.household_id)');
+  'crm.guardians.created_by = app.uid() or exists (select 1 from crm.enquiries e where e.org_id = crm.guardians.org_id and e.household_id = crm.guardians.household_id)');
 select crm.apply_rls_scoped('prospects', 'leads',
-  'exists (select 1 from crm.enquiries e where e.org_id = crm.prospects.org_id and e.household_id = crm.prospects.household_id)');
+  'crm.prospects.created_by = app.uid() or exists (select 1 from crm.enquiries e where e.org_id = crm.prospects.org_id and e.household_id = crm.prospects.household_id)');
 
 -- rows hanging off an enquiry follow the enquiry
 select crm.apply_rls_scoped('source_touches', 'leads',
