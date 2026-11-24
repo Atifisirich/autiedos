@@ -66,3 +66,27 @@ Each entry: what was decided, why, and how to change it. Anything that is school
     missing keys, mismatched placeholders and literal text in JSX.
 25. **Dates and time** are stored in UTC and shown in the branch time zone (default Asia/Kolkata).
 26. **Seed data** is dated "today" at run time (`SEED_TODAY` overrides) so the demo always has current tasks.
+
+## Unified platform (CRM + OS + ERP) — owner answers, 2026-11-24
+
+Source: owner replies to PLAN-unified-platform.md §14. "Open" means the owner has not decided yet.
+
+27. **CRM data in `autoed-crm-mumbai` is demo only.** "Greenfield Schools" is a demo name (Q2). No client data has to be migrated yet.
+28. **Clients are schools, coaching centres and colleges** (Q5). `core` must not assume school-only terms: use generic "learner / class / batch / programme" naming where the OS uses school terms, and keep school fields optional.
+29. **ERP code exists in another repository** the owner will connect (Q4). ERP scope is taken from that repo, not designed from scratch. Phase 1 (discovery) stays open until it has been read.
+30. **Parent and student portal is part of the ERP product** (Q17). OS stays staff-only. `core` gets guardian-to-student links and parent/student memberships now; portal screens are built with the ERP.
+31. **CRM leads are the school's data** (Q22). AutoEd's own marketing data may come later and must live in a separate AutoEd-owned org, not mixed into a client's rows. AutoEd is a registered company under Arfan Group Private Limited. No lawyer yet: DPA, privacy policy and terms stay as drafts marked "needs legal review".
+32. **Billing: Razorpay with GST, not manual** (Q24). First paying client, date and product: unknown (Q25). `billing` schema is designed for Razorpay subscriptions and GST invoices, built late.
+33. **Free tiers only; no paid plan or priced resource without the owner's written yes** (Q1/Q18). Point-in-time recovery later (Q18).
+34. **Clients can have different products per branch** (Q7).
+35. **One web app with a product switcher (CRM / ERP / OS), not three apps** (Q8, overrides plan §4.6). Isolation is still enforced in the database (three DB roles, per-product RLS); one deployment may hold three connection pools, one per role.
+36. **Logins: phone OTP, email OTP and password** (Q11). Password is added alongside OTP. `core.user_security` (password set/changed, must-change flag, failed attempts, lockout, 2FA requirement) and `core.login_events` store what Supabase Auth does not.
+37. **Logins can belong to several clients** (Q12) — confirm wording below; plan §5.3 `core.memberships` stays.
+38. **CRM leads become `core.students` only when admission is confirmed** (Q13). The CRM's current "student row per enquiry" must be mapped to a CRM-owned child record.
+39. **Staff source of truth is OS, ERP HR/payroll adds to it** (Q14).
+40. **AI: Gemini only. Anthropic is removed** (Q15). One credit wallet per client shared across products. Gemini must be on the paid API tier in production (free-tier prompts can train Google models); development uses the mock adapter.
+41. **WhatsApp: client brings its own provider, or uses one run by AutoEd** (Q16). Per-org provider config with a `provider_owner` of `client` or `autoed`.
+42. **When a client stops paying for a product: 30 days read-only, then export and delete** (Q19). **On leaving: CSV/Excel export, deleted 30 days later** (Q20).
+43. **Domain: `autoed.in`** is owned (Q10).
+
+Open: Q3 (which "autoedcrm"), Q6 (single modules), Q9 (mobile app structure), Q12 (wording), Q23 (who else gets admin access).
