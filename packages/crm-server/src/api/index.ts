@@ -60,7 +60,7 @@ on('POST', '/webhooks/meta/:key', async ({ req, p }) => {
 
 // Hosted enquiry form (slug is the key). Spam guard: bots fill the hidden field, no person submits within two seconds.
 on('POST', '/forms/:slug/submit', async ({ p, b }) => {
-  if (str(b.website) || Date.now() - Number(str(b.loaded)) < 2000) return { message: 'Thank you.' };
+  if (str(b.website) || Date.now() - Number(str(b.loaded)) < 2000) return { ok: true, message: 'Thank you.' };
   const form = await resolvePublic('form', p.slug!);
   if (!form) return { status: 422, json: { ok: false, error: 'This form is no longer accepting enquiries. Please contact the school.' } };
   if (!b.consent) return { status: 422, json: { ok: false, error: 'Please tick the box to let the school contact you.' } };

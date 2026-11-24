@@ -24,6 +24,9 @@ function allow(key: string, perMinute: number): boolean {
   return true;
 }
 
+/** Which sign-in the login screen offers: the local email-only one, or the platform's one-time code. */
+on('GET', '/auth/provider', async () => ({ provider: process.env.AUTH_PROVIDER === 'dev' ? 'dev' : 'supabase' }));
+
 on('POST', '/auth/dev-login', async ({ req, b }) => {
   if (process.env.AUTH_PROVIDER !== 'dev') throw new UnauthorizedError('dev_login_disabled');
   if (!allow(`dev-login:${req.ip ?? 'local'}`, 30)) return { status: 429, json: { error: 'rate_limited' } };

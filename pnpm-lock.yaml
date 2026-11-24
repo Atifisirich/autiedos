@@ -26,6 +26,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@autoed/crm-server':
+        specifier: workspace:*
+        version: link:../../packages/crm-server
       '@autoed/server':
         specifier: workspace:*
         version: link:../../packages/server

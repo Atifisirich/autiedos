@@ -671,7 +671,7 @@ on('POST', '/admin/api-keys', ({ req, b }) =>
     const src = str(b.source_id);
     await db.insert('core.api_keys', { product_key: 'crm', name: str(b.name) || 'API key', prefix: key.slice(0, 10), key_hash: hashKey(key), scopes: src ? [`source:${src}`] : [] });
     await log(db, actor, 'api_key', `Created API key "${str(b.name)}"`);
-    return { ok: true, key, message: 'Copy this key now; it is not shown again.' };
+    return { ok: true, key, message: `Copy this key now; it is not shown again: ${key}` };
   }),
 );
 on('POST', '/admin/api-keys/:id/revoke', ({ req, p }) =>
@@ -689,7 +689,7 @@ on('POST', '/admin/webhooks', ({ req, b }) =>
     const h = await db.insert('core.webhooks', { product_key: 'crm', url, events: [], secret_ref: 'crm.org_secrets' });
     await setSecret(db, `webhook_secret:${h.id}`, secret);
     await log(db, actor, 'integration', 'Added a webhook');
-    return { ok: true, secret, message: 'Webhook added. The signing secret is shown once.' };
+    return { ok: true, secret, message: `Webhook added. Signing secret (shown once): ${secret}` };
   }),
 );
 on('POST', '/admin/webhooks/:id/delete', ({ req, p }) =>
