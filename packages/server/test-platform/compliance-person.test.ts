@@ -49,7 +49,7 @@ describe('per-person export', () => {
     expect(everything).not.toContain('Bela Lead');
     expect(everything).not.toContain(w.B.id);
     // the consent row of org A is found by contact, B's opt-out with the same number is not
-    const consents = f.data.tables.find((t) => t.table === 'consents')!;
+    const consents = f.data.tables.find((t) => t.table === 'consent_events')!;
     expect(consents.rows).toHaveLength(1);
     expect(consents.rows[0]!.status).toBe('opted_in');
   });
@@ -86,14 +86,14 @@ describe('per-person export', () => {
 
 describe('per-person erasure', () => {
   it('step 1 is a dry run: lists the plan, changes nothing, and gives a token', async () => {
-    const before = await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacher]);
+    const before = await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacherUser]);
     const plan = await planPersonErasure(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'staff', personId: w.p.teacher }, { reason: 'Written instruction from school, ticket 77', identityVerified: true });
     expect(plan.eligible).toBe(true);
     expect(plan.confirmationToken).toMatch(/^[0-9a-f]{64}$/);
     const modes = Object.fromEntries(plan.plan!.tables.map((t) => [`${t.schema}.${t.table}:${t.key_column}`, `${t.mode}:${t.rows}`]));
     expect(modes['core.org_users:user_id']).toBe('delete:1');
     expect(modes['core.login_events:user_id']).toBe('anonymise:2');
-    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacher]))[0]).toEqual(before[0]);
+    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacherUser]))[0]).toEqual(before[0]);
     const logs = await w.q(`select status, rows_before::int as rows_before from audit.purge_log where request_id = $1 and table_name = 'org_users'`, [plan.requestId]);
     expect(logs).toEqual([{ status: 'dry_run', rows_before: 1 }]);
   });
@@ -101,7 +101,7 @@ describe('per-person erasure', () => {
   it('needs the token from step 1; a wrong or reused token does nothing', async () => {
     const plan = await planPersonErasure(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'staff', personId: w.p.teacher }, { reason: 'Written instruction from school, ticket 78', identityVerified: true });
     await rejects(executePersonErasure(w.db, w.u.aAdmin!, plan.requestId, 'f'.repeat(64)), 'forbidden');
-    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacher]))[0]!.n).toBe(1);
+    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacherUser]))[0]!.n).toBe(1);
     // expired token
     await w.q(`update core.compliance_requests set token_expires_at = now() - interval '1 minute' where id = $1`, [plan.requestId]);
     await rejects(executePersonErasure(w.db, w.u.aAdmin!, plan.requestId, plan.confirmationToken!), 'forbidden');
@@ -115,7 +115,7 @@ describe('per-person erasure', () => {
     const plan = await planPersonErasure(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'staff', personId: w.p.teacher }, { reason: 'Request received by email, not yet verified' });
     const e = await rejects(executePersonErasure(w.db, w.u.aAdmin!, plan.requestId, plan.confirmationToken!), 'refused');
     expect(e.blockers.map((b) => b.code)).toEqual(['identity_not_verified']);
-    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacher]))[0]!.n).toBe(1);
+    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacherUser]))[0]!.n).toBe(1);
   });
 
   it('a legal hold on the person stops it; a table hold keeps just that table; releasing lets it through', async () => {
@@ -149,7 +149,7 @@ describe('per-person erasure', () => {
 
     // the person is gone from core
     for (const t of ['org_users', 'user_branch_access', 'user_product_access']) {
-      expect((await w.q(`select count(*)::int as n from core.${t} where user_id = $1`, [w.p.teacher]))[0]!.n, t).toBe(0);
+      expect((await w.q(`select count(*)::int as n from core.${t} where user_id = $1`, [w.p.teacherUser]))[0]!.n, t).toBe(0);
     }
     // security log rows stay for statistics but no longer point at the person, the IP or the device
     const events = await w.q(`select user_id, ip, user_agent from core.login_events where org_id = $1 and method = 'password' order by created_at`, [w.A.id]);
@@ -174,15 +174,28 @@ describe('per-person erasure', () => {
     expect(req.params).toEqual({});
     expect(req.confirmed_by).toBe(w.u.aAdmin);
     // the auth user (email) is outside SQL reach: reported as an external action for the server
-    expect(done.externalActions).toEqual([expect.objectContaining({ kind: 'auth_user_delete', user_id: w.p.teacher })]);
-    // and a second export finds nothing
+    expect(done.externalActions).toEqual([expect.objectContaining({ kind: 'auth_user_delete', user_ids: [w.p.teacherUser] })]);
+    // the master data row stays as a pseudonymous record; the person is gone from it and from everything that pointed at them
+    const staff = (await w.q(`select first_name, last_name, full_name, email, phone, dob, user_id, employee_code from core.staff where id = $1`, [w.p.teacher]))[0]!;
+    expect(staff).toMatchObject({ first_name: 'Erased person', email: null, phone: null, dob: null, user_id: null, employee_code: null });
+    expect(await w.q(`select 1 from core.notifications where staff_id = $1`, [w.p.teacher])).toHaveLength(0);
+    expect(await w.q(`select 1 from core.device_tokens where staff_id = $1`, [w.p.teacher])).toHaveLength(0);
+    const ticket = (await w.q(`select raised_by_name, description, raised_by_user_id from core.tickets where org_id = $1`, [w.A.id]))[0]!;
+    expect(ticket).toEqual({ raised_by_name: null, description: null, raised_by_user_id: null }); // the ticket stays, the person and text go
+    expect((await w.q(`select check_in_lat, note from core.staff_attendance where staff_id = $1`, [w.p.teacher]))[0]).toEqual({ check_in_lat: null, note: null });
+    const msgs = await w.q<{ to_address: string; body: string | null }>(`select to_address, body from core.outbox where org_id = $1 order by to_address`, [w.A.id]);
+    expect(msgs.find((m) => m.to_address === '+919876500020')).toBeUndefined(); // the staff member's number is gone from messages
+    expect(msgs.find((m) => m.to_address === '+919876500009')!.body).toContain('Fee reminder'); // the guardian's message is not touched
+    // a second export holds no personal data any more
     const again = await exportPerson(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'staff', personId: w.p.teacher });
-    // only the request register and (released) holds remain, both retained on purpose
-    expect(again.data.tables.filter((t) => t.rows.length > 0).map((t) => t.table).sort()).toEqual(['compliance_requests', 'legal_holds']);
+    const dump = JSON.stringify(again.data);
+    for (const gone of ['Tara', 'tara@school-a.test', '+919876500020', 'teacher@a.test', 'Projector']) expect(dump.includes(gone), gone).toBe(false);
+    // the person is no longer found by their old login either
+    expect(again.data.tables.some((t) => t.table === 'org_users' && t.rows.length > 0)).toBe(false);
     // a request cannot be executed twice
     await rejects(executePersonErasure(w.db, w.u.aAdmin!, plan.requestId, plan.confirmationToken!), 'invalid');
     // org B's teacher is untouched
-    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacherB]))[0]!.n).toBe(1);
+    expect((await w.q(`select count(*)::int as n from core.org_users where user_id = $1`, [w.p.teacherBUser]))[0]!.n).toBe(1);
   });
 
   it('anonymises financial rows instead of deleting them (configurable per table in the registry)', async () => {
@@ -209,13 +222,72 @@ describe('per-person erasure', () => {
     const plan = await planPersonErasure(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'lead', personId: w.p.leadA, identifiers: ['98765 00001'] }, { reason: 'Lead asked to be forgotten', identityVerified: true });
     const modes = Object.fromEntries(plan.plan!.tables.map((t) => [t.table, `${t.mode}:${t.rows}`]));
     expect(modes.leads).toBe('delete:1');
-    expect(modes.consents).toBe('retain:1');
+    expect(modes.consent_events).toBe('retain:1');
     expect(plan.plan!.retained).toBeGreaterThanOrEqual(1);
     await executePersonErasure(w.db, w.u.aAdmin!, plan.requestId, plan.confirmationToken!);
     expect(await w.q(`select full_name from crm.leads where org_id = $1 and full_name = 'Lena Lead'`, [w.A.id])).toHaveLength(0);
     expect(await w.q(`select full_name from crm.leads where org_id = $1`, [w.B.id])).toHaveLength(1); // Bela, same phone, other org
-    expect((await w.q(`select count(*)::int as n from core.consents where org_id = $1`, [w.A.id]))[0]!.n).toBe(1);
+    expect((await w.q(`select count(*)::int as n from core.consent_events where org_id = $1`, [w.A.id]))[0]!.n).toBe(1);
     const pii = await w.q(`select count(*)::int as n from audit.log where org_id = $1 and (before::text like '%Lena%' or after::text like '%Lena%' or before::text like '%lena@example.test%')`, [w.A.id]);
     expect(pii[0]!.n).toBe(0);
+  });
+});
+
+describe('core master people (students, guardians) and the client request register', () => {
+  let mia = '';
+  beforeAll(async () => {
+    const hh = (await w.q<{ id: string }>(`select id from core.households where org_id = $1 and family_name = 'Guardian family'`, [w.A.id]))[0]!.id;
+    mia = (await w.q<{ id: string }>(`insert into core.students (org_id, branch_id, household_id, first_name, last_name, dob, status) values ($1, $2, $3, 'Mia', 'Pupil', '2015-01-09', 'admitted') returning id`, [w.A.id, w.A.branches.a1, hh]))[0]!.id;
+    await w.q(`insert into core.student_sensitive (org_id, student_id, blood_group, allergies) values ($1, $2, 'O+', 'peanuts')`, [w.A.id, mia]);
+    await w.q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'mother')`, [w.A.id, w.u.aGuardian, mia]);
+    await w.q(`insert into erp.fee_receipts (org_id, branch_id, student_id, payer_name, amount_paise, receipt_no) values ($1, $2, $3, 'Gita Guardian', 100, 'R-M-1'), ($1, $2, $3, 'Gita Guardian', 200, 'R-M-2')`, [w.A.id, w.A.branches.a1, mia]);
+  });
+  const tables = (f: { data: { tables: { table: string; rows: unknown[] }[] } }) => Object.fromEntries(f.data.tables.map((t) => [t.table, t.rows.length]));
+
+  it('exports a student with the family record, health data, links and fee receipts', async () => {
+    const f = await exportPerson(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'student', personId: mia });
+    expect(tables(f)).toMatchObject({ students: 1, student_sensitive: 1, households: 1, learner_links: 1, fee_receipts: 2 });
+    expect(JSON.stringify(f.data)).toContain('peanuts');
+    expect(JSON.stringify(f.data)).not.toContain('Bob Learner');
+  });
+
+  it('erases a student on the client request: profile pseudonymised, health data deleted, family record kept, request closed', async () => {
+    const dr = (await w.q<{ id: string }>(`insert into core.data_requests (org_id, type, subject_type, subject_id, subject, requested_by_user_id) values ($1, 'erasure', 'student', $2, 'Mia Pupil', $3) returning id`, [w.A.id, mia, w.u.aGuardian]))[0]!.id;
+    const plan = await planPersonErasure(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'student', personId: mia, dataRequestId: dr }, { reason: 'Parent request verified in school, DSR 12', identityVerified: true });
+    const modes = Object.fromEntries(plan.plan!.tables.map((t) => [t.table, t.mode]));
+    expect(modes).toMatchObject({ students: 'anonymise', student_sensitive: 'delete', households: 'retain', learner_links: 'delete' });
+    expect((await w.q(`select status from core.data_requests where id = $1`, [dr]))[0]!.status).toBe('open'); // a plan closes nothing
+    await executePersonErasure(w.db, w.u.aAdmin!, plan.requestId, plan.confirmationToken!);
+
+    const st = (await w.q(`select first_name, last_name, full_name, dob, status from core.students where id = $1`, [mia]))[0]!;
+    expect(st).toMatchObject({ first_name: 'Erased person', last_name: null, full_name: 'Erased person', dob: null, status: 'admitted' });
+    expect(await w.q(`select 1 from core.student_sensitive where student_id = $1`, [mia])).toHaveLength(0);
+    expect(await w.q(`select 1 from core.households where org_id = $1 and family_name = 'Guardian family'`, [w.A.id])).toHaveLength(1);
+    // images in audit no longer carry the child's name or health data
+    const leaks = await w.q(`select count(*)::int as n from audit.log where org_id = $1 and table_name <> 'data_requests' and (before::text ~ 'Mia|Pupil|peanuts' or after::text ~ 'Mia|Pupil|peanuts')`, [w.A.id]);
+    expect(leaks[0]!.n).toBe(0);
+    // the client's own request register entry is closed with a pointer to the engine's record
+    const d = (await w.q<{ status: string; evidence: { compliance_request_id: string; outcome: { kind: string } } }>(`select status, evidence from core.data_requests where id = $1`, [dr]))[0]!;
+    expect(d.status).toBe('done');
+    expect(d.evidence.compliance_request_id).toBe(plan.requestId);
+    expect(d.evidence.outcome.kind).toBe('erasure');
+    expect((await w.q(`select data_request_id from core.compliance_requests where id = $1`, [plan.requestId]))[0]!.data_request_id).toBe(dr);
+    // a data request of another org cannot be attached
+    const other = (await w.q<{ id: string }>(`insert into core.data_requests (org_id, type) values ($1, 'access') returning id`, [w.B.id]))[0]!.id;
+    await rejects(planPersonErasure(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'student', personId: mia, dataRequestId: other }, { reason: 'Attach a foreign request', identityVerified: true }), 'invalid');
+  });
+
+  it('erases a guardian found by login id: profile pseudonymised, login link gone, messages to their phone anonymised', async () => {
+    // asked by the guardian's login id instead of the guardians.id: the subject row resolves both
+    const plan = await planPersonErasure(w.db, w.u.aAdmin!, { orgId: w.A.id, personType: 'guardian', personId: w.p.guardianUser }, { reason: 'Guardian asked to be forgotten, DSR 13', identityVerified: true });
+    const modes = Object.fromEntries(plan.plan!.tables.map((t) => [t.table, `${t.mode}:${t.rows}`]));
+    expect(modes.guardians).toBe('anonymise:1');
+    expect(modes.org_users).toBe('delete:1');
+    expect(modes.outbox).toBe('anonymise:1');
+    await executePersonErasure(w.db, w.u.aAdmin!, plan.requestId, plan.confirmationToken!);
+    const g = (await w.q(`select name, phone, email, user_id from core.guardians where id = $1`, [w.p.guardian]))[0]!;
+    expect(g).toEqual({ name: 'Erased person', phone: null, email: null, user_id: null });
+    expect(await w.q(`select 1 from core.org_users where user_id = $1`, [w.p.guardianUser])).toHaveLength(0);
+    expect(await w.q(`select 1 from core.outbox where org_id = $1 and body like 'Fee reminder%'`, [w.A.id])).toHaveLength(0);
   });
 });

@@ -8,7 +8,7 @@ Builds on ADR 001 (roles), 002 (entitlements), 004 (audit, jobs), 005 (harness).
 ## Decision in one paragraph
 
 Compliance is **generic and catalogue-driven**. Tools find tables through `pg_catalog` and three registries
-(`core.pii_registry`, `core.table_policy`, `core.retention_rules`), so a new table is covered by export, erasure and
+(`core.pii_registry`, `core.table_policy`, `core.retention_policies`), so a new table is covered by export, erasure and
 deletion as soon as it exists (org export and deletion need no registration at all) or as soon as it has one registry row
 (per-person tools). A CI test fails when a table with a person-identifying column is not registered. Everything privileged
 is a `security definer` SQL function in schema `app` that only `platform_admin_server` (org and person tools),
@@ -29,11 +29,11 @@ is a `security definer` SQL function in schema `app` that only `platform_admin_s
 |---|---|
 | `core.pii_registry` | where personal data lives: `(schema, table, person_type staff\|student\|guardian\|lead, key_column)`, optional `filter_column/filter_values` (e.g. `org_users.kind`), `contact_columns` (phone/email, matched on values too), `is_subject`, `pii_columns`, `anonymise_values` (replacement literals for NOT NULL columns), `erasure_mode delete\|anonymise\|retain` (+ `retain_reason`), `erase_order`, `export`. `classification = 'exempt'` + reason for reviewed tables that only look personal (probes, AutoEd staff, billing profile). `org_id` null = platform default; an org row overrides it for that org. |
 | `core.table_policy` | what a whole-org or product deletion does to a table: `delete` (default, also for tables nobody listed) or `retain` with a reason (organisation row, subscriptions, all `billing.*`, request register, holds, export jobs); `org_export`. |
-| `core.retention_rules` | `scope = 'table'` (what the purge job applies: table, clock column, optional filter, `delete`/`anonymise`, `period_value` + `period_unit`, `enabled`, `legal_status draft\|confirmed`) and `scope = 'lifecycle'` (decision 42: `product_read_only_days` 30, `org_exit_deletion_days` 30, plus `confirmation_token_minutes`, `export_link_days`, `trial_unconverted_days`). A rule cannot be enabled while `draft` unless an override reason is given. An org row can only **shorten** the default period (the schedule is AutoEd's maximum). |
+| `core.retention_policies` | (named `retention_policies` because the core master data already has `core.retention_rules`, the client's own `keep_years` per data type) `scope = 'table'` (what the purge job applies: table, clock column, optional filter, `delete`/`anonymise`, `period_value` + `period_unit`, `enabled`, `legal_status draft\|confirmed`) and `scope = 'lifecycle'` (decision 42: `product_read_only_days` 30, `org_exit_deletion_days` 30, plus `confirmation_token_minutes`, `export_link_days`, `trial_unconverted_days`). A rule cannot be enabled while `draft` unless an override reason is given. An org row, and the client's own `core.retention_rules` row of the same `data_type`, can only **shorten** the default period (the schedule is AutoEd's maximum); the shortest wins. |
 | `core.legal_holds` | scope `org`, `person` or `table`; open until released. |
 | `core.compliance_requests` | request register and tombstone: kind, status, plan, blockers, result (counts only), token hash and expiry, who requested/verified/confirmed. |
 | `core.org_export_jobs` | org export job: products, formats, row counts, manifest, sha256 of manifest and archive, storage key, expiry. |
-| `core.consents` | append-only consent ledger (channel, normalised contact, `service`/`promotional`, `opted_in`/`opted_out`/`unknown`, source, proof, guardian). |
+| `core.consent_events` | append-only consent ledger per contact and channel (normalised phone/email, `service`/`promotional`, `opted_in`/`opted_out`/`unknown`, source, proof, guardian) for the send gate. The core master `core.consents` (current consent per student/guardian/staff and purpose) is a different thing and is left as it is; both are in the registry (retained on erasure as proof). |
 | `audit.purge_log` | one row per rule/table touched by retention, erasure or deletion: what, which org, how many rows, dry run or not. Never the data. |
 | `private.compliance_request_secrets` | phone/email given with an erasure request, kept only until the request is executed, refused or a day old, so they never sit in the audited register. |
 
@@ -101,16 +101,22 @@ Rules with no product (audit log, login events, support sessions) run once per o
 2. **Person data:** if the table has a person-identifying column (`email`, `phone`, `*_user_id`, `student_id`, `display_name`, `address`, `ip`, ... see `PERSONAL_COLUMN_PATTERN`) CI fails until it has a row in `core.pii_registry` in the same migration:
    `insert into core.pii_registry (schema_name, table_name, person_type, key_column, pii_columns, erasure_mode, ...)`; use `anonymise` + `anonymise_values` for NOT NULL columns and for financial rows,
    `retain` + reason where law requires the row, or `classification = 'exempt'` + reason when it only looks personal. A student table that is keyed by `id` uses `key_column = 'id'`, `is_subject = true`.
-3. **Retention:** add a `core.retention_rules` row (disabled, `draft`) for the data type and its clock column.
+3. **Retention:** add a `core.retention_policies` row (disabled, `draft`) for the data type and its clock column.
 4. The catalogue test (`compliance-catalogue.test.ts`) and `findRegistryProblems` check the rows against the live schema (dropped columns, NOT NULL without replacement).
 
 ## Integration notes (for whoever merges this)
 
-* `scripts/db.mjs --platform-only` applies only `*_platform_*.sql`, so **the compliance migration is not part of the shared harness database yet**.
-  The compliance tests therefore build their own scratch database (platform migrations + every other `20261115*` migration) and drop it afterwards, so they also test any other platform migration that lands in that range.
-  Once the migration joins the harness, add one row per org A and B in these tables to `packages/server/test-platform/fixture.ts`, otherwise `isolation.test.ts` fails on "every org-scoped table has rows":
-  `core.pii_registry`, `core.table_policy`, `core.retention_rules` (org rows), `core.legal_holds`, `core.compliance_requests`, `core.org_export_jobs`, `core.consents`, `audit.purge_log`.
-  Verified: with the migration applied and exactly such rows added, `isolation.test.ts` and `catalogue.test.ts` pass unchanged (58 passed, 1 skipped).
+* `scripts/db.mjs --platform-only` now applies the compliance migration (filter includes `_compliance`), after core master data (`20261115100001..8`). The migration **extends** core master data instead of recreating it:
+  `core.retention_rules` stays the client's own rule table (our defaults live in `core.retention_policies` and the client's `keep_years` can only shorten them), `core.consents` stays as is (the send-gate ledger is `core.consent_events`),
+  `core.data_requests` stays the client's request register: `core.compliance_requests.data_request_id` links the engine's work to it and the entry is closed (`status = 'done'`, evidence = request id and counts) when an export or erasure finishes.
+  Org deletion nulls `core.organizations.logo_file_id` before the file rows go.
+* Shared harness changes (small, in existing files): `fixture.ts` calls the new `fixture-compliance.ts` (one row per org in each compliance table) and `core-master.test.ts` lists the seven compliance tables next to the foundation tables
+  (they are written only by security definer functions and hold org_id-null default rows, so they do not use `app.apply_core_rls`). With that, `pnpm db:reset:platform && pnpm test:platform` is green on platform + core master + compliance.
+* The compliance tests still build a **scratch database per test file** (platform-only reset, which includes this migration, then their own destructive data: cancelled subscriptions, deleted orgs, extra tables) and drop it afterwards. This is needed, not a workaround for the migration: the shared harness database must stay pristine for the isolation tests.
+* Person ids: a staff person is `core.staff.id`, a guardian `core.guardians.id`, a student `core.students.id`, a lead the CRM contact id; a login (auth user id) is accepted as well. Subject rows (`is_subject`, `link_columns`) resolve all ids of the person (staff id + `user_id`, guardian id + `user_id` + `household_id`), so tables keyed by `user_id`, `staff_id`, `guardian_id`, `student_id`
+  (also uuid arrays such as `incidents.student_ids`) or only by phone/email (`outbox`) are all found.
+* Erasure defaults on the core master data (all rows are in `core.pii_registry`, change one row to change the behaviour): profiles (`staff`, `guardians`, `students`) are **anonymised** and stay as pseudonymous rows because timetable, attendance, approvals and placements point at them; `student_sensitive` (health, category) and logins are **deleted**;
+  free text and media on tickets, approvals, leave, attendance, messages and notifications are removed; `households` (shared), `enrolments`, `exam_seating`, `incidents`, consent records, data requests and the compliance records are **retained** with a stated reason. The Auth user is returned as an external action.
 * When other streams add tables with person columns (students, guardians, leads, staff, messages), `compliance-catalogue.test.ts` will fail for them until they are registered. That is the intended gate.
 * Product schemas get default privileges to their role only; nothing in this work changes a grant of an existing table.
 * The Supabase Auth user and Storage objects need the admin APIs. The services return them as `external_actions` and do not call Supabase.
@@ -130,7 +136,7 @@ Rules with no product (audit log, login events, support sessions) run once per o
 
 ## Open points for counsel (the numbers are configuration, none is hard-coded)
 
-All periods in `core.retention_rules` are copied from the draft schedule and stay `draft` and disabled: audit log 36 months, config history 36 months, login events 12 months,
+All periods in `core.retention_policies` are copied from the draft schedule and stay `draft` and disabled: audit log 36 months, config history 36 months, login events 12 months,
 support sessions 36 months; lifecycle 30/30 days (fixed by decision 42, marked `confirmed`); token life and export link life are operational defaults. CRM leads (24 months), students after leaving,
 messages (12 months) and financial records (about 8 years) get rows when their tables exist. Whether service messages need opt-in, the response deadline for requests, and the erase-versus-retain
 rules per table (financial rows are anonymised here) are for counsel; each is one row to change.

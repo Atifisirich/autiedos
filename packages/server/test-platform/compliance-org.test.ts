@@ -138,7 +138,8 @@ describe('organisation export', () => {
 describe('organisation deletion', () => {
   let w: World;
   let dir: string;
-  const clientTables = ['crm.leads', 'erp.fee_receipts', 'core.org_users', 'core.branches', 'core.roles', 'core.consents', 'os.harness_probe', 'core.learner_links'];
+  const clientTables = ['crm.leads', 'erp.fee_receipts', 'core.org_users', 'core.branches', 'core.roles', 'core.consent_events', 'os.harness_probe', 'core.learner_links',
+    'core.staff', 'core.students', 'core.guardians', 'core.households', 'core.student_sensitive', 'core.notifications', 'core.device_tokens', 'core.tickets', 'core.staff_attendance', 'core.outbox', 'core.files'];
   const count = async (t: string, org: string) => Number((await w.q(`select count(*) as n from ${t} where org_id = $1`, [org]))[0]!.n);
 
   beforeAll(async () => {

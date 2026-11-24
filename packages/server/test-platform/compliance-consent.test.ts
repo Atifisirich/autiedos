@@ -33,7 +33,7 @@ describe('consent ledger', () => {
     });
     expect(r.contact).toBe('+919876543210');
     expect(r.ids).toHaveLength(2);
-    const rows = await w.q(`select purpose, status, contact, recorded_by, proof from core.consents where org_id = $1 and contact = '+919876543210' order by purpose`, [w.A.id]);
+    const rows = await w.q(`select purpose, status, contact, recorded_by, proof from core.consent_events where org_id = $1 and contact = '+919876543210' order by purpose`, [w.A.id]);
     expect(rows.map((x) => x.purpose)).toEqual(['promotional', 'service']);
     expect(rows.every((x) => x.status === 'opted_in' && x.recorded_by === w.u.aAdmin)).toBe(true);
     expect((rows[0]!.proof as { text_version: string }).text_version).toBe('v3');
@@ -72,18 +72,18 @@ describe('consent ledger', () => {
 
   it('is append-only: nobody can update or delete a ledger row, whichever role they use', async () => {
     for (const role of ['crm_server', 'os_server', 'erp_server', 'platform_admin_server'] as const) {
-      const upd = await w.db.run(role, { actorUserId: w.u.aAdmin! }, (q) => q.query(`update core.consents set status = 'opted_in'`)).then(() => '', (e: { code?: string }) => e.code);
-      const del = await w.db.run(role, { actorUserId: w.u.aAdmin! }, (q) => q.query(`delete from core.consents`)).then(() => '', (e: { code?: string }) => e.code);
+      const upd = await w.db.run(role, { actorUserId: w.u.aAdmin! }, (q) => q.query(`update core.consent_events set status = 'opted_in'`)).then(() => '', (e: { code?: string }) => e.code);
+      const del = await w.db.run(role, { actorUserId: w.u.aAdmin! }, (q) => q.query(`delete from core.consent_events`)).then(() => '', (e: { code?: string }) => e.code);
       expect(upd, role).toBe('42501');
       expect(del, role).toBe('42501');
-      const ins = await w.db.run(role, { actorUserId: w.u.aAdmin! }, (q) => q.query(`insert into core.consents (org_id, channel, contact, purpose, status, source) values ($1, 'sms', '+911', 'service', 'opted_in', 'x')`, [w.A.id])).then(() => '', (e: { code?: string }) => e.code);
+      const ins = await w.db.run(role, { actorUserId: w.u.aAdmin! }, (q) => q.query(`insert into core.consent_events (org_id, channel, contact, purpose, status, source) values ($1, 'sms', '+911', 'service', 'opted_in', 'x')`, [w.A.id])).then(() => '', (e: { code?: string }) => e.code);
       expect(ins, role).toBe('42501'); // only the helper writes
     }
   });
 
   it('an org never sees or changes another org: reads, writes and the gate are scoped by the caller org', async () => {
-    const mine = await w.db.run('crm_server', { actorUserId: w.u.aAdmin! }, async (q) => Number((await q.query(`select count(*) as n from core.consents`)).rows[0]!.n));
-    const bs = await w.db.run('crm_server', { actorUserId: w.u.bAdmin! }, async (q) => (await q.query<{ org_id: string }>(`select distinct org_id from core.consents`)).rows);
+    const mine = await w.db.run('crm_server', { actorUserId: w.u.aAdmin! }, async (q) => Number((await q.query(`select count(*) as n from core.consent_events`)).rows[0]!.n));
+    const bs = await w.db.run('crm_server', { actorUserId: w.u.bAdmin! }, async (q) => (await q.query<{ org_id: string }>(`select distinct org_id from core.consent_events`)).rows);
     expect(mine).toBeGreaterThan(5);
     expect(bs.every((r) => r.org_id === w.B.id)).toBe(true);
     await rejects(recordConsent(w.db, 'crm_server', w.u.bAdmin!, { orgId: w.A.id, channel: 'whatsapp', contact: '+919811100001', purpose: 'both', status: 'opted_out', source: 'attack' }), 'forbidden');

@@ -1,5 +1,5 @@
 /**
- * Consent records and the send gate (messaging-consent.md 2.2 and 2.3). The ledger is core.consents (append-only).
+ * Consent records and the send gate (messaging-consent.md 2.2 and 2.3). The ledger is core.consent_events (append-only).
  * These helpers run as the caller's own product role (crm_server, os_server or erp_server) with the signed-in
  * user's claims: they only ever touch the caller's own org (the functions check it).
  */
@@ -69,7 +69,7 @@ export async function consentHistory(db: ComplianceDb, role: ConsentRole, actorU
   return db.run(role, { actorUserId }, async (q) =>
     (await q.query(
       `select id, person_type, person_id, channel, contact, purpose, status, source, proof, recorded_by, recorded_at
-         from core.consents where org_id = $1 and channel = $2 and contact = app.compliance_normalise_contact($2, $3)
+         from core.consent_events where org_id = $1 and channel = $2 and contact = app.compliance_normalise_contact($2, $3)
         order by recorded_at desc, id desc`,
       [i.orgId, i.channel, i.contact],
     )).rows,

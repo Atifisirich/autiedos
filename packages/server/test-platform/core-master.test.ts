@@ -12,7 +12,9 @@ let coreMaster: string[] = [];
 
 /** Foundation core tables (20261115000002), set up before apply_core_rls existed. */
 const FOUNDATION_CORE = ['branches', 'learner_links', 'login_events', 'org_branch_products', 'org_users', 'organizations', 'platform_admins',
-  'product_modules', 'products', 'role_permissions', 'roles', 'subscriptions', 'support_sessions', 'user_branch_access', 'user_product_access', 'user_security'];
+  'product_modules', 'products', 'role_permissions', 'roles', 'subscriptions', 'support_sessions', 'user_branch_access', 'user_product_access', 'user_security',
+  // compliance tooling (20261115200001): written only by security definer functions, platform defaults with org_id null, bespoke policies
+  'compliance_requests', 'consent_events', 'legal_holds', 'org_export_jobs', 'pii_registry', 'retention_policies', 'table_policy'];
 
 beforeAll(async () => {
   w = await buildWorld();

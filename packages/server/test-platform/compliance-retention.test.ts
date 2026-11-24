@@ -21,25 +21,25 @@ const logs = async (org: string, where = 'true') => w.q<{ data_type: string | nu
   `select data_type, status, rows_affected::int as rows_affected, rows_before::int as rows_before, dry_run, source from audit.purge_log where org_id = $1 and ${where} order by id`, [org]);
 type Res = Awaited<ReturnType<typeof purgeOrgProduct>>;
 const rule = (r: Res, dt: string) => r.rules.find((x) => x.data_type === dt);
-const confirmLeadRule = () => w.q(`update core.retention_rules set enabled = true, legal_status = 'confirmed' where org_id is null and data_type = 'crm_leads_not_admitted'`);
+const confirmLeadRule = () => w.q(`update core.retention_policies set enabled = true, legal_status = 'confirmed' where org_id is null and data_type = 'crm_leads_not_admitted'`);
 
 describe('retention rules are data, off until counsel confirms', () => {
   it('seeds the schedule as disabled draft rows with periods as numbers in rows', async () => {
     const rules = await w.q<{ data_type: string; period_value: number; period_unit: string; enabled: boolean; legal_status: string }>(
-      `select data_type, period_value, period_unit, enabled, legal_status from core.retention_rules where org_id is null and scope = 'table' and schema_name in ('audit','core') order by data_type`);
+      `select data_type, period_value, period_unit, enabled, legal_status from core.retention_policies where org_id is null and scope = 'table' and schema_name in ('audit','core') order by data_type`);
     expect(rules).toEqual([
       { data_type: 'audit_config_history', period_value: 36, period_unit: 'months', enabled: false, legal_status: 'draft' },
       { data_type: 'audit_log', period_value: 36, period_unit: 'months', enabled: false, legal_status: 'draft' },
       { data_type: 'login_events', period_value: 12, period_unit: 'months', enabled: false, legal_status: 'draft' },
       { data_type: 'support_sessions', period_value: 36, period_unit: 'months', enabled: false, legal_status: 'draft' },
     ]);
-    const life = await w.q<{ data_type: string; period_value: number }>(`select data_type, period_value from core.retention_rules where scope = 'lifecycle' and data_type in ('product_read_only_days','org_exit_deletion_days') order by 1`);
+    const life = await w.q<{ data_type: string; period_value: number }>(`select data_type, period_value from core.retention_policies where scope = 'lifecycle' and data_type in ('product_read_only_days','org_exit_deletion_days') order by 1`);
     expect(life).toEqual([{ data_type: 'org_exit_deletion_days', period_value: 30 }, { data_type: 'product_read_only_days', period_value: 30 }]);
   });
 
   it('a draft rule cannot be switched on without counsel confirmation or a stated reason', async () => {
-    await expect(w.q(`update core.retention_rules set enabled = true where org_id is null and data_type = 'crm_leads_not_admitted'`)).rejects.toMatchObject({ code: '23514' });
-    await expect(w.q(`update core.retention_rules set enabled = true, enabled_override_reason = 'short' where org_id is null and data_type = 'crm_leads_not_admitted'`)).rejects.toMatchObject({ code: '23514' });
+    await expect(w.q(`update core.retention_policies set enabled = true where org_id is null and data_type = 'crm_leads_not_admitted'`)).rejects.toMatchObject({ code: '23514' });
+    await expect(w.q(`update core.retention_policies set enabled = true, enabled_override_reason = 'short' where org_id is null and data_type = 'crm_leads_not_admitted'`)).rejects.toMatchObject({ code: '23514' });
   });
 
   it('a dry run counts what would go and changes nothing, even for a disabled rule', async () => {
@@ -159,32 +159,51 @@ describe('legal holds and overrides', () => {
     await oldLead(w.A.id, w.A.branches.a1!, 'Fourteen Months Old', 420);
     // longer than the default: ignored
     await w.db.run('platform_admin_server', { actorUserId: w.u.aAdmin! }, (q) =>
-      q.query(`insert into core.retention_rules (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
+      q.query(`insert into core.retention_policies (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
                values ($1, 'table', 'crm_leads_not_admitted', 'crm', 'leads', 'last_activity_at', 'delete', 60, 'months', true, 'confirmed')`, [w.A.id]));
     await purgeOrgProduct(w.db, { orgId: w.A.id, product: 'crm', dryRun: false });
     expect(await leads(w.A.id)).toContain('Fourteen Months Old');
     // shorter: applied
     await w.db.run('platform_admin_server', { actorUserId: w.u.aAdmin! }, (q) =>
-      q.query(`update core.retention_rules set period_value = 12 where org_id = $1 and data_type = 'crm_leads_not_admitted'`, [w.A.id]));
+      q.query(`update core.retention_policies set period_value = 12 where org_id = $1 and data_type = 'crm_leads_not_admitted'`, [w.A.id]));
     await purgeOrgProduct(w.db, { orgId: w.A.id, product: 'crm', dryRun: false });
     expect(await leads(w.A.id)).not.toContain('Fourteen Months Old');
     // the default (24 months) still governs org B
     // an org row cannot point the rule at another table, nor invent a rule, nor belong to another org
     await expect(w.db.run('platform_admin_server', { actorUserId: w.u.aAdmin! }, (q) =>
-      q.query(`insert into core.retention_rules (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
+      q.query(`insert into core.retention_policies (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
                values ($1, 'table', 'my_own_rule', 'core', 'org_users', 'created_at', 'delete', 1, 'days', true, 'confirmed')`, [w.A.id]))).rejects.toMatchObject({ code: '42501' });
     await expect(w.db.run('platform_admin_server', { actorUserId: w.u.bAdmin! }, (q) =>
-      q.query(`insert into core.retention_rules (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
+      q.query(`insert into core.retention_policies (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
                values ($1, 'table', 'crm_leads_not_admitted', 'crm', 'leads', 'last_activity_at', 'delete', 1, 'days', true, 'confirmed')`, [w.A.id]))).rejects.toMatchObject({ code: '42501' });
     await expect(w.db.run('platform_admin_server', { actorUserId: w.u.aStaffNoCompliance! }, (q) =>
-      q.query(`insert into core.retention_rules (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
+      q.query(`insert into core.retention_policies (org_id, scope, data_type, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
                values ($1, 'table', 'crm_leads_not_admitted', 'crm', 'leads', 'last_activity_at', 'delete', 1, 'days', true, 'confirmed')`, [w.B.id]))).rejects.toMatchObject({ code: '42501' });
+  });
+
+  it('the client\'s own rule in core.retention_rules (keep_years) shortens the period too, never lengthens it', async () => {
+    await oldLead(w.B.id, w.B.branches.b1!, 'Fourteen Months B', 420);
+    // a longer client rule and a soft-deleted shorter one change nothing
+    await w.q(`insert into core.retention_rules (org_id, data_type, keep_years, action, product_key) values ($1, 'crm_leads_not_admitted', 5, 'delete', 'crm')`, [w.B.id]);
+    await purgeOrgProduct(w.db, { orgId: w.B.id, product: 'crm', dryRun: false });
+    expect(await leads(w.B.id)).toContain('Fourteen Months B');
+    await w.q(`update core.retention_rules set keep_years = 1, deleted_at = now() where org_id = $1`, [w.B.id]);
+    await purgeOrgProduct(w.db, { orgId: w.B.id, product: 'crm', dryRun: false });
+    expect(await leads(w.B.id)).toContain('Fourteen Months B');
+    // the live shorter rule applies (and the data map shows the override)
+    await w.q(`update core.retention_rules set deleted_at = null where org_id = $1`, [w.B.id]);
+    const r = await purgeOrgProduct(w.db, { orgId: w.B.id, product: 'crm', dryRun: false });
+    expect(rule(r, 'crm_leads_not_admitted')).toMatchObject({ status: 'done', affected: 1 });
+    expect(await leads(w.B.id)).not.toContain('Fourteen Months B');
+    const eff = await w.q<{ period_value: number; period_unit: string; org_override: boolean }>(
+      `select period_value, period_unit, org_override from app._compliance_effective_rules($1) where data_type = 'crm_leads_not_admitted'`, [w.B.id]);
+    expect(eff).toEqual([{ period_value: 12, period_unit: 'months', org_override: true }]);
   });
 
   it('platform rules for core data run once per org, with its first product, and honour a table filter', async () => {
     // login events of A older than 12 months, plus fresh ones
     await w.q(`insert into core.login_events (org_id, user_id, method, success, created_at) values ($1, $2, 'password', true, now() - interval '400 days'), ($1, $2, 'password', true, now() - interval '400 days')`, [w.A.id, w.u.aAdmin]);
-    await w.q(`update core.retention_rules set enabled = true, legal_status = 'confirmed' where org_id is null and data_type = 'login_events'`);
+    await w.q(`update core.retention_policies set enabled = true, legal_status = 'confirmed' where org_id is null and data_type = 'login_events'`);
     const count = async () => Number((await w.q(`select count(*) as n from core.login_events where org_id = $1 and created_at < now() - interval '12 months'`, [w.A.id]))[0]!.n);
     expect(await count()).toBe(2);
     const os = await purgeOrgProduct(w.db, { orgId: w.A.id, product: 'os', dryRun: false });
@@ -199,7 +218,7 @@ describe('legal holds and overrides', () => {
 
   it('an anonymise rule removes the personal columns, keeps the row, and does not repeat itself', async () => {
     await w.q(
-      `insert into core.retention_rules (scope, data_type, product_key, schema_name, table_name, date_column, filter_column, filter_values, action, anonymise_columns, anonymise_values, period_value, period_unit, enabled, legal_status)
+      `insert into core.retention_policies (scope, data_type, product_key, schema_name, table_name, date_column, filter_column, filter_values, action, anonymise_columns, anonymise_values, period_value, period_unit, enabled, legal_status)
        values ('table', 'crm_leads_admitted_old', 'crm', 'crm', 'leads', 'last_activity_at', 'status', array['admitted'], 'anonymise', array['phone','email'], '{"full_name":"Former lead"}', 24, 'months', true, 'confirmed')`);
     const first = await purgeOrgProduct(w.db, { orgId: w.A.id, product: 'crm', dryRun: false });
     expect(first.rules.find((x) => x.data_type === 'crm_leads_admitted_old')).toMatchObject({ status: 'done', affected: 1 });
@@ -211,7 +230,7 @@ describe('legal holds and overrides', () => {
   });
 
   it('a rule for a table that does not exist yet is skipped and logged, not an error', async () => {
-    await w.q(`insert into core.retention_rules (scope, data_type, product_key, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
+    await w.q(`insert into core.retention_policies (scope, data_type, product_key, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status)
                values ('table', 'future_table', 'os', 'os', 'not_built_yet', 'created_at', 'delete', 1, 'months', true, 'confirmed')`);
     const r = await purgeOrgProduct(w.db, { orgId: w.A.id, product: 'os', dryRun: false });
     expect(rule(r, 'future_table')).toEqual({ data_type: 'future_table', status: 'skipped_table_missing' });
