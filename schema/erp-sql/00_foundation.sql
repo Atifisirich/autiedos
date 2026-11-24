@@ -108,11 +108,11 @@ declare
   v_k text;
   v_row jsonb;
 begin
+  if tg_op = 'UPDATE' and (v_old - 'updated_at') = (v_new - 'updated_at') then return null; end if;
   foreach v_k in array v_cols loop
     if v_old ? v_k then v_old := jsonb_set(v_old, array[v_k], '"[redacted]"'); end if;
     if v_new ? v_k then v_new := jsonb_set(v_new, array[v_k], '"[redacted]"'); end if;
   end loop;
-  if tg_op = 'UPDATE' and (v_old - 'updated_at') = (v_new - 'updated_at') then return null; end if;
   v_row := coalesce(v_new, v_old);
   insert into audit.log (org_id, branch_id, actor_user_id, support_session_id, action, schema_name, table_name, row_id, before, after)
   values (app.try_uuid(v_row->>'org_id'), app.try_uuid(v_row->>'branch_id'), app.uid(), app.support_session_id(),

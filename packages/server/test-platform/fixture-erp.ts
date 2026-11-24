@@ -205,7 +205,8 @@ export async function seedErp(q: Q, o: ErpOrgInput) {
   const wallet = await ins('student_wallets', { student_id: c.learner, balance: 100 });
   await ins('student_wallets', { student_id: c.other, balance: 50 });
   await ins('student_wallet_txns', { wallet_id: wallet, student_id: c.learner, type: 'topup', amount: 100 });
-  for (const s of [c.learner, c.other]) await ins('meal_bookings', { student_id: s, date: '2026-11-25', created_by: o.guardian });
+  await ins('meal_bookings', { student_id: c.learner, date: '2026-11-25', created_by: o.guardian });
+  await ins('meal_bookings', { student_id: c.other, date: '2026-11-25', created_by: o.admin });
   const book = await ins('books', { title: 'Wings of Fire', author: 'Kalam' });
   const copy = await ins('book_copies', { book_id: book, accession_no: `ACC-${o.org.slice(0, 6)}-1` });
   const copy2 = await ins('book_copies', { book_id: book, accession_no: `ACC-${o.org.slice(0, 6)}-2` });

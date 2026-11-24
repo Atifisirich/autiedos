@@ -523,7 +523,7 @@ declare
   v_otp text;
   c erp.concessions;
 begin
-  if v_org is null or not app.user_has_product(v_org, 'erp') or app.my_member_kind() not in ('staff', 'support') then
+  if v_org is null or not app.user_has_product(v_org, 'erp') or app.my_member_kind() is distinct from 'staff' then   -- a read-only support session may not apply decisions
     raise exception 'not allowed' using errcode = '42501';
   end if;
   select * into a from core.approval_requests r where r.id = p_request and r.org_id = v_org;
@@ -691,7 +691,7 @@ begin
     raise exception 'not allowed' using errcode = '42501';
   end if;
   if not v_staff then
-    update erp.report_cards set views = views + 1 where id = r.id;
+    update erp.report_cards set views = views + 1 where id = r.id returning * into r;
     perform erp.log_view('report_cards', p_id, 'Opened by family');
   end if;
   return r;
