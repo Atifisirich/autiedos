@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// Local database helper: reset | migrate | status.
+// Local database helper: reset | migrate | status  [--platform-only]
 // Applies supabase/local/shim.sql (local only) then every file in supabase/migrations in order,
 // tracking applied files in public._migrations. In production use `supabase db push`.
+// --platform-only applies only the *_platform_*.sql migrations: an empty platform (core, app, audit,
+// billing, private, crm/os/erp probes) without the legacy OS tables. Used by the isolation harness.
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,15 +11,18 @@ import pg from 'pg';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const url = process.env.DATABASE_URL ?? 'postgres://postgres@localhost:54322/postgres';
-const cmd = process.argv[2] ?? 'migrate';
+const args = process.argv.slice(2);
+const cmd = args.find((a) => !a.startsWith('--')) ?? 'migrate';
+const platformOnly = args.includes('--platform-only') || process.env.MIGRATIONS === 'platform';
+// Schemas owned by the migrations. Roles are cluster-wide and shared with other databases: never dropped.
+const SCHEMAS = ['public', 'app', 'auth', 'storage', 'core', 'audit', 'billing', 'private', 'crm', 'os', 'erp'];
 
 async function main() {
   if (cmd === 'reset') {
     const admin = new pg.Client({ connectionString: url });
     await admin.connect();
-    await admin.query(`drop schema if exists public cascade; drop schema if exists app cascade;
-      drop schema if exists auth cascade; drop schema if exists storage cascade; create schema public;
-      grant all on schema public to public;`);
+    await admin.query(SCHEMAS.map((n) => `drop schema if exists ${n} cascade;`).join(' ') +
+      ' create schema public; grant all on schema public to public;');
     await admin.end();
   }
   const client = new pg.Client({ connectionString: url });
@@ -27,7 +32,8 @@ async function main() {
   await client.query('create table if not exists public._migrations (name text primary key, applied_at timestamptz not null default now())');
   await client.query('alter table public._migrations enable row level security');
   const done = new Set((await client.query('select name from public._migrations')).rows.map((r) => r.name));
-  const files = readdirSync(join(root, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort();
+  const files = readdirSync(join(root, 'supabase/migrations')).filter((f) => f.endsWith('.sql'))
+    .filter((f) => !platformOnly || /_platform_/.test(f)).sort();
   for (const f of files) {
     if (done.has(f)) continue;
     if (cmd === 'status') { console.log('pending', f); continue; }
