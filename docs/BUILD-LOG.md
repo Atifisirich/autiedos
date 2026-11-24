@@ -2,6 +2,30 @@
 
 Newest first. "Verified" means a command was run and its result seen.
 
+## Unified platform build — CRM + OS + ERP on one database (2026-11-24/25)
+
+Built by parallel agents, merged into `claude/confident-ritchie-qs7c7g`, every merge re-verified by the integrating session.
+Design and decisions: `docs/PLAN-unified-platform.md`, `docs/DECISIONS.md` #27-55, `docs/MAP-TABLES.md`, `docs/adr/*`.
+
+**Built:** platform foundation (schemas core/os/crm/erp/audit/billing/app/private, per-product DB roles, entitlements,
+RLS generator, isolation harness T1-T12); 67 core master-data tables; OS moved onto `os` (62 tables); CRM back end (33 `crm`
+tables, `core.admit_student`, data migration script) and CRM screens at /crm; ERP schema (127 `erp` tables) and ERP staff
+screens at /erp; parent/student/driver portals and the separate parent app `mobile-parent/`; platform admin console at
+/admin; compliance tooling (export/erasure/retention/consent, registry covering all products); Razorpay + GST billing code;
+Gemini-only AI adapter; one web app with product switcher; staff login by password + phone/email OTP with lockout; CI for all of it.
+
+**Verified (final combined tree, local Postgres 16):** `pnpm lint` OK; server/shared/crm-server eslint clean; `pnpm typecheck`
+0 errors; shared 167 tests; server 107; isolation/platform harness 271 passed, 9 skipped (8 PostgREST Data-API tests are
+opt-in via POSTGREST_BIN - they passed when run by the agents, 1 needs a Supabase project); CRM 117 passed, 5 skipped
+(need SOURCE_DATABASE_URL); mobile-parent 5; ERP/core generators produce no diff; `next build` OK.
+Browser e2e scripts (OS smoke, CRM e2e, ERP smoke, portal isolation/flows, shell) passed when run by their agents; they were
+not all re-run after the final integration (route rename of the ERP staff driver/gate pages).
+
+**Not verified / not done:** nothing deployed; no real Supabase, Gemini, Razorpay, WhatsApp, Expo push or Sentry call; Gemini
+model IDs are placeholders; mobile apps never run on a device; `@autoed/web` eslint now runs but reports 25 existing style
+issues (CI skips it); Hindi/Telugu for CRM/ERP screens not done (decision 55) and all hi/te text needs native review; legal
+documents and retention periods are drafts needing a lawyer; decision 42's 30-day read-only state is not enforced by the DB.
+
 ## Phase 9 groundwork — web UI, i18n, mobile, docs (this session)
 
 **Built**
