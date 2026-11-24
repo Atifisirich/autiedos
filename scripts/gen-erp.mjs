@@ -188,10 +188,10 @@ function rlsSql(t) {
   if (t.own && t.ownKind !== 'none') {
     const kind = t.ownKind === 'staff' ? ` and ${staffKind}` : '';
     const stud = t.student ? ` and (${staffKind} or ${qid(t.student)} = any(app.my_learner_ids()))` : '';
-    pol('ins_own', 'insert', `${base} and ${qid(t.own)} = app.uid()${kind}${stud}${t.ownCheck ? ` and (${t.ownCheck})` : ''}`);
+    pol('ins_own', 'insert', `${base}${branchOk} and ${qid(t.own)} = app.uid()${kind}${stud}${t.ownCheck ? ` and (${t.ownCheck})` : ''}`);
   }
-  if (t.famIns) pol('ins_family', 'insert', `${base} and ${portalKind} and (${t.famIns})`);
-  if (t.famInsSql) pol('ins_family', 'insert', `${base} and ${portalKind} and (${t.famInsSql})`);
+  if (t.famIns) pol('ins_family', 'insert', `${base}${branchOk} and ${portalKind} and (${t.famIns})`);
+  if (t.famInsSql) pol('ins_family', 'insert', `${base}${branchOk} and ${portalKind} and (${t.famInsSql})`);
   if (t.updCols) {
     pol('upd_own', 'update', `${base} and ${qid(t.own)} = app.uid()`, `${base} and ${qid(t.own)} = app.uid()`);
     out.push(`revoke update on ${T} from ${REQUEST_ROLES};`);

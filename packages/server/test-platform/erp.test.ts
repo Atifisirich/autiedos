@@ -277,6 +277,10 @@ describe('parents and students see only their own child (decision 30)', () => {
     expect(await ec('authenticated', g, order, [w.A.id, w.coreA.other])).toBe('42501');
     expect(await ec('authenticated', g, `insert into erp.reading_logs (org_id, student_id, title) values ($1, $2, 'x')`, [w.A.id, w.learnerA])).toBe('');
     expect(await ec('authenticated', g, `insert into erp.reading_logs (org_id, student_id, title) values ($1, $2, 'x')`, [w.A.id, w.coreA.other])).toBe('42501');
+    const form = (await asOwner(`select id from erp.forms where org_id = $1 and status = 'published'`, [w.A.id]))[0]!.id;
+    const resp = `insert into erp.form_responses (org_id, form_id, user_id, student_id, answers) values ($1, $2, $3, $4, '{}')`;
+    expect(await ec('authenticated', g, resp, [w.A.id, form, g, w.learnerA])).toBe('');
+    expect(await ec('authenticated', g, resp, [w.A.id, form, g, w.coreA.other])).toBe('42501'); // answering on behalf of another family's child
     // a message read mark is the only change a family may make to its inbox
     expect(await ec('authenticated', g, `update erp.announcement_recipients set status = 'read', read_at = now()`)).toBe('');
     expect(await ec('authenticated', g, `update erp.announcement_recipients set title = 'edited'`)).toBe('42501');
@@ -371,6 +375,22 @@ describe('staff access follows the ERP role (core.role_permissions)', () => {
     expect(audit[0]).toEqual({ acct: '[redacted]', bank: '[redacted]', pan: '[redacted]' });
     expect(await ec('authenticated', hr, `select erp.save_staff_payroll($1, '{"pan":"bad"}'::jsonb)`, [w.coreA.otherStaff])).toBe('23514');
     expect(await ec('authenticated', hr, `select erp.log_view('no_such_table', null)`)).toBe('22023');
+  });
+
+  it('branch scope: a branch-level role sees and writes only its own branch (and org-level rows); the org admin sees all', async () => {
+    const acc = w.erpA.users.accounts!; // home branch a1
+    await asOwner(`insert into erp.expenses (org_id, branch_id, description, amount) values ($1, $2, 'Branch a2 expense', 10), ($1, null, 'Org level expense', 20)`, [w.A.id, w.A.branches.a2]);
+    const seen = await col(acc, `select description from erp.expenses order by 1`);
+    expect(seen).toContain('Org level expense');
+    expect(seen).not.toContain('Branch a2 expense');
+    expect(await col(w.u.aAdmin, `select description from erp.expenses where description like 'Branch a2%'`)).toEqual(['Branch a2 expense']);
+    const ins = `insert into erp.expenses (org_id, branch_id, description, amount) values ($1, $2, 'x', 1)`;
+    expect(await ec('authenticated', acc, ins, [w.A.id, w.A.branches.a2])).toBe('42501');
+    expect(await ec('authenticated', acc, ins, [w.A.id, w.A.branches.a1])).toBe('');
+    // the default branch of a new row is the user's home branch
+    await ec('authenticated', acc, `insert into erp.expenses (org_id, description, amount) values ($1, 'defaulted', 1)`, [w.A.id]);
+    expect((await asOwner(`select branch_id from erp.expenses where description = 'defaulted'`))[0]!.branch_id).toBe(w.A.branches.a1);
+    expect(await tx('authenticated', acc, async (c) => (await c.query(`update erp.expenses set amount = 99 where description = 'Branch a2 expense'`)).rowCount)).toBe(0);
   });
 
   it('audit.log (readable with audit.view) carries no payroll amounts, health notes or safeguarding text', async () => {

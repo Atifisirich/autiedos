@@ -296,7 +296,7 @@ export const FILES = [
         cols: ["type{electricity|water|diesel}=electricity","date:date=today","reading:numeric","units:numeric","cost:money"] },
       { name: "forms", group: "forms", module: "forms", hidden: true, read: "status = 'published' and (audience = 'all' or (audience = 'staff' and app.my_member_kind() in ('staff','support')) or (audience in ('parents','students') and app.my_member_kind() <> 'staff'))",
         cols: ["title!","description","audience{parents|students|staff|all}=parents","fields:jsonb=[]","anonymous:bool=false","status{draft|published|closed}=draft","maps_to","closes_on:date","is_feedback_survey:bool=false","section_id>sections"] },
-      { name: "form_responses", group: "forms", module: "forms", label: "at", hidden: true, own: "user_id", ownKind: "any", ownCheck: "exists (select 1 from erp.forms f where f.org_id = form_responses.org_id and f.id = form_responses.form_id and f.status = 'published')",
+      { name: "form_responses", group: "forms", module: "forms", label: "at", hidden: true, own: "user_id", ownKind: "any", ownCheck: "exists (select 1 from erp.forms f where f.org_id = form_responses.org_id and f.id = form_responses.form_id and f.status = 'published') and (student_id is null or student_id = any(app.my_learner_ids()) or app.my_member_kind() in ('staff','support'))",
         cols: ["form_id>forms!","user_id>@users=uid","student_id>students","answers:jsonb!","at:ts=now"] },
       { name: "principal_diary", group: "reports", module: "reports", branch: true, label: "date", hidden: true, unique: [["branch_id","date"]],
         cols: ["date:date!","snapshot:jsonb","comments","compiled_at:ts=now"] },
