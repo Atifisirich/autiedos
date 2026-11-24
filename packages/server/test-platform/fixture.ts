@@ -12,12 +12,16 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { owner } from './helpers';
+import { seedCore } from './fixture-core';
+import { resetPlatformDatabase } from './global-setup';
 
 export type World = Awaited<ReturnType<typeof buildWorld>>;
 
 const PRODUCTS = ['crm', 'os', 'erp'] as const;
 
 export async function buildWorld() {
+  // Each test file builds its own world; start from an empty platform if an earlier file left one behind.
+  if ((await owner.query('select 1 from core.organizations limit 1')).rowCount) resetPlatformDatabase();
   const c = await owner.connect();
   try {
     await c.query('begin');
@@ -86,6 +90,8 @@ async function build(c: pg.PoolClient) {
     aAdmin: await user('admin@a.test'),
     aTeacher: await user('teacher@a.test'),
     aGuardian: await user('guardian@a.test'),
+    aStudent: await user('student@a.test'),
+    aOtherParent: await user('other-parent@a.test'),
     bAdmin: await user('admin@b.test'),
     bGuardian: await user('guardian@b.test'),
     cAdmin: await user('admin@c.test'),
@@ -97,6 +103,8 @@ async function build(c: pg.PoolClient) {
   await member(A.id, u.aAdmin, 'staff', { crm: 'admin', os: 'admin', erp: 'admin' });
   await member(A.id, u.aTeacher, 'staff', { os: 'teacher' }, A.branches.a1!);
   await member(A.id, u.aGuardian, 'guardian', { erp: 'portal' });
+  await member(A.id, u.aStudent, 'student', { erp: 'portal' });
+  await member(A.id, u.aOtherParent, 'parent', { erp: 'portal' });
   await member(B.id, u.bAdmin, 'staff', { crm: 'admin', os: 'admin', erp: 'admin' });
   await member(B.id, u.bGuardian, 'parent', { erp: 'portal' });
   await member(C.id, u.cAdmin, 'staff', { crm: 'admin' });
@@ -105,11 +113,16 @@ async function build(c: pg.PoolClient) {
   await q(`insert into core.platform_admins (user_id, name) values ($1, 'AutoEd Support')`, [u.platform]);
 
   await q(`insert into core.user_branch_access (org_id, user_id, branch_id) values ($1, $2, $3), ($4, $5, $6)`, [A.id, u.aGuardian, A.branches.a1!, B.id, u.bAdmin, B.branches.b1!]);
-  const learnerA = id();
-  const learnerB = id();
+  // core master data (20261115100001..8): learners, families, staff and one row per core table for A and B
+  const coreA = await seedCore(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, guardian: u.aGuardian, teacher: u.aTeacher });
+  const coreB = await seedCore(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, guardian: u.bGuardian });
+  const learnerA = coreA.learner;
+  const learnerB = coreB.learner;
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'mother'), ($4, $5, $6, 'father')`, [A.id, u.aGuardian, learnerA, B.id, u.bGuardian, learnerB]);
   // second learner in A belonging to another family: the guardian must not see this link
-  await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'self')`, [A.id, u.aTeacher, id()]);
+  await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'father')`, [A.id, u.aOtherParent, coreA.other]);
+  // a student login linked to itself only (its sibling in the same household is not linked)
+  await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'self')`, [A.id, u.aStudent, learnerA]);
 
   // Per-branch switch: CRM off on a2; an explicit "on" row in B.
   await q(`insert into core.org_branch_products (org_id, branch_id, product_key, enabled) values ($1, $2, 'crm', false), ($3, $4, 'os', true)`, [A.id, A.branches.a2!, B.id, B.branches.b1!]);
@@ -155,5 +168,5 @@ async function build(c: pg.PoolClient) {
     await q(`insert into billing.usage (org_id, product_key, metric, quantity, period_start, period_end) values ($1, 'os', 'ai_credits', 12.5, date_trunc('month', current_date), current_date)`, [o.id]);
   }
 
-  return { A, B, C, D, u, learnerA, learnerB };
+  return { A, B, C, D, u, learnerA, learnerB, coreA, coreB };
 }
