@@ -32,6 +32,7 @@ create table erp.substitutions (
   foreign key (org_id, substitute_staff_id) references core.staff(org_id, id)
 );
 create index substitutions_branch on erp.substitutions(org_id, branch_id);
+create index substitutions_subject on erp.substitutions(org_id, subject_id);
 create index substitutions_section on erp.substitutions(org_id, section_id);
 create index substitutions_absent on erp.substitutions(org_id, absent_staff_id);
 create index substitutions_substitute on erp.substitutions(org_id, substitute_staff_id);
