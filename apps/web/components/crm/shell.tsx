@@ -130,9 +130,11 @@ export function CrmRoot({ children }: { children: ReactNode }) {
         </aside>
         <div className="min-w-0 flex-1">
           <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 sm:px-4">
-            <button type="button" onClick={() => setNavOpen(true)} className="btn px-2.5 md:hidden" aria-label="Open menu" aria-expanded={navOpen} aria-controls="crm-sidebar">
-              ☰
-            </button>
+            <span className="md:hidden">
+              <button type="button" onClick={() => setNavOpen(true)} className="btn px-2.5" aria-label="Open menu" aria-expanded={navOpen} aria-controls="crm-sidebar">
+                ☰
+              </button>
+            </span>
             <button type="button" onClick={() => setPal(true)} className="flex min-w-0 flex-1 items-center justify-between rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 text-left text-slate-600 hover:bg-white md:max-w-md">
               <span className="truncate">Search…</span>
               <kbd className="hidden rounded border border-slate-300 bg-white px-1.5 text-[11px] sm:inline">Ctrl K</kbd>

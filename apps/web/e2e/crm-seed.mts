@@ -2,7 +2,7 @@
  * Demo school for the browser checks (and for looking around): `Greenfield Demo School` with two branches, a starter pack,
  * five people with different roles and about forty enquiries across the pipeline.
  *
- *   DATABASE_URL=postgres://postgres@localhost:54322/crmui CRM_DATABASE_URL=postgres://crm_server@localhost:54322/crmui tsx e2e/crm-seed.ts
+ *   DATABASE_URL=postgres://postgres@localhost:54322/crmui CRM_DATABASE_URL=postgres://crm_server@localhost:54322/crmui tsx e2e/crm-seed.mts
  *
  * Setup is written as the table owner (DATABASE_URL), like a migration; every enquiry goes through the CRM's own capture code
  * as the school's automation user, so the demo data is what the product would have produced. Re-running replaces the school.

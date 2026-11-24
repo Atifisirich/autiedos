@@ -4,7 +4,7 @@
  * check, the family page, calls, the next-action rule, visits, messages, stages, the public form, the walk-in desk,
  * admin (custom field, workflow test run, import with review and undo), reports drill-down, CSV export, the REST API.
  *
- *   tsx e2e/crm-seed.ts                       # once
+ *   tsx e2e/crm-seed.mts                       # once
  *   BASE_URL=http://localhost:3217 node e2e/crm-e2e.mjs
  */
 import { writeFileSync } from 'node:fs';

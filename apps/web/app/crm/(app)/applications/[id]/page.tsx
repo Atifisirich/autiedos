@@ -53,8 +53,8 @@ export default function ApplicationPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_24rem]">
-          <section className="card" aria-label="Form answers">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
+          <section className="card min-w-0" aria-label="Form answers">
             <div className="card-h">
               <h2>Form answers</h2>
               <span className="muted font-normal">{app.status === 'submitted' ? `Submitted ${fmtDate(app.submitted_at)}` : `${app.progress}% complete`}</span>
@@ -76,7 +76,7 @@ export default function ApplicationPage() {
               />
               {app.status !== 'submitted' && (
                 <p className="muted mt-3 text-xs">
-                  Parent link: <code className="select-all">{d.applyUrl}</code>
+                  Parent link: <code className="select-all break-all">{d.applyUrl}</code>
                 </p>
               )}
             </div>
@@ -139,7 +139,7 @@ export default function ApplicationPage() {
                       </span>
                       <Badge tone={p.status === 'paid' ? 'green' : p.status === 'failed' ? 'rose' : 'amber'}>{p.status === 'pending' && p.mode !== 'link' ? 'To verify' : p.status[0].toUpperCase() + p.status.slice(1)}</Badge>
                     </div>
-                    <p className="muted text-xs">
+                    <p className="muted break-all text-xs">
                       {String(p.mode).replace('_', ' ')}
                       {p.receipt_no ? ` · receipt ${p.receipt_no}` : ''}
                       {p.link ? ` · link ${p.link}` : ''}

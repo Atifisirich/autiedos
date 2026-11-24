@@ -87,13 +87,13 @@ export default function Home() {
         <Stat label="Visits today" value={h.visits.length} href="/crm/visits" />
         {shell.scope === 'own' ? <Stat label="My admissions this year" value={h.mine.won} sub={`${h.mine.open} open · ${h.mine.week} new this week`} tone="good" href="/crm/leads?chip=my&won=1" /> : <Stat label="Unread parent replies" value={h.replies.length} href="/crm/inbox" />}
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="min-w-0 space-y-4">
           <List title="Overdue" rows={overdue} tone="text-rose-700" />
           <List title="Due now" rows={dueNow} />
           <List title="Later today and tomorrow" rows={later} />
         </div>
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <section className="card" aria-label="New leads awaiting first response">
             <div className="card-h">
               <h2>New leads awaiting first response</h2>

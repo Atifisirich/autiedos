@@ -3,7 +3,7 @@
  *
  *   BASE_URL     the running web app (default http://localhost:3000); start it with the CRM environment
  *                (CRM_DATABASE_URL, JOB_DATABASE_URL, AUTH_JWT_SECRET, AUTH_PROVIDER=dev, DEMO_PAYMENTS=1)
- *   CRM_SEED     the people from `tsx e2e/crm-seed.ts` (admin@demo.test, meera@demo.test, ...)
+ *   CRM_SEED     the people from `tsx e2e/crm-seed.mts` (admin@demo.test, meera@demo.test, ...)
  *   OUT_DIR      where screenshots go (default /tmp/crm-shots)
  *
  * Playwright comes from the project when installed there, else from the machine (NODE_PATH or /opt/node-tools).

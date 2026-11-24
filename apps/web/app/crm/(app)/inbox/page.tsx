@@ -41,7 +41,7 @@ function Inbox() {
           </Link>
         ))}
       </div>
-      <div className="grid gap-4 lg:grid-cols-[20rem_1fr_16rem]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[20rem_minmax(0,1fr)_16rem]">
         <section className="card max-h-[72vh] overflow-y-auto" aria-label="Conversations">
           {!r.list.length && <Empty title="No conversations here">New WhatsApp chats on the school number appear here and are matched to a household.</Empty>}
           {r.list.map((c) => {

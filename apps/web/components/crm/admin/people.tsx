@@ -3,11 +3,17 @@ import { useState } from 'react';
 import { act, formObj } from '@/lib/crm/api';
 import { fmtDate } from '@/lib/crm/fmt';
 import { Badge, DOTS, Field } from '../ui';
+import { useShell } from '../shell';
 import { AForm, CardSection, multi, useAdmin, type Row } from './common';
 
 // ---------------------------------------------------------------- organisation, branches, years, seats
 export function Org() {
-  const { data: d, gate, reload } = useAdmin<Row>('/admin/org');
+  const { data: d, gate, reload: reloadOrg } = useAdmin<Row>('/admin/org');
+  const { reload: reloadShell } = useShell();
+  const reload = () => {
+    reloadOrg();
+    reloadShell();
+  };
   if (gate) return gate;
   const s = d!.settings;
   return (

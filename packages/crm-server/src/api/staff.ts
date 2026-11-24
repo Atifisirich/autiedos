@@ -119,7 +119,7 @@ on('GET', '/home', ({ req }) =>
              from crm.staff_v u left join crm.enquiries e on e.org_id = u.org_id and e.owner_id = u.id and e.academic_year_id = $2
              left join crm.stages s on s.org_id = e.org_id and s.id = e.stage_id left join crm.phases p on p.org_id = s.org_id and p.id = s.phase_id
             where u.org_id = $1 and u.active and u.permissions->>'leads' = 'O' ${ctx.branchIds.length ? "and (u.branch_ids = '[]'::jsonb or u.branch_ids ?| array(select jsonb_array_elements_text($3::jsonb)))" : ''}
-            group by u.id, u.name, u.on_leave order by u.name`,
+            group by u.org_id, u.id, u.name, u.on_leave order by u.name`,
           ctx.branchIds.length ? [org, ctx.yearId, ctx.branchIds] : [org, ctx.yearId],
         )
         : Promise.resolve([]),
@@ -577,8 +577,9 @@ on('POST', '/leads/:id/details', async ({ req, p, b }) => {
       const k = 'cf_' + f.key;
       if (!has_(k) || (f.sensitive && !seesSensitive(ctx.perms))) continue;
       const v = str(b[k]);
-      const cur = f.sensitive ? undefined : (custom[f.key] ?? '');
-      if (!f.sensitive && (cur ?? '') === v) continue;
+      // the person may see this value (checked above), so the real one is compared; the log and audit never carry a sensitive value
+      const real = String((e.custom_full ?? e.custom ?? {})[f.key] ?? '');
+      if (real === v) continue;
       if (f.sensitive && !v) continue;
       before[f.key] = f.sensitive ? mask('x') : custom[f.key] ?? null; after[f.key] = f.sensitive ? mask('x') : v; custom[f.key] = v; changes.push(f.label);
     }

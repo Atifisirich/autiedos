@@ -233,8 +233,8 @@ function Household() {
         onDone={done}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
-        <section className="card" aria-label="Timeline">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <section className="card min-w-0" aria-label="Timeline">
           <div className="card-h">
             <h2>
               Timeline <span className="muted font-normal">all children, all channels</span>
@@ -271,7 +271,7 @@ function Household() {
                         {a.actor ?? (a.meta?.direction === 'in' ? g?.name : 'Automatic')} · {fmtDateTime(a.created_at)}
                       </span>
                     </div>
-                    <p className={`mt-0.5 whitespace-pre-wrap ${failed ? 'font-medium text-rose-700' : 'text-slate-900'}`}>{a.content}</p>
+                    <p className={`mt-0.5 whitespace-pre-wrap break-words ${failed ? 'font-medium text-rose-700' : 'text-slate-900'}`}>{a.content}</p>
                     {failed && a.meta?.body && <p className="muted mt-0.5 text-xs">Message was: {a.meta.body}</p>}
                   </div>
                 </li>
@@ -280,7 +280,7 @@ function Household() {
           </ol>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <section className="card" aria-label="Tasks">
             <div className="card-h">
               <h2>Tasks</h2>
@@ -339,7 +339,7 @@ function Household() {
                     <input disabled value={cur.custom?.[f.key] ? '••••••' : ''} className="input" title="Hidden for your role" aria-label={`${f.label} (hidden for your role)`} />
                   </label>
                 ) : (
-                  <F key={f.key} label={f.label} name={'cf_' + f.key} value={f.sensitive ? '' : cur.custom?.[f.key]} options={f.type === 'select' ? f.options : undefined} />
+                  <F key={f.key} label={f.label} name={'cf_' + f.key} value={cur.custom?.[f.key]} options={f.type === 'select' ? f.options : undefined} />
                 ),
               )}
               <p className="pt-2 text-xs font-semibold text-slate-700">Parent and home</p>

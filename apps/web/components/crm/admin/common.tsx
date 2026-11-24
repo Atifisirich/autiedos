@@ -57,7 +57,7 @@ export function CardSection({ title, children, actions, className = '' }: { titl
         <h2>{title}</h2>
         {actions}
       </div>
-      {children}
+      <div className="min-w-0 overflow-x-auto">{children}</div>
     </section>
   );
 }
