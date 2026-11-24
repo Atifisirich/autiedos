@@ -21,7 +21,7 @@ import {
   type RosterStaff,
   type AppraisalComponent,
 } from '@autoed/shared';
-import { ForbiddenError, NotFoundError, ValidationError, insert, insertMany, maybe, one, q, update, type Tx } from '../db';
+import { ForbiddenError, NotFoundError, ValidationError, insert, maybe, one, q, update, type Tx } from '../db';
 import { need, needModule, rank, run, staffWithRole, workCalendar, localToday, type Ctx } from '../core';
 import { notify } from '../notify';
 import { generate } from './ai';
