@@ -12,7 +12,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run",
+    "test": "vitest run -c vitest.unit.config.ts",
+    "test:db": "vitest run",
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {

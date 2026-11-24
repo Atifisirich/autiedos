@@ -2,7 +2,7 @@
  * scripts/migrate-crm-to-platform.mjs against the CRM's own demo seed.
  *
  * Needs a source database holding the CRM schema `autoed` loaded with the CRM's seed (see docs/crm-port.md, "Runbook"):
- *   SOURCE_DATABASE_URL=postgres://postgres@localhost:54322/crmsource pnpm --filter @autoed/crm-server test
+ *   SOURCE_DATABASE_URL=postgres://postgres@localhost:54322/crmsource pnpm test:crm
  * Without SOURCE_DATABASE_URL the suite is skipped (CI has no CRM source database).
  */
 import { execFileSync } from 'node:child_process';
