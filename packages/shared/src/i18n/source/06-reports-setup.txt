@@ -593,3 +593,22 @@ notif.task.esc.reminder | Reminder: "{title}" is due soon | अनुस्म�
 notif.task.esc.due | "{title}" is due now | "{title}" की समय सीमा अभी है | "{title}" గడువు ఇప్పుడే
 notif.task.esc.overdue_assigner | Overdue: "{title}" has not been completed | समय सीमा पार: "{title}" पूरा नहीं हुआ | గడువు దాటింది: "{title}" పూర్తి కాలేదు
 notif.task.esc.overdue_manager | Overdue for a long time: "{title}" | बहुत देर से बाकी: "{title}" | చాలాకాలంగా గడువు దాటింది: "{title}"
+col.applies_to | Applies to | किस पर लागू | దేనికి వర్తిస్తుంది
+col.encashable | Encashable | नकदीकरण योग्य | నగదుగా మార్చదగినది
+col.owner_role_key | Owner role | स्वामी भूमिका | బాధ్యత పాత్ర
+col.weight | Weight | भार | బరువు
+col.audience | Audience | दर्शक | ప్రేక్షకులు
+col.role_keys | Roles | भूमिकाएँ | పాత్రలు
+col.settings | Settings | सेटिंग्स | సెట్టింగ్‌లు
+col.edit_window_hours | Edit window (hours) | संपादन अवधि (घंटे) | సవరణ వ్యవధి (గంటలు)
+col.locale | Language | भाषा | భాష
+col.singular | Singular | एकवचन | ఏకవచనం
+col.plural | Plural | बहुवचन | బహువచనం
+col.is_teaching | Teaching | शिक्षण | బోధన
+col.bookable | Bookable | बुक करने योग्य | బుక్ చేయదగినది
+col.stage | Stage | स्टेज | దశ
+col.stream | Stream | स्ट्रीम | స్ట్రీమ్
+col.programme_id | Class | कक्षा | తరగతి
+col.academic_year_id | Academic year | शैक्षणिक वर्ष | విద్యా సంవత్సరం
+plan.osNotIncluded | AutoEd OS is not part of your plan | AutoEd OS आपकी योजना में शामिल नहीं है | AutoEd OS మీ ప్లాన్‌లో భాగం కాదు
+plan.osNotIncludedBody | {org} does not have AutoEd OS, or you have not been given access to it. Please contact your school administrator. | {org} के पास AutoEd OS नहीं है, या आपको इसकी पहुँच नहीं दी गई है। कृपया अपने विद्यालय प्रशासक से संपर्क करें। | {org} వద్ద AutoEd OS లేదు, లేదా మీకు దానికి ప్రవేశం ఇవ్వలేదు. దయచేసి మీ పాఠశాల నిర్వాహకుడిని సంప్రదించండి.

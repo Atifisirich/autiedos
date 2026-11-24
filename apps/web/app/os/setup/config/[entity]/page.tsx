@@ -7,7 +7,7 @@ import { useLookups, type Lookups } from '@/lib/lookups';
 import { cell } from '@/components/auto-table';
 import { Button, Card, Checkbox, DateText, ErrorBox, Field, Input, Modal, PageHeader, Select, Table, Textarea, useAction } from '@/components/ui';
 
-const REF: Record<string, keyof Lookups> = { role_id: 'roles', default_role_id: 'roles', owner_role_id: 'roles', staff_id: 'staff', head_staff_id: 'staff', owner_staff_id: 'staff', class_teacher_id: 'staff', wing_id: 'wings', class_id: 'classes', subject_id: 'subjects', department_id: 'departments', room_id: 'rooms', position_id: 'positions' };
+const REF: Record<string, keyof Lookups> = { role_id: 'roles', default_role_id: 'roles', owner_role_id: 'roles', staff_id: 'staff', head_staff_id: 'staff', owner_staff_id: 'staff', class_teacher_id: 'staff', wing_id: 'wings', programme_id: 'classes', subject_id: 'subjects', department_id: 'departments', room_id: 'rooms', position_id: 'positions' };
 const BOOL = /^(is_|default_verification|carry_forward$|half_day_allowed|optional|urgent|enabled|required|notify_|mandatory|cost_approval)/;
 const NUM = /(_minutes|_hours|quota|_max|^seq$|rank|capacity|strength|grade_level|periods|staff_needed|overlaps_period_seq|days_before|due_weekday|_days$|radius)/;
 const JSONCOL = /^(domains|scale|sections|header|channels|recipients|options|task_pack|committees|checklist|budget_lines|data|profile|review_steps|steps)$/;

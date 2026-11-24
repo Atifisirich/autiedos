@@ -13,7 +13,7 @@ export default function Exams() {
   const list = useApi<any[]>('/exams');
   const a = useAction();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ name: '', exam_type_id: '', starts_on: '', ends_on: '', class_ids: [] as string[] });
+  const [f, setF] = useState({ name: '', exam_type_id: '', starts_on: '', ends_on: '', programme_ids: [] as string[] });
   return (
     <div>
       <PageHeader title={t('nav.exams')} actions={<><LinkButton variant="secondary" href="/os/exams/papers">{t('exams.papers')}</LinkButton><LinkButton variant="secondary" href="/os/exams/blueprints">{t('exams.blueprints')}</LinkButton>{can('exams', 'create') && <Button onClick={() => setOpen(true)}>{t('exams.new')}</Button>}</>} />
@@ -29,12 +29,12 @@ export default function Exams() {
             <Field label={t('leave.to')}><Input type="date" value={f.ends_on} onChange={(e) => setF({ ...f, ends_on: e.target.value })} /></Field>
           </Grid>
           <Field label={t('common.class')}>
-            <select multiple className="h-32 w-full rounded-md border border-slate-300 p-1 text-sm" value={f.class_ids} onChange={(e) => setF({ ...f, class_ids: [...e.target.selectedOptions].map((o) => o.value) })}>
+            <select multiple className="h-32 w-full rounded-md border border-slate-300 p-1 text-sm" value={f.programme_ids} onChange={(e) => setF({ ...f, programme_ids: [...e.target.selectedOptions].map((o) => o.value) })}>
               {(lk?.classes ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </Field>
           <ErrorBox error={a.error} />
-          <Button disabled={a.busy || !f.name || !f.starts_on || !f.ends_on || !f.class_ids.length} onClick={async () => { const r = await a.run(() => post<{ id: string }>('/exams', { ...f, exam_type_id: f.exam_type_id || null })); if (r) router.push(`/os/exams/${r.id}`); }}>{t('common.save')}</Button>
+          <Button disabled={a.busy || !f.name || !f.starts_on || !f.ends_on || !f.programme_ids.length} onClick={async () => { const r = await a.run(() => post<{ id: string }>('/exams', { ...f, exam_type_id: f.exam_type_id || null })); if (r) router.push(`/os/exams/${r.id}`); }}>{t('common.save')}</Button>
         </div>
       </Modal>
     </div>

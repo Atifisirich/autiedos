@@ -12,7 +12,7 @@ export default function ExamDetail({ params }: { params: Promise<{ id: string }>
   const lk = useLookups();
   const x = useApi<any>(`/exams/${id}`);
   const a = useAction();
-  const [s, setS] = useState({ class_id: '', subject_id: '', date: '', starts_at: '09:00', ends_at: '12:00', room_ids: [] as string[] });
+  const [s, setS] = useState({ programme_id: '', subject_id: '', date: '', starts_at: '09:00', ends_at: '12:00', room_ids: [] as string[] });
   const [seat, setSeat] = useState({ date: '', room_ids: [] as string[] });
   const [swapWith, setSwapWith] = useState<Record<string, string>>({});
   if (!x.data) return x.error ? <ErrorBox error={x.error} /> : <Loading />;
@@ -26,13 +26,13 @@ export default function ExamDetail({ params }: { params: Promise<{ id: string }>
           {can('exams', 'edit') && (
             <div className="mt-3 space-y-2">
               <Grid cols={4}>
-                <Field label={t('common.class')}><Select value={s.class_id} onChange={(e) => setS({ ...s, class_id: e.target.value })} placeholder={t('common.choose')} options={opts(lk?.classes.filter((c) => x.data.exam.class_ids?.includes(c.id) ?? true), (c) => c.name)} /></Field>
+                <Field label={t('common.class')}><Select value={s.programme_id} onChange={(e) => setS({ ...s, programme_id: e.target.value })} placeholder={t('common.choose')} options={opts(lk?.classes.filter((c) => x.data.exam.programme_ids?.includes(c.id) ?? true), (c) => c.name)} /></Field>
                 <Field label={t('common.subject')}><Select value={s.subject_id} onChange={(e) => setS({ ...s, subject_id: e.target.value })} placeholder={t('common.choose')} options={opts(lk?.subjects, (c) => c.name)} /></Field>
                 <Field label={t('common.date')}><Input type="date" value={s.date} onChange={(e) => setS({ ...s, date: e.target.value })} /></Field>
                 <Field label={t('common.time')}><div className="flex gap-1"><Input type="time" aria-label={t('exams.start')} value={s.starts_at} onChange={(e) => setS({ ...s, starts_at: e.target.value })} /><Input type="time" aria-label={t('exams.end')} value={s.ends_at} onChange={(e) => setS({ ...s, ends_at: e.target.value })} /></div></Field>
               </Grid>
               <Field label={t('exams.rooms')}><select multiple aria-label={t('exams.rooms')} className="h-24 w-full rounded-md border border-slate-300 p-1 text-sm" value={s.room_ids} onChange={(e) => setS({ ...s, room_ids: [...e.target.selectedOptions].map((o) => o.value) })}>{rooms}</select></Field>
-              <Button disabled={!s.class_id || !s.subject_id || !s.date || a.busy} onClick={async () => (await a.run(() => post('/exams/schedules', { exam_id: id, ...s }))) && x.reload()}>{t('exams.addPaper')}</Button>
+              <Button disabled={!s.programme_id || !s.subject_id || !s.date || a.busy} onClick={async () => (await a.run(() => post('/exams/schedules', { exam_id: id, ...s }))) && x.reload()}>{t('exams.addPaper')}</Button>
             </div>
           )}
         </Card>
@@ -52,7 +52,7 @@ export default function ExamDetail({ params }: { params: Promise<{ id: string }>
           {x.data.seating.map((sp: any) => (
             <details key={sp.id} className="mb-2 text-sm">
               <summary><DateText value={sp.date} /> · {sp.room_name}</summary>
-              <div className="mt-1 grid grid-cols-4 gap-1 sm:grid-cols-8">{(sp.layout ?? []).map((seatRow: any, i: number) => <div key={i} className="rounded border border-slate-200 p-1 text-[10px]">{seatRow.seat} · {lk?.classes.find((c) => c.id === seatRow.class_id)?.name ?? ''}</div>)}</div>
+              <div className="mt-1 grid grid-cols-4 gap-1 sm:grid-cols-8">{(sp.layout ?? []).map((seatRow: any, i: number) => <div key={i} className="rounded border border-slate-200 p-1 text-[10px]">{seatRow.seat} · {lk?.classes.find((c) => c.id === seatRow.programme_id)?.name ?? ''}</div>)}</div>
             </details>
           ))}
         </Card>

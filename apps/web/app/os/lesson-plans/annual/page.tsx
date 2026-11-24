@@ -13,9 +13,9 @@ export default function AnnualPlan() {
   const [classId, setClassId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [useAi, setUseAi] = useState(false);
-  const section = lk?.sections.find((s) => s.class_id === classId)?.id ?? '';
+  const section = lk?.sections.find((s) => s.programme_id === classId)?.id ?? '';
   const { curriculumSubjectId, chapters } = useCurriculum(lk, section, subjectId);
-  const plan = useApi<any>(classId && subjectId ? `/annual-plans?class_id=${classId}&subject_id=${subjectId}` : null);
+  const plan = useApi<any>(classId && subjectId ? `/annual-plans?programme_id=${classId}&subject_id=${subjectId}` : null);
   const a = useAction();
   const [edits, setEdits] = useState<Record<string, { planned_start: string; planned_end: string; planned_periods: number }>>({});
   const saveItem = async (r: any) => {
@@ -36,7 +36,7 @@ export default function AnnualPlan() {
             <p>{t('plans.noAnnual')}</p>
             {chapters?.length === 0 && <p className="text-amber-700">{t('plans.noCurriculum')}</p>}
             <Checkbox label={t('plans.useAi')} checked={useAi} onChange={(e) => setUseAi(e.target.checked)} />
-            <Button disabled={!curriculumSubjectId || a.busy} onClick={async () => (await a.run(() => post('/annual-plans', { class_id: classId, subject_id: subjectId, curriculum_subject_id: curriculumSubjectId, use_ai: useAi }))) && plan.reload()}>{t('plans.generateAnnual')}</Button>
+            <Button disabled={!curriculumSubjectId || a.busy} onClick={async () => (await a.run(() => post('/annual-plans', { programme_id: classId, subject_id: subjectId, curriculum_subject_id: curriculumSubjectId, use_ai: useAi }))) && plan.reload()}>{t('plans.generateAnnual')}</Button>
           </div>
         )}
         {plan.data && (

@@ -47,7 +47,7 @@ export default function Incidents() {
             <Field label={t('common.type')}><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} options={TYPES.map((x) => ({ value: x, label: t(`incidentType.${x}`) }))} /></Field>
             <Field label={t('incidents.severity')}><Select value={f.severity} onChange={(e) => setF({ ...f, severity: e.target.value })} options={SEV.map((x) => ({ value: x, label: t(`severity.${x}`) }))} /></Field>
             <Field label={t('common.when')}><Input type="datetime-local" value={f.occurred_at} onChange={(e) => setF({ ...f, occurred_at: e.target.value })} /></Field>
-            <Field label={t('common.section')}><Select value={f.section} onChange={(e) => setF({ ...f, section: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.sections, (s) => `${lk!.classes.find((c) => c.id === s.class_id)?.name} ${s.name}`)} /></Field>
+            <Field label={t('common.section')}><Select value={f.section} onChange={(e) => setF({ ...f, section: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.sections, (s) => `${lk!.classes.find((c) => c.id === s.programme_id)?.name} ${s.name}`)} /></Field>
             <Field label={t('exams.room')}><Select value={f.room_id} onChange={(e) => setF({ ...f, room_id: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.rooms, (r) => r.name)} /></Field>
             <Field label={t('helpdesk.location')}><Input value={f.location_text} onChange={(e) => setF({ ...f, location_text: e.target.value })} /></Field>
           </Grid>

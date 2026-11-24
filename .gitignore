@@ -5,7 +5,9 @@ dist
 *.tsbuildinfo
 .env
 .env.local
-coverage
+/coverage
+packages/*/coverage/
+apps/*/coverage/
 test-results
 playwright-report
 .turbo
