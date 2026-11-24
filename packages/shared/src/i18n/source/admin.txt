@@ -1,0 +1,394 @@
+# key | English | Hindi | Telugu
+# Platform admin console (AutoEd staff). English is the source text; Hindi and Telugu are a best-effort first
+# translation that NEEDS REVIEW BY A NATIVE SPEAKER before staff use them. Terms such as GST, GSTIN, SAC, CGST, SGST
+# and IGST are kept as they appear on Indian tax invoices.
+console.app.name | AutoEd Admin | AutoEd एडमिन | AutoEd అడ్మిన్
+console.skipToContent | Skip to main content | मुख्य सामग्री पर जाएँ | ప్రధాన కంటెంట్‌కు వెళ్లండి
+console.nav.label | Console sections | कंसोल अनुभाग | కన్సోల్ విభాగాలు
+console.nav.clients | Clients | क्लाइंट | క్లయింట్లు
+console.nav.audit | Audit log | ऑडिट लॉग | ఆడిట్ లాగ్
+console.nav.plans | Plans | प्लान | ప్లాన్లు
+console.nav.support | Support access | सपोर्ट एक्सेस | సపోర్ట్ యాక్సెస్
+console.language | Language | भाषा | భాష
+console.signOut | Sign out | साइन आउट | సైన్ అవుట్
+console.loading | Loading… | लोड हो रहा है… | లోడ్ అవుతోంది…
+console.empty | Nothing here yet. | यहाँ अभी कुछ नहीं है। | ఇక్కడ ఇంకా ఏమీ లేదు.
+console.none | None | कोई नहीं | ఏదీ లేదు
+console.all | All | सभी | అన్నీ
+console.yes | Yes | हाँ | అవును
+console.no | No | नहीं | కాదు
+console.back | Back to clients | क्लाइंट सूची पर वापस | క్లయింట్ల జాబితాకు తిరిగి
+console.save | Save | सहेजें | సేవ్ చేయండి
+console.saving | Saving… | सहेजा जा रहा है… | సేవ్ అవుతోంది…
+console.saved | Saved. | सहेज लिया गया। | సేవ్ చేయబడింది.
+console.cancel | Cancel | रद्द करें | రద్దు చేయండి
+console.edit | Edit | संपादित करें | సవరించండి
+console.actions | Actions | कार्रवाइयाँ | చర్యలు
+console.filters | Filters | फ़िल्टर | ఫిల్టర్లు
+console.reason | Reason | कारण | కారణం
+console.reason.hint | Required. Written to the audit log with your name. | आवश्यक। आपके नाम के साथ ऑडिट लॉग में दर्ज होगा। | తప్పనిసరి. మీ పేరుతో పాటు ఆడిట్ లాగ్‌లో నమోదు అవుతుంది.
+console.createdOn | Created {date} | बनाया गया {date} | సృష్టించినది {date}
+console.lastLogin | Last sign-in {date} | अंतिम साइन-इन {date} | చివరి సైన్-ఇన్ {date}
+console.login.title | Platform admin sign-in | प्लेटफ़ॉर्म एडमिन साइन-इन | ప్లాట్‌ఫామ్ అడ్మిన్ సైన్-ఇన్
+console.login.subtitle | For AutoEd staff only. | केवल AutoEd स्टाफ़ के लिए। | AutoEd సిబ్బందికి మాత్రమే.
+console.login.email | Work e-mail | कार्य ईमेल | వర్క్ ఇమెయిల్
+console.login.code | Code from the e-mail | ईमेल में मिला कोड | ఇమెయిల్‌లో వచ్చిన కోడ్
+console.login.signIn | Sign in | साइन इन करें | సైన్ ఇన్ చేయండి
+console.login.sendCode | Send code | कोड भेजें | కోడ్ పంపండి
+console.login.verify | Verify and sign in | सत्यापित करें और साइन इन करें | ధృవీకరించి సైన్ ఇన్ చేయండి
+console.login.failed | Sign-in failed. Check the e-mail and code, or ask the owner to add you as a platform admin. | साइन-इन विफल रहा। ईमेल और कोड जाँचें, या मालिक से अपने को प्लेटफ़ॉर्म एडमिन बनाने को कहें। | సైన్-ఇన్ విఫలమైంది. ఇమెయిల్, కోడ్ తనిఖీ చేయండి లేదా ప్లాట్‌ఫామ్ అడ్మిన్‌గా చేర్చమని యజమానిని అడగండి.
+console.viewAs.banner | Viewing as {org}. {minutes} minutes left. | {org} के रूप में देख रहे हैं। {minutes} मिनट बाकी। | {org} గా చూస్తున్నారు. {minutes} నిమిషాలు మిగిలి ఉన్నాయి.
+console.viewAs.readOnly | Read-only. | केवल देखने के लिए। | చదవడం మాత్రమే.
+console.viewAs.readWrite | Changes allowed. | बदलाव की अनुमति है। | మార్పులకు అనుమతి ఉంది.
+console.viewAs.reasonIs | Reason: {reason} | कारण: {reason} | కారణం: {reason}
+console.viewAs.openClient | Open client | क्लाइंट खोलें | క్లయింట్‌ను తెరవండి
+console.viewAs.end | End session | सत्र समाप्त करें | సెషన్ ముగించండి
+console.clients.title | Clients | क्लाइंट | క్లయింట్లు
+console.clients.subtitle | Schools, coaching centres and colleges using AutoEd, with their health. | AutoEd इस्तेमाल करने वाले स्कूल, कोचिंग केंद्र और कॉलेज, उनकी स्थिति के साथ। | AutoEd వాడుతున్న పాఠశాలలు, కోచింగ్ కేంద్రాలు, కళాశాలలు మరియు వాటి స్థితి.
+console.clients.new | New client | नया क्लाइंट | కొత్త క్లయింట్
+console.clients.search | Search by name | नाम से खोजें | పేరుతో వెతకండి
+console.clients.status | Status | स्थिति | స్థితి
+console.clients.health | Health | स्वास्थ्य | ఆరోగ్య స్థితి
+console.clients.product | Product | उत्पाद | ఉత్పత్తి
+console.clients.products | Products | उत्पाद | ఉత్పత్తులు
+console.clients.name | Client | क्लाइंट | క్లయింట్
+console.clients.users | Users | उपयोगकर्ता | వినియోగదారులు
+console.clients.usersCount | {active} active of {total} | {total} में से {active} सक्रिय | {total} లో {active} క్రియాశీలం
+console.clients.lastLogin | Last sign-in | अंतिम साइन-इन | చివరి సైన్-ఇన్
+console.clients.tick | Apply billing time rules | बिलिंग के समय-नियम लागू करें | బిల్లింగ్ సమయ నియమాలను వర్తింపజేయండి
+console.clients.tickDone | Time rules applied: {count} subscriptions changed. | समय-नियम लागू किए: {count} सदस्यताएँ बदलीं। | సమయ నియమాలు వర్తింపజేయబడ్డాయి: {count} సభ్యత్వాలు మారాయి.
+console.clients.empty | No clients match. | कोई क्लाइंट नहीं मिला। | సరిపోలే క్లయింట్లు లేరు.
+console.clientStatus.active | Active | सक्रिय | క్రియాశీలం
+console.clientStatus.suspended | Suspended | निलंबित | నిలిపివేయబడింది
+console.overview.clients | Clients | क्लाइंट | క్లయింట్లు
+console.overview.suspended | Suspended | निलंबित | నిలిపివేయబడినవి
+console.overview.critical | Critical | गंभीर | తీవ్రం
+console.overview.attention | Need attention | ध्यान चाहिए | శ్రద్ధ కావాలి
+console.overview.openSessions | Open view-as sessions | खुले व्यू-एज़ सत्र | తెరిచి ఉన్న వ్యూ-యాజ్ సెషన్లు
+console.health.ok | Healthy | ठीक | బాగుంది
+console.health.attention | Needs attention | ध्यान चाहिए | శ్రద్ధ కావాలి
+console.health.critical | Critical | गंभीर | తీవ్రం
+console.health.reason.client_suspended | client suspended | क्लाइंट निलंबित | క్లయింట్ నిలిపివేయబడింది
+console.health.reason.no_active_product | no product is on | कोई उत्पाद चालू नहीं | ఏ ఉత్పత్తీ ఆన్‌లో లేదు
+console.health.reason.access_expired | access period over | पहुँच की अवधि समाप्त | యాక్సెస్ కాలం ముగిసింది
+console.health.reason.no_subscription | no product yet | अभी कोई उत्पाद नहीं | ఇంకా ఉత్పత్తి లేదు
+console.health.reason.past_due | payment overdue | भुगतान बकाया | చెల్లింపు బాకీ ఉంది
+console.health.reason.product_off | a product is off | एक उत्पाद बंद है | ఒక ఉత్పత్తి ఆఫ్‌లో ఉంది
+console.health.reason.trial_ending | trial ends within 7 days | ट्रायल 7 दिन में समाप्त | ట్రయల్ 7 రోజుల్లో ముగుస్తుంది
+console.health.reason.locked_users | locked users | लॉक किए गए उपयोगकर्ता | లాక్ చేసిన వినియోగదారులు
+console.health.reason.no_active_user | nobody has accepted the invite | किसी ने आमंत्रण स्वीकार नहीं किया | ఎవరూ ఆహ్వానం అంగీకరించలేదు
+console.health.reason.inactive | no recent sign-ins | हाल में कोई साइन-इन नहीं | ఇటీవల సైన్-ఇన్‌లు లేవు
+console.product.crm | CRM | CRM | CRM
+console.product.os | OS | OS | OS
+console.product.erp | ERP | ERP | ERP
+console.kind.school | School | स्कूल | పాఠశాల
+console.kind.coaching_centre | Coaching centre | कोचिंग केंद्र | కోచింగ్ కేంద్రం
+console.kind.college | College | कॉलेज | కళాశాల
+console.kind.other | Other | अन्य | ఇతర
+console.locale.en | English | अंग्रेज़ी | ఇంగ్లీష్
+console.locale.hi | Hindi | हिन्दी | హిందీ
+console.locale.te | Telugu | तेलुगु | తెలుగు
+console.sub.status.trial | Trial | ट्रायल | ట్రయల్
+console.sub.status.active | Active | सक्रिय | క్రియాశీలం
+console.sub.status.past_due | Past due | बकाया | బాకీ ఉంది
+console.sub.status.suspended | Suspended | निलंबित | నిలిపివేయబడింది
+console.sub.status.cancelled | Cancelled | रद्द | రద్దు చేయబడింది
+console.new.title | New client | नया क्लाइंट | కొత్త క్లయింట్
+console.new.subtitle | Creates the organisation, its first branch, the products and the first admin invitation in one step. | एक ही चरण में संस्था, उसकी पहली शाखा, उत्पाद और पहले एडमिन का आमंत्रण बनाता है। | ఒకే దశలో సంస్థ, మొదటి శాఖ, ఉత్పత్తులు మరియు మొదటి అడ్మిన్ ఆహ్వానాన్ని సృష్టిస్తుంది.
+console.new.client | Client | क्लाइंट | క్లయింట్
+console.new.firstBranch | First branch | पहली शाखा | మొదటి శాఖ
+console.new.products | Products | उत्पाद | ఉత్పత్తులు
+console.new.products.hint | Clients buy whole products. Choose what they start with. | क्लाइंट पूरे उत्पाद खरीदते हैं। चुनें कि वे किससे शुरू करें। | క్లయింట్లు పూర్తి ఉత్పత్తులను కొంటారు. ఏది మొదలుపెట్టాలో ఎంచుకోండి.
+console.new.includeProduct | Include this product | यह उत्पाद शामिल करें | ఈ ఉత్పత్తిని చేర్చండి
+console.new.firstAdmin | First admin | पहला एडमिन | మొదటి అడ్మిన్
+console.new.firstAdmin.hint | They get an invitation by e-mail and the admin role in every product above. One person belongs to one client only. | उन्हें ईमेल से आमंत्रण और ऊपर के हर उत्पाद में एडमिन भूमिका मिलती है। एक व्यक्ति केवल एक क्लाइंट का हो सकता है। | వారికి ఇమెయిల్‌లో ఆహ్వానం మరియు పై ప్రతి ఉత్పత్తిలో అడ్మిన్ పాత్ర లభిస్తుంది. ఒక వ్యక్తి ఒక క్లయింట్‌కు మాత్రమే చెందుతారు.
+console.new.billing | Billing profile | बिलिंग प्रोफ़ाइल | బిల్లింగ్ ప్రొఫైల్
+console.new.billing.add | Add the billing profile now | अभी बिलिंग प्रोफ़ाइल जोड़ें | ఇప్పుడే బిల్లింగ్ ప్రొఫైల్ జోడించండి
+console.new.billing.needState | Choose the branch state above: it is the place of supply for GST. | ऊपर शाखा का राज्य चुनें: यही GST के लिए आपूर्ति का स्थान है। | పైన శాఖ రాష్ట్రాన్ని ఎంచుకోండి: ఇది GST కోసం సరఫరా స్థలం.
+console.new.create | Create client | क्लाइंट बनाएँ | క్లయింట్‌ను సృష్టించండి
+console.new.pickProduct | Choose at least one product. | कम से कम एक उत्पाद चुनें। | కనీసం ఒక ఉత్పత్తిని ఎంచుకోండి.
+console.field.name | Name | नाम | పేరు
+console.field.slug | Short name for the web address | वेब पते के लिए छोटा नाम | వెబ్ చిరునామా కోసం చిన్న పేరు
+console.field.slug.hint | Lower-case letters, digits and hyphens. | छोटे अक्षर, अंक और हाइफ़न। | చిన్న అక్షరాలు, అంకెలు మరియు హైఫన్లు.
+console.field.kind | Type | प्रकार | రకం
+console.field.legalName | Legal name | कानूनी नाम | చట్టపరమైన పేరు
+console.field.locale | Default language | डिफ़ॉल्ट भाषा | డిఫాల్ట్ భాష
+console.field.branchName | Branch name | शाखा का नाम | శాఖ పేరు
+console.field.branchCode | Branch code | शाखा कोड | శాఖ కోడ్
+console.field.city | City | शहर | నగరం
+console.field.state | State | राज्य | రాష్ట్రం
+console.field.state.hint | GST state code; decides CGST + SGST or IGST. | GST राज्य कोड; CGST + SGST या IGST तय करता है। | GST రాష్ట్ర కోడ్; CGST + SGST లేదా IGST నిర్ణయిస్తుంది.
+console.field.startAs | Start as | शुरू करें | ఇలా ప్రారంభించండి
+console.field.plan | Plan | प्लान | ప్లాన్
+console.field.noPlan | No plan yet | अभी कोई प्लान नहीं | ఇంకా ప్లాన్ లేదు
+console.field.seats | Seats | सीटें | సీట్లు
+console.field.endsOn | Access until | पहुँच की अंतिम तारीख | యాక్సెస్ చివరి తేదీ
+console.field.trialDays | Trial days | ट्रायल के दिन | ట్రయల్ రోజులు
+console.field.trialDays.hint | Empty uses the default. | खाली रखने पर डिफ़ॉल्ट लगेगा। | ఖాళీగా ఉంటే డిఫాల్ట్ వర్తిస్తుంది.
+console.field.adminName | Full name | पूरा नाम | పూర్తి పేరు
+console.field.adminEmail | E-mail | ईमेल | ఇమెయిల్
+console.field.gstin | GSTIN | GSTIN | GSTIN
+console.field.gstin.hint | 15 characters; its first two digits must match the state. | 15 अक्षर; पहले दो अंक राज्य से मिलने चाहिए। | 15 అక్షరాలు; మొదటి రెండు అంకెలు రాష్ట్రంతో సరిపోవాలి.
+console.field.billingEmail | Billing e-mail | बिलिंग ईमेल | బిల్లింగ్ ఇమెయిల్
+console.field.quantity | Quantity | मात्रा | పరిమాణం
+console.overview.details | Client details | क्लाइंट का विवरण | క్లయింట్ వివరాలు
+console.overview.suspendTitle | Suspend or reactivate | निलंबित या पुनः सक्रिय करें | నిలిపివేయండి లేదా తిరిగి ప్రారంభించండి
+console.overview.suspendHelp | Suspending switches off every product for this client on their next request. Nothing is deleted. | निलंबन से इस क्लाइंट के सभी उत्पाद उनके अगले अनुरोध पर बंद हो जाते हैं। कुछ भी हटाया नहीं जाता। | నిలిపివేస్తే ఈ క్లయింట్ యొక్క అన్ని ఉత్పత్తులు వారి తదుపరి అభ్యర్థనలో ఆఫ్ అవుతాయి. ఏదీ తొలగించబడదు.
+console.overview.reactivateHelp | This client is suspended. Reactivating restores access according to each product subscription. | यह क्लाइंट निलंबित है। पुनः सक्रिय करने पर हर उत्पाद की सदस्यता के अनुसार पहुँच लौट आती है। | ఈ క్లయింట్ నిలిపివేయబడింది. తిరిగి ప్రారంభిస్తే ప్రతి ఉత్పత్తి సభ్యత్వం ప్రకారం యాక్సెస్ తిరిగి వస్తుంది.
+console.overview.suspend | Suspend client | क्लाइंट निलंबित करें | క్లయింట్‌ను నిలిపివేయండి
+console.overview.suspendConfirm | Suspend now | अभी निलंबित करें | ఇప్పుడే నిలిపివేయండి
+console.overview.suspendedOk | Client suspended. | क्लाइंट निलंबित किया गया। | క్లయింట్ నిలిపివేయబడింది.
+console.overview.reactivate | Reactivate client | क्लाइंट पुनः सक्रिय करें | క్లయింట్‌ను తిరిగి ప్రారంభించండి
+console.overview.reactivateConfirm | Reactivate now | अभी पुनः सक्रिय करें | ఇప్పుడే తిరిగి ప్రారంభించండి
+console.overview.reactivatedOk | Client reactivated. | क्लाइंट पुनः सक्रिय किया गया। | క్లయింట్ తిరిగి ప్రారంభించబడింది.
+console.branches.title | Branches | शाखाएँ | శాఖలు
+console.branches.active | Active | सक्रिय | క్రియాశీలం
+console.branches.activate | Activate | सक्रिय करें | క్రియాశీలం చేయండి
+console.branches.deactivate | Deactivate | निष्क्रिय करें | క్రియారహితం చేయండి
+console.branches.add | Add branch | शाखा जोड़ें | శాఖను జోడించండి
+console.branches.productsOn | Products on for this branch | इस शाखा के लिए चालू उत्पाद | ఈ శాఖకు ఆన్‌లో ఉన్న ఉత్పత్తులు
+console.branches.switchHelp | Unticking a product switches it off for that branch only; the client keeps it elsewhere. | उत्पाद का निशान हटाने से वह केवल उस शाखा के लिए बंद होता है; क्लाइंट के पास अन्यत्र बना रहता है। | ఉత్పత్తి టిక్ తొలగిస్తే ఆ శాఖకు మాత్రమే ఆఫ్ అవుతుంది; క్లయింట్ వద్ద మిగతా చోట్ల ఉంటుంది.
+console.tabs.label | Client sections | क्लाइंट अनुभाग | క్లయింట్ విభాగాలు
+console.tab.overview | Overview | अवलोकन | అవలోకనం
+console.tab.subscriptions | Subscriptions | सदस्यताएँ | సభ్యత్వాలు
+console.tab.users | Users | उपयोगकर्ता | వినియోగదారులు
+console.tab.support | View as | व्यू एज़ | వ్యూ యాజ్
+console.tab.billing | Billing | बिलिंग | బిల్లింగ్
+console.tab.audit | Audit | ऑडिट | ఆడిట్
+console.subs.none | This client has no products yet. | इस क्लाइंट के पास अभी कोई उत्पाद नहीं है। | ఈ క్లయింట్‌కు ఇంకా ఉత్పత్తులు లేవు.
+console.subs.add | Add a product | उत्पाद जोड़ें | ఉత్పత్తిని జోడించండి
+console.subs.addButton | Add product | उत्पाद जोड़ें | ఉత్పత్తిని జోడించండి
+console.subs.period | Period | अवधि | కాలం
+console.subs.openEnded | open-ended | खुली अवधि | ముగింపు లేదు
+console.subs.billingAccess | Access by billing rules | बिलिंग नियमों के अनुसार पहुँच | బిల్లింగ్ నియమాల ప్రకారం యాక్సెస్
+console.subs.readOnlyUntil | read-only until {date} | {date} तक केवल देखने के लिए | {date} వరకు చదవడం మాత్రమే
+console.subs.saveChanges | Save changes | बदलाव सहेजें | మార్పులను సేవ్ చేయండి
+console.subs.event | Change status | स्थिति बदलें | స్థితిని మార్చండి
+console.subs.paidUntil | Paid until (exclusive) | भुगतान की अवधि तक (शामिल नहीं) | చెల్లింపు వరకు (కలపకుండా)
+console.subs.paidUntil.hint | First day not covered. Empty means open-ended. | पहला दिन जो शामिल नहीं है। खाली का मतलब खुली अवधि। | కవర్ కాని మొదటి రోజు. ఖాళీ అంటే ముగింపు లేదు.
+console.subs.apply | Apply | लागू करें | వర్తింపజేయండి
+console.subs.transitioned | Status changed. | स्थिति बदल दी गई। | స్థితి మార్చబడింది.
+console.subs.restartHelp | Cancelled is final. Starting again creates a fresh trial or active period for this product. | रद्द अंतिम है। फिर से शुरू करने पर इस उत्पाद के लिए नया ट्रायल या सक्रिय अवधि बनती है। | రద్దు అనేది తుది. మళ్లీ ప్రారంభిస్తే ఈ ఉత్పత్తికి కొత్త ట్రయల్ లేదా క్రియాశీల కాలం ఏర్పడుతుంది.
+console.subs.restart | Start again | फिर से शुरू करें | మళ్లీ ప్రారంభించండి
+console.subs.restarted | Product started again. | उत्पाद फिर से शुरू किया गया। | ఉత్పత్తి మళ్లీ ప్రారంభించబడింది.
+console.subs.dates | Today is {today}. Changes apply on the client's next request. | आज {today} है। बदलाव क्लाइंट के अगले अनुरोध पर लागू होते हैं। | ఈ రోజు {today}. మార్పులు క్లయింట్ తదుపరి అభ్యర్థనలో వర్తిస్తాయి.
+console.transition.activate | Mark paid / activate | भुगतान हुआ / सक्रिय करें | చెల్లించబడింది / క్రియాశీలం చేయండి
+console.transition.mark_past_due | Mark payment overdue | भुगतान बकाया चिह्नित करें | చెల్లింపు బాకీ అని గుర్తించండి
+console.transition.suspend | Suspend this product | यह उत्पाद निलंबित करें | ఈ ఉత్పత్తిని నిలిపివేయండి
+console.transition.cancel | Cancel (final) | रद्द करें (अंतिम) | రద్దు చేయండి (తుది)
+console.transition.tick | Apply time rules now | समय के नियम अभी लागू करें | సమయ నియమాలను ఇప్పుడే వర్తింపజేయండి
+console.access.full | Full access | पूरी पहुँच | పూర్తి యాక్సెస్
+console.access.read_only | Read-only | केवल देखने के लिए | చదవడం మాత్రమే
+console.access.none | No access | कोई पहुँच नहीं | యాక్సెస్ లేదు
+console.users.title | Users ({count}) | उपयोगकर्ता ({count}) | వినియోగదారులు ({count})
+console.users.empty | No users yet. | अभी कोई उपयोगकर्ता नहीं। | ఇంకా వినియోగదారులు లేరు.
+console.users.invite | Invite a user | उपयोगकर्ता को आमंत्रित करें | వినియోగదారుని ఆహ్వానించండి
+console.users.sendInvite | Send invitation | आमंत्रण भेजें | ఆహ్వానం పంపండి
+console.users.invited | Invitation sent. | आमंत्रण भेज दिया गया। | ఆహ్వానం పంపబడింది.
+console.users.kind | Kind of user | उपयोगकर्ता का प्रकार | వినియోగదారు రకం
+console.users.homeBranch | Home branch | मुख्य शाखा | ప్రధాన శాఖ
+console.users.homeBranch.hint | Empty means all branches. | खाली का मतलब सभी शाखाएँ। | ఖాళీ అంటే అన్ని శాఖలు.
+console.users.allBranches | All branches | सभी शाखाएँ | అన్ని శాఖలు
+console.users.productAccess | Product access | उत्पाद पहुँच | ఉత్పత్తి యాక్సెస్
+console.users.noAccess | No product access. | किसी उत्पाद तक पहुँच नहीं। | ఏ ఉత్పత్తికీ యాక్సెస్ లేదు.
+console.users.role | Role | भूमिका | పాత్ర
+console.users.grant | Give access | पहुँच दें | యాక్సెస్ ఇవ్వండి
+console.users.revoke | Revoke | वापस लें | ఉపసంహరించండి
+console.users.revokeConfirm | Confirm revoke | वापस लेना पक्का करें | ఉపసంహరణను నిర్ధారించండి
+console.users.locked | Locked | लॉक | లాక్ చేయబడింది
+console.users.mustChange | Must change password | पासवर्ड बदलना होगा | పాస్‌వర్డ్ మార్చాలి
+console.users.lock | Lock account | खाता लॉक करें | ఖాతాను లాక్ చేయండి
+console.users.lockConfirm | Lock now | अभी लॉक करें | ఇప్పుడే లాక్ చేయండి
+console.users.unlock | Unlock account | खाता अनलॉक करें | ఖాతాను అన్‌లాక్ చేయండి
+console.users.unlockConfirm | Unlock now | अभी अनलॉक करें | ఇప్పుడే అన్‌లాక్ చేయండి
+console.users.forceReset | Force password change | पासवर्ड बदलना अनिवार्य करें | పాస్‌వర్డ్ మార్పును తప్పనిసరి చేయండి
+console.users.clearForceReset | Clear forced password change | अनिवार्य पासवर्ड बदलाव हटाएँ | తప్పనిసరి పాస్‌వర్డ్ మార్పును తొలగించండి
+console.users.forceResetConfirm | Apply | लागू करें | వర్తింపజేయండి
+console.users.set.active | Mark active | सक्रिय करें | క్రియాశీలం చేయండి
+console.users.set.disabled | Disable account | खाता अक्षम करें | ఖాతాను నిలిపివేయండి
+console.users.preview | What can this user see? | यह उपयोगकर्ता क्या देख सकता है? | ఈ వినియోగదారు ఏమి చూడగలరు?
+console.userStatus.invited | Invited | आमंत्रित | ఆహ్వానించబడ్డారు
+console.userStatus.active | Active | सक्रिय | క్రియాశీలం
+console.userStatus.disabled | Disabled | अक्षम | నిలిపివేయబడింది
+console.memberKind.staff | Staff | स्टाफ़ | సిబ్బంది
+console.memberKind.guardian | Guardian | अभिभावक | సంరక్షకుడు
+console.memberKind.parent | Parent | माता-पिता | తల్లిదండ్రి
+console.memberKind.student | Student | विद्यार्थी | విద్యార్థి
+console.preview.title | Entitlement preview | पात्रता पूर्वावलोकन | అర్హతల ప్రివ్యూ
+console.preview.heading | What {name} can see | {name} क्या देख सकते हैं | {name} ఏమి చూడగలరు
+console.preview.visible | Can open: {products}. | खोल सकते हैं: {products}। | తెరవగలరు: {products}.
+console.preview.nothing | Cannot open any product right now. | अभी कोई उत्पाद नहीं खोल सकते। | ప్రస్తుతం ఏ ఉత్పత్తినీ తెరవలేరు.
+console.preview.note | Read-only. "Database gate" is what the platform enforces on every request; "billing access" is the 30-day read-only rule on top. | केवल पढ़ने के लिए। "डेटाबेस गेट" वह है जो प्लेटफ़ॉर्म हर अनुरोध पर लागू करता है; "बिलिंग पहुँच" उसके ऊपर 30 दिन का केवल-पढ़ने का नियम है। | చదవడానికి మాత్రమే. "డేటాబేస్ గేట్" ప్రతి అభ్యర్థనపై ప్లాట్‌ఫామ్ అమలు చేసేది; "బిల్లింగ్ యాక్సెస్" దానిపై 30 రోజుల చదవడం-మాత్రమే నియమం.
+console.preview.gateOn | Database gate: open | डेटाबेस गेट: खुला | డేటాబేస్ గేట్: తెరిచి ఉంది
+console.preview.gateOff | Database gate: closed | डेटाबेस गेट: बंद | డేటాబేస్ గేట్: మూసి ఉంది
+console.preview.modules | Modules they can view | वे जो मॉड्यूल देख सकते हैं | వారు చూడగల మాడ్యూళ్లు
+console.preview.branches | Branches | शाखाएँ | శాఖలు
+console.preview.branchOn | on | चालू | ఆన్
+console.preview.branchOff | off | बंद | ఆఫ్
+console.preview.portal | Portal user: sees only linked learners ({count}). | पोर्टल उपयोगकर्ता: केवल जुड़े हुए शिक्षार्थी देखता है ({count})। | పోర్టల్ వినియోగదారు: లింక్ చేసిన అభ్యాసకులను మాత్రమే చూస్తారు ({count}).
+console.scope.own | own records | अपने रिकॉर्ड | సొంత రికార్డులు
+console.scope.branch | own branch | अपनी शाखा | సొంత శాఖ
+console.scope.org | whole client | पूरा क्लाइंट | మొత్తం క్లయింట్
+console.off.client_suspended | client is suspended | क्लाइंट निलंबित है | క్లయింట్ నిలిపివేయబడింది
+console.off.no_subscription | client does not have this product | क्लाइंट के पास यह उत्पाद नहीं है | క్లయింట్‌కు ఈ ఉత్పత్తి లేదు
+console.off.subscription_suspended | product subscription suspended | उत्पाद की सदस्यता निलंबित | ఉత్పత్తి సభ్యత్వం నిలిపివేయబడింది
+console.off.subscription_cancelled | product subscription cancelled | उत्पाद की सदस्यता रद्द | ఉత్పత్తి సభ్యత్వం రద్దు చేయబడింది
+console.off.outside_dates | outside the subscription dates | सदस्यता की तारीखों से बाहर | సభ్యత్వ తేదీల వెలుపల
+console.off.no_access_row | user has no access to this product | उपयोगकर्ता को इस उत्पाद की पहुँच नहीं | వినియోగదారుకు ఈ ఉత్పత్తికి యాక్సెస్ లేదు
+console.viewAs.title | View as this client | इस क्लाइंट के रूप में देखें | ఈ క్లయింట్‌గా చూడండి
+console.viewAs.help | The only way staff can see a client's data. Needs a reason, is time limited, read-only unless you allow changes, and is visible to the client's admins. | क्लाइंट का डेटा देखने का यही एकमात्र तरीका है। कारण ज़रूरी है, समय सीमित है, बदलाव की अनुमति न देने पर केवल देखने के लिए है, और क्लाइंट के एडमिन को दिखता है। | క్లయింట్ డేటాను చూడటానికి సిబ్బందికి ఇదే మార్గం. కారణం కావాలి, సమయ పరిమితి ఉంటుంది, మార్పులకు అనుమతి ఇవ్వకపోతే చదవడం మాత్రమే, మరియు క్లయింట్ అడ్మిన్లకు కనిపిస్తుంది.
+console.viewAs.alreadyOpen | You already have a session open for {org}. Starting a new one ends it. | आपका {org} के लिए सत्र पहले से खुला है। नया शुरू करने पर वह समाप्त हो जाएगा। | {org} కోసం మీకు ఇప్పటికే సెషన్ తెరిచి ఉంది. కొత్తది ప్రారంభిస్తే అది ముగుస్తుంది.
+console.viewAs.reason.hint | At least 10 characters, for example the ticket number and what you need to check. | कम से कम 10 अक्षर, जैसे टिकट नंबर और आपको क्या जाँचना है। | కనీసం 10 అక్షరాలు, ఉదాహరణకు టికెట్ సంఖ్య మరియు మీరు ఏమి తనిఖీ చేయాలి.
+console.viewAs.duration | Duration | अवधि | వ్యవధి
+console.viewAs.minutes | {minutes} minutes | {minutes} मिनट | {minutes} నిమిషాలు
+console.viewAs.readOnlyOption | Read-only (recommended) | केवल देखने के लिए (अनुशंसित) | చదవడం మాత్రమే (సిఫార్సు)
+console.viewAs.start | Start viewing | देखना शुरू करें | చూడటం ప్రారంభించండి
+console.viewAs.startedOk | Session started. A banner shows at the top of every page until it ends. | सत्र शुरू हुआ। समाप्त होने तक हर पृष्ठ के ऊपर बैनर दिखेगा। | సెషన్ ప్రారంభమైంది. ముగిసే వరకు ప్రతి పేజీ పైన బ్యానర్ కనిపిస్తుంది.
+console.viewAs.history | Support access history | सपोर्ट एक्सेस का इतिहास | సపోర్ట్ యాక్సెస్ చరిత్ర
+console.viewAs.staff | Staff member | स्टाफ़ सदस्य | సిబ్బంది సభ్యుడు
+console.viewAs.mode | Mode | मोड | మోడ్
+console.viewAs.started | Started | शुरू हुआ | ప్రారంభం
+console.viewAs.endedAt | Ended / expires | समाप्त / समाप्ति | ముగింపు / గడువు
+console.sessionState.open | Open | खुला | తెరిచి ఉంది
+console.sessionState.ended | Ended | समाप्त | ముగిసింది
+console.sessionState.expired | Expired | अवधि समाप्त | గడువు ముగిసింది
+console.support.title | Support access | सपोर्ट एक्सेस | సపోర్ట్ యాక్సెస్
+console.support.subtitle | Every view-as session across all clients. | सभी क्लाइंट के सभी व्यू-एज़ सत्र। | అన్ని క్లయింట్ల అన్ని వ్యూ-యాజ్ సెషన్లు.
+console.billing.entitlements | Access by billing rules | बिलिंग नियमों के अनुसार पहुँच | బిల్లింగ్ నియమాల ప్రకారం యాక్సెస్
+console.billing.entitlements.help | Full while on trial, active or within the grace period; read-only for 30 days after non-payment; then export and delete. | ट्रायल, सक्रिय या छूट अवधि में पूरी; भुगतान न होने पर 30 दिन केवल देखने के लिए; फिर निर्यात और हटाना। | ట్రయల్, క్రియాశీల లేదా గ్రేస్ కాలంలో పూర్తి; చెల్లింపు లేకపోతే 30 రోజులు చదవడం మాత్రమే; తర్వాత ఎగుమతి మరియు తొలగింపు.
+console.billing.until | Until | तक | వరకు
+console.billing.razorpay | Razorpay: {mode} | Razorpay: {mode} | Razorpay: {mode}
+console.billing.wallets | AI and messaging wallet balances are not available yet; usage is shown below. | AI और मैसेजिंग वॉलेट शेष अभी उपलब्ध नहीं; उपयोग नीचे दिखाया गया है। | AI మరియు మెసేజింగ్ వాలెట్ బ్యాలెన్స్‌లు ఇంకా అందుబాటులో లేవు; వినియోగం క్రింద చూపబడింది.
+console.razorpayMode.test | test mode | टेस्ट मोड | టెస్ట్ మోడ్
+console.razorpayMode.live | live | लाइव | లైవ్
+console.razorpayMode.not_configured | not configured | कॉन्फ़िगर नहीं | కాన్ఫిగర్ చేయలేదు
+console.billing.account | Billing profile | बिलिंग प्रोफ़ाइल | బిల్లింగ్ ప్రొఫైల్
+console.billing.usage | Usage | उपयोग | వినియోగం
+console.billing.usage.none | No usage recorded in the last six months. | पिछले छह महीनों में कोई उपयोग दर्ज नहीं। | గత ఆరు నెలల్లో వినియోగం నమోదు కాలేదు.
+console.billing.month | Month | महीना | నెల
+console.billing.metric | Metric | मापक | కొలమానం
+console.billing.quantity | Quantity | मात्रा | పరిమాణం
+console.metric.ai_credits | AI credits | AI क्रेडिट | AI క్రెడిట్లు
+console.metric.whatsapp_messages | WhatsApp messages | WhatsApp संदेश | WhatsApp సందేశాలు
+console.metric.sms | SMS | SMS | SMS
+console.metric.email | E-mail | ईमेल | ఇమెయిల్
+console.metric.storage_mb | Storage (MB) | भंडारण (MB) | నిల్వ (MB)
+console.billing.invoices | Invoices | इनवॉइस | ఇన్వాయిస్‌లు
+console.billing.invoices.none | No invoices yet. | अभी कोई इनवॉइस नहीं। | ఇంకా ఇన్వాయిస్‌లు లేవు.
+console.billing.number | Invoice number | इनवॉइस संख्या | ఇన్వాయిస్ సంఖ్య
+console.billing.date | Invoice date | इनवॉइस की तारीख | ఇన్వాయిస్ తేదీ
+console.billing.date.hint | Empty means today. | खाली का मतलब आज। | ఖాళీ అంటే ఈ రోజు.
+console.billing.taxable | Taxable value | कर योग्य मूल्य | పన్ను విధించదగిన విలువ
+console.billing.gst | GST | GST | GST
+console.billing.cgst | CGST | CGST | CGST
+console.billing.sgst | SGST | SGST | SGST
+console.billing.igst | IGST | IGST | IGST
+console.billing.total | Total | कुल | మొత్తం
+console.billing.sac | SAC | SAC | SAC
+console.billing.invoiceDetail | Invoice detail | इनवॉइस विवरण | ఇన్వాయిస్ వివరాలు
+console.billing.supplyFrom | Supplier state {supplier}, place of supply {place} | आपूर्तिकर्ता राज्य {supplier}, आपूर्ति का स्थान {place} | సరఫరాదారు రాష్ట్రం {supplier}, సరఫరా స్థలం {place}
+console.invoiceStatus.draft | Draft | ड्राफ़्ट | డ్రాఫ్ట్
+console.invoiceStatus.issued | Issued | जारी | జారీ చేయబడింది
+console.invoiceStatus.paid | Paid | भुगतान हुआ | చెల్లించబడింది
+console.invoiceStatus.void | Void | रद्द | రద్దు
+console.billing.void | Void draft | ड्राफ़्ट रद्द करें | డ్రాఫ్ట్‌ను రద్దు చేయండి
+console.billing.voidConfirm | Void this draft | यह ड्राफ़्ट रद्द करें | ఈ డ్రాఫ్ట్‌ను రద్దు చేయండి
+console.billing.create | Create a draft invoice | ड्राफ़्ट इनवॉइस बनाएँ | డ్రాఫ్ట్ ఇన్వాయిస్ సృష్టించండి
+console.billing.create.help | GST is calculated for you from the billing profile state. This only creates a draft; nothing is sent to the client or to Razorpay. | GST बिलिंग प्रोफ़ाइल के राज्य से अपने आप गिना जाता है। इससे केवल ड्राफ़्ट बनता है; क्लाइंट या Razorpay को कुछ नहीं भेजा जाता। | GST బిల్లింగ్ ప్రొఫైల్ రాష్ట్రం నుండి స్వయంచాలకంగా లెక్కించబడుతుంది. ఇది డ్రాఫ్ట్ మాత్రమే సృష్టిస్తుంది; క్లయింట్‌కు లేదా Razorpay కు ఏదీ పంపబడదు.
+console.billing.needAccount | Save the billing profile first. | पहले बिलिंग प्रोफ़ाइल सहेजें। | ముందుగా బిల్లింగ్ ప్రొఫైల్‌ను సేవ్ చేయండి.
+console.billing.line | Line {n} | पंक्ति {n} | వరుస {n}
+console.billing.description | Description | विवरण | వివరణ
+console.billing.unitPrice | Unit price (rupees) | इकाई मूल्य (रुपये) | యూనిట్ ధర (రూపాయలు)
+console.billing.exGst | Before GST | GST से पहले | GST కు ముందు
+console.billing.discount | Discount (rupees) | छूट (रुपये) | తగ్గింపు (రూపాయలు)
+console.billing.addLine | Add line | पंक्ति जोड़ें | వరుసను జోడించండి
+console.billing.removeLine | Remove line | पंक्ति हटाएँ | వరుసను తొలగించండి
+console.billing.fromPlans | Fill from plans | प्लान से भरें | ప్లాన్ల నుండి నింపండి
+console.billing.createDraft | Create draft | ड्राफ़्ट बनाएँ | డ్రాఫ్ట్ సృష్టించండి
+console.billing.created | Draft invoice created. | ड्राफ़्ट इनवॉइस बनाया गया। | డ్రాఫ్ట్ ఇన్వాయిస్ సృష్టించబడింది.
+console.billing.payments | Payments | भुगतान | చెల్లింపులు
+console.billing.payments.none | No payments yet. | अभी कोई भुगतान नहीं। | ఇంకా చెల్లింపులు లేవు.
+console.billing.method | Method | तरीका | పద్ధతి
+console.paymentStatus.created | Created | बनाया गया | సృష్టించబడింది
+console.paymentStatus.authorized | Authorised | अधिकृत | అధీకృతం
+console.paymentStatus.captured | Received | प्राप्त | స్వీకరించబడింది
+console.paymentStatus.failed | Failed | विफल | విఫలమైంది
+console.paymentStatus.refunded | Refunded | वापस किया गया | వాపసు చేయబడింది
+console.plans.title | Plans | प्लान | ప్లాన్లు
+console.plans.subtitle | The price list. Prices are before GST; GST is added on the invoice. | मूल्य सूची। मूल्य GST से पहले हैं; इनवॉइस पर GST जोड़ा जाता है। | ధరల జాబితా. ధరలు GST కు ముందు; ఇన్వాయిస్‌లో GST జోడించబడుతుంది.
+console.plans.empty | No plans yet. Add one below. | अभी कोई प्लान नहीं। नीचे जोड़ें। | ఇంకా ప్లాన్లు లేవు. క్రింద జోడించండి.
+console.plans.edit | Add or change a plan | प्लान जोड़ें या बदलें | ప్లాన్‌ను జోడించండి లేదా మార్చండి
+console.plans.key | Plan key | प्लान कुंजी | ప్లాన్ కీ
+console.plans.key.hint | Lower-case letters, digits and underscores, for example crm_monthly. | छोटे अक्षर, अंक और अंडरस्कोर, जैसे crm_monthly। | చిన్న అక్షరాలు, అంకెలు మరియు అండర్‌స్కోర్లు, ఉదాహరణకు crm_monthly.
+console.plans.interval | Billing interval | बिलिंग अंतराल | బిల్లింగ్ వ్యవధి
+console.plans.price | Price (rupees) | मूल्य (रुपये) | ధర (రూపాయలు)
+console.plans.gst | GST rate (%) | GST दर (%) | GST రేటు (%)
+console.plans.sac.hint | Placeholder 998314 until the accountant confirms. | लेखाकार की पुष्टि तक अस्थायी 998314। | అకౌంటెంట్ నిర్ధారించే వరకు తాత్కాలికంగా 998314.
+console.interval.month | Monthly | मासिक | నెలవారీ
+console.interval.year | Yearly | वार्षिक | వార్షిక
+console.audit.page | Audit log | ऑडिट लॉग | ఆడిట్ లాగ్
+console.audit.subtitle | Every change made through the console and by clients, with who did it. | कंसोल और क्लाइंट द्वारा किया गया हर बदलाव, किसने किया इसके साथ। | కన్సోల్ ద్వారా మరియు క్లయింట్లు చేసిన ప్రతి మార్పు, ఎవరు చేశారో సహా.
+console.audit.title | Audit log | ऑडिट लॉग | ఆడిట్ లాగ్
+console.audit.source | Source | स्रोत | మూలం
+console.audit.source.log | All changes and events | सभी बदलाव और घटनाएँ | అన్ని మార్పులు మరియు సంఘటనలు
+console.audit.source.config | Configuration history | कॉन्फ़िगरेशन इतिहास | కాన్ఫిగరేషన్ చరిత్ర
+console.audit.action | Action | कार्रवाई | చర్య
+console.audit.action.hint | For example admin.client or insert. | जैसे admin.client या insert। | ఉదాహరణకు admin.client లేదా insert.
+console.audit.table | Table | तालिका | పట్టిక
+console.audit.from | From | से | నుండి
+console.audit.to | To | तक | వరకు
+console.audit.text | Contains text | इस पाठ वाले | ఈ పాఠ్యం ఉన్నవి
+console.audit.search | Search | खोजें | వెతకండి
+console.audit.empty | No matching entries. | कोई मेल खाती प्रविष्टि नहीं। | సరిపోలే నమోదులు లేవు.
+console.audit.when | When | कब | ఎప్పుడు
+console.audit.who | Who | किसने | ఎవరు
+console.audit.client | Client | क्लाइंट | క్లయింట్
+console.audit.what | What | क्या | ఏమిటి
+console.audit.detail | Detail | विवरण | వివరాలు
+console.audit.show | Show | दिखाएँ | చూపండి
+console.audit.hide | Hide | छिपाएँ | దాచండి
+console.audit.more | Load more | और लोड करें | మరిన్ని లోడ్ చేయండి
+console.audit.system | System | सिस्टम | సిస్టమ్
+console.audit.clientUser | Client user | क्लाइंट उपयोगकर्ता | క్లయింట్ వినియోగదారు
+console.error.unknown | Something went wrong. Try again, and tell the engineer if it keeps happening. | कुछ गलत हो गया। फिर कोशिश करें, और बार-बार होने पर इंजीनियर को बताएँ। | ఏదో తప్పు జరిగింది. మళ్లీ ప్రయత్నించండి, పదే పదే జరిగితే ఇంజినీర్‌కు చెప్పండి.
+console.error.forbidden | You are not allowed to do this. | आपको यह करने की अनुमति नहीं है। | దీన్ని చేయడానికి మీకు అనుమతి లేదు.
+console.error.not_platform_admin | This account is not a platform admin. | यह खाता प्लेटफ़ॉर्म एडमिन नहीं है। | ఈ ఖాతా ప్లాట్‌ఫామ్ అడ్మిన్ కాదు.
+console.error.unauthorized | Please sign in again. | कृपया फिर से साइन इन करें। | దయచేసి మళ్లీ సైన్ ఇన్ చేయండి.
+console.error.invalid_session | Your session has expired. Please sign in again. | आपका सत्र समाप्त हो गया। कृपया फिर से साइन इन करें। | మీ సెషన్ ముగిసింది. దయచేసి మళ్లీ సైన్ ఇన్ చేయండి.
+console.error.invalid_provider_token | The sign-in code was not accepted. | साइन-इन कोड स्वीकार नहीं हुआ। | సైన్-ఇన్ కోడ్ అంగీకరించబడలేదు.
+console.error.unknown_user | No platform admin with this e-mail. | इस ईमेल का कोई प्लेटफ़ॉर्म एडमिन नहीं है। | ఈ ఇమెయిల్‌తో ప్లాట్‌ఫామ్ అడ్మిన్ లేరు.
+console.error.rate_limited | Too many attempts. Wait a minute and try again. | बहुत अधिक प्रयास। एक मिनट रुककर फिर कोशिश करें। | చాలా ఎక్కువ ప్రయత్నాలు. ఒక నిమిషం ఆగి మళ్లీ ప్రయత్నించండి.
+console.error.missing_client_header | The request was blocked for safety. Reload the page. | सुरक्षा के लिए अनुरोध रोका गया। पृष्ठ फिर से लोड करें। | భద్రత కోసం అభ్యర్థన ఆపబడింది. పేజీని మళ్లీ లోడ్ చేయండి.
+console.error.validation_failed | Some fields are missing or not valid. | कुछ फ़ील्ड गायब हैं या सही नहीं हैं। | కొన్ని ఫీల్డ్‌లు లేవు లేదా సరైనవి కావు.
+console.error.invalid_value | A value is not valid. | कोई मान सही नहीं है। | ఒక విలువ సరైనది కాదు.
+console.error.invalid_reference | Something this refers to does not exist, for example a branch of another client. | जिसका संदर्भ दिया गया वह मौजूद नहीं है, जैसे किसी अन्य क्लाइंट की शाखा। | సూచించినది లేదు, ఉదాహరణకు మరొక క్లయింట్ శాఖ.
+console.error.invalid_id | The address is not valid. | पता सही नहीं है। | చిరునామా సరైనది కాదు.
+console.error.duplicate | That already exists, for example the short name or branch code. | यह पहले से मौजूद है, जैसे छोटा नाम या शाखा कोड। | ఇది ఇప్పటికే ఉంది, ఉదాహరణకు చిన్న పేరు లేదా శాఖ కోడ్.
+console.error.user_already_in_client | This person already belongs to a client. One person can belong to one client only. | यह व्यक्ति पहले से किसी क्लाइंट का है। एक व्यक्ति केवल एक क्लाइंट का हो सकता है। | ఈ వ్యక్తి ఇప్పటికే ఒక క్లయింట్‌కు చెందినవారు. ఒక వ్యక్తి ఒక క్లయింట్‌కు మాత్రమే చెందగలరు.
+console.error.not_found | Not found. | नहीं मिला। | కనుగొనబడలేదు.
+console.error.client_not_found | Client not found. | क्लाइंट नहीं मिला। | క్లయింట్ కనుగొనబడలేదు.
+console.error.subscription_not_found | This client does not have that product. | इस क्लाइंट के पास वह उत्पाद नहीं है। | ఈ క్లయింట్‌కు ఆ ఉత్పత్తి లేదు.
+console.error.user_not_found | User not found in this client. | इस क्लाइंट में उपयोगकर्ता नहीं मिला। | ఈ క్లయింట్‌లో వినియోగదారు కనుగొనబడలేదు.
+console.error.branch_not_found | Branch not found in this client. | इस क्लाइंट में शाखा नहीं मिली। | ఈ క్లయింట్‌లో శాఖ కనుగొనబడలేదు.
+console.error.invoice_not_found | Invoice not found. | इनवॉइस नहीं मिला। | ఇన్వాయిస్ కనుగొనబడలేదు.
+console.error.transition_not_allowed | The billing rules do not allow that change from the current status. | मौजूदा स्थिति से यह बदलाव बिलिंग नियमों में मान्य नहीं है। | ప్రస్తుత స్థితి నుండి ఆ మార్పును బిల్లింగ్ నియమాలు అనుమతించవు.
+console.error.restart_needs_cancelled | Only a cancelled product can be started again. | केवल रद्द उत्पाद को फिर से शुरू किया जा सकता है। | రద్దు చేసిన ఉత్పత్తిని మాత్రమే మళ్లీ ప్రారంభించగలరు.
+console.error.already_suspended | The client is already suspended. | क्लाइंट पहले से निलंबित है। | క్లయింట్ ఇప్పటికే నిలిపివేయబడింది.
+console.error.already_active | The client is already active. | क्लाइंट पहले से सक्रिय है। | క్లయింట్ ఇప్పటికే క్రియాశీలంగా ఉంది.
+console.error.no_access_to_revoke | The user has no access to that product. | उपयोगकर्ता के पास उस उत्पाद की पहुँच नहीं है। | వినియోగదారుకు ఆ ఉత్పత్తికి యాక్సెస్ లేదు.
+console.error.product_not_subscribed | The client has not bought that product. | क्लाइंट ने वह उत्पाद नहीं खरीदा है। | క్లయింట్ ఆ ఉత్పత్తిని కొనలేదు.
+console.error.duplicate_product | A product was chosen twice. | एक उत्पाद दो बार चुना गया। | ఒక ఉత్పత్తి రెండుసార్లు ఎంచుకోబడింది.
+console.error.plan_not_found | That plan does not exist. | वह प्लान मौजूद नहीं है। | ఆ ప్లాన్ లేదు.
+console.error.plan_product_mismatch | That plan belongs to a different product. | वह प्लान किसी दूसरे उत्पाद का है। | ఆ ప్లాన్ మరొక ఉత్పత్తికి చెందినది.
+console.error.plan_inactive | That plan is no longer offered. | वह प्लान अब उपलब्ध नहीं है। | ఆ ప్లాన్ ఇకపై అందుబాటులో లేదు.
+console.error.invalid_plan_key | The plan key is not valid. | प्लान कुंजी सही नहीं है। | ప్లాన్ కీ సరైనది కాదు.
+console.error.ends_before_start | The end date is before the start date. | समाप्ति तारीख शुरू होने की तारीख से पहले है। | ముగింపు తేదీ ప్రారంభ తేదీ కంటే ముందు ఉంది.
+console.error.billing_account_missing | Save the client's billing profile first. | पहले क्लाइंट की बिलिंग प्रोफ़ाइल सहेजें। | ముందుగా క్లయింట్ బిల్లింగ్ ప్రొఫైల్‌ను సేవ్ చేయండి.
+console.error.supplier_state_not_configured | AutoEd's own GST state is not configured on the server (AUTOED_SUPPLIER_STATE_CODE). | AutoEd का अपना GST राज्य सर्वर पर कॉन्फ़िगर नहीं है (AUTOED_SUPPLIER_STATE_CODE)। | AutoEd స్వంత GST రాష్ట్రం సర్వర్‌లో కాన్ఫిగర్ చేయలేదు (AUTOED_SUPPLIER_STATE_CODE).
+console.error.invoice_calculation_failed | The invoice amounts could not be calculated. Check quantities, prices and discounts. | इनवॉइस की राशि नहीं गिनी जा सकी। मात्रा, मूल्य और छूट जाँचें। | ఇన్వాయిస్ మొత్తాలను లెక్కించలేకపోయాం. పరిమాణాలు, ధరలు, తగ్గింపులను తనిఖీ చేయండి.
+console.error.invoice_number_invalid | The invoice number could not be created. | इनवॉइस संख्या नहीं बन सकी। | ఇన్వాయిస్ సంఖ్యను సృష్టించలేకపోయాం.
+console.error.gstin_state_mismatch | The first two digits of the GSTIN do not match the state. | GSTIN के पहले दो अंक राज्य से नहीं मिलते। | GSTIN మొదటి రెండు అంకెలు రాష్ట్రంతో సరిపోలడం లేదు.
+console.error.invalid_state_code | Unknown GST state code. | अज्ञात GST राज्य कोड। | తెలియని GST రాష్ట్ర కోడ్.
+console.error.only_drafts_can_be_voided | Only a draft invoice can be voided. | केवल ड्राफ़्ट इनवॉइस रद्द किया जा सकता है। | డ్రాఫ్ట్ ఇన్వాయిస్‌ను మాత్రమే రద్దు చేయగలరు.
+console.error.admin_db_wrong_role | The server is connected to the database with the wrong role. Tell the engineer. | सर्वर गलत भूमिका से डेटाबेस से जुड़ा है। इंजीनियर को बताएँ। | సర్వర్ తప్పు పాత్రతో డేటాబేస్‌కు కనెక్ట్ అయింది. ఇంజినీర్‌కు చెప్పండి.
+console.error.internal_error | The server had a problem. Try again later. | सर्वर में समस्या आई। बाद में फिर कोशिश करें। | సర్వర్‌లో సమస్య వచ్చింది. తర్వాత మళ్లీ ప్రయత్నించండి.
