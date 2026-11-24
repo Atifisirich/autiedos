@@ -53,7 +53,7 @@ describe('data map', () => {
     expect(r.status).toBe(200);
     const m = json(r);
     const pd = m.personal_data.map((x: { schema: string; table: string; on_erasure: string }) => `${x.schema}.${x.table}:${x.on_erasure}`);
-    expect(pd).toEqual(expect.arrayContaining(['core.org_users:delete', 'core.login_events:anonymise', 'core.consents:retain', 'erp.fee_receipts:anonymise', 'crm.leads:delete']));
+    expect(pd).toEqual(expect.arrayContaining(['core.org_users:delete', 'core.login_events:anonymise', 'core.consent_events:retain', 'erp.fee_receipts:anonymise', 'crm.leads:delete']));
     expect(m.kept_when_org_deleted.map((x: { schema: string; table: string }) => `${x.schema}.${x.table}`)).toEqual(expect.arrayContaining(['billing.invoices', 'core.organizations']));
     expect(m.retention.find((x: { data_type: string }) => x.data_type === 'crm_leads_not_admitted')).toMatchObject({ period_value: 24, period_unit: 'months', enabled: false, legal_status: 'draft' });
     expect(m.lifecycle_days).toEqual({ product_read_only_days: 30, org_exit_deletion_days: 30 });
@@ -62,7 +62,7 @@ describe('data map', () => {
     // the default rows themselves are not readable by a client, whichever role it goes through
     for (const role of ['crm_server', 'platform_admin_server'] as const) {
       const n = await w.db.run(role, { actorUserId: w.u.aAdmin! }, async (q) =>
-        Number((await q.query(`select (select count(*) from core.pii_registry) + (select count(*) from core.table_policy) + (select count(*) from core.retention_rules) as n`)).rows[0]!.n));
+        Number((await q.query(`select (select count(*) from core.pii_registry) + (select count(*) from core.table_policy) + (select count(*) from core.retention_policies) as n`)).rows[0]!.n));
       expect(n, role).toBe(0);
     }
   });

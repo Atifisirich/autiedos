@@ -1,7 +1,7 @@
 /**
  * Retention purge (data-retention-schedule.md section 3, plan 4.10).
  *
- * The rules are rows in core.retention_rules (periods are configuration, all marked CONFIRM and disabled until counsel
+ * The rules are rows in core.retention_policies (periods are configuration, all marked CONFIRM and disabled until counsel
  * confirms them). A cron tick calls enqueueRetentionJobs(): it creates one `compliance.retention_purge` job in
  * private.jobs for every (org, product) that has the product and an enabled rule. The handler runs as `job_runner`
  * and calls app.compliance_retention_purge, which re-checks the subscription, honours legal holds, purges in

@@ -1,17 +1,16 @@
 /**
- * Test world for the compliance tests. Each compliance test file gets its OWN scratch database:
- *
- *   platform migrations (db.mjs reset --platform-only) + every other 20261115* migration (the compliance one among them)
- *
- * so the shared harness database (rebuilt by global-setup, platform migrations only) is never touched and the
- * isolation harness keeps testing the platform as it is. Roles are cluster-wide and shared.
+ * Test world for the compliance tests. Each compliance test file gets its OWN scratch database, built with the same
+ * `db.mjs reset --platform-only` as the harness (platform + core master + compliance migrations), because the tests are
+ * destructive (cancelled subscriptions, deleted orgs, added tables) and the shared harness database must stay pristine.
+ * Any other 20261115* migration the platform-only filter does not pick up is applied on top.
  *
  *   org A  crm + os + erp, branches a1, a2      (the client under test)
  *   org B  crm + os + erp, branch b1            (the other client: must never appear in A's exports)
  *   org C  crm only                             (rows planted in os/erp: must stay out of C's exports)
  *
- * Product tables of the future are simulated with crm.leads and erp.fee_receipts, created through app.apply_rls and
- * registered in core.pii_registry exactly the way a real migration would.
+ * People are real core master rows (staff, households, guardians, students). Product tables of the future are simulated
+ * with crm.leads and erp.fee_receipts, created through app.apply_rls and registered in core.pii_registry exactly the way
+ * a real migration would.
  */
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -33,7 +32,8 @@ export interface World {
   C: Org;
   u: Record<string, string>;
   /** persons whose data the tests export and erase */
-  p: { teacher: string; guardian: string; learnerA: string; leadA: string; leadB: string; teacherB: string };
+  /** person ids: staff.id, guardians.id, students.id (and the logins of the staff member and the guardian) */
+  p: { teacher: string; teacherUser: string; guardian: string; guardianUser: string; learnerA: string; leadA: string; leadB: string; teacherB: string; teacherBUser: string };
   close(): Promise<void>;
   q<R extends pg.QueryResultRow = pg.QueryResultRow>(sql: string, params?: unknown[]): Promise<R[]>;
 }
@@ -76,22 +76,21 @@ export async function createWorld(opts: { extraMigrations?: boolean } = {}): Pro
   }
 
   const q = async <R extends pg.QueryResultRow = pg.QueryResultRow>(sql: string, params: unknown[] = []) => (await pool.query<R>(sql, params)).rows;
-  const world = await build(pool, q);
-  return {
-    dbName,
-    url,
-    pool,
-    db: createSetRoleDb(pool),
-    ...world,
-    q,
-    async close() {
-      await pool.end();
-      const a = new pg.Client({ connectionString: base.toString() });
-      await a.connect();
-      await a.query(`drop database if exists ${dbName} with (force)`);
-      await a.end();
-    },
+  const close = async () => {
+    await pool.end().catch(() => undefined);
+    const a = new pg.Client({ connectionString: base.toString() });
+    await a.connect();
+    await a.query(`drop database if exists ${dbName} with (force)`);
+    await a.end();
   };
+  let world: Awaited<ReturnType<typeof build>>;
+  try {
+    world = await build(pool, q);
+  } catch (e) {
+    await close(); // never leave a scratch database behind
+    throw e;
+  }
+  return { dbName, url, pool, db: createSetRoleDb(pool), ...world, q, close };
 }
 
 async function build(pool: pg.Pool, q: World['q']) {
@@ -157,10 +156,29 @@ async function build(pool: pg.Pool, q: World['q']) {
   await q(`select app.record_login_event($1, 'password', false, 'bad password', '203.0.113.7', 'Mozilla/5.0 Teacher Laptop')`, [u.aTeacher]);
   await q(`select app.record_login_event($1, 'password', true, null, '203.0.113.7', 'Mozilla/5.0 Teacher Laptop')`, [u.aTeacher]);
   await q(`select app.record_login_event($1, 'password', true, null, '198.51.100.9', 'Mozilla/5.0 Other')`, [u.bTeacher]);
-  const learnerA = id();
+  // core master people (20261115100003): staff, a family with a guardian and a student, in A and B
+  const one = async (sql: string, params: unknown[]) => (await q<{ id: string }>(sql, params))[0]!.id;
+  const staffId = (org: Org, branch: string, first: string, last: string, email: string, phone: string, userId: string) =>
+    one(`insert into core.staff (org_id, branch_id, user_id, first_name, last_name, email, phone, dob, employee_code) values ($1, $2, $3, $4, $5, $6, $7, '1985-04-02', $8) returning id`, [org.id, branch, userId, first, last, email, phone, `E-${first}`]);
+  const teacherStaffA = await staffId(A, A.branches.a1!, 'Tara', 'Teacher', 'tara@school-a.test', '+919876500020', u.aTeacher!);
+  const teacherStaffB = await staffId(B, B.branches.b1!, 'Tej', 'Teacher', 'tej@school-b.test', '+919876500021', u.bTeacher!);
+  const householdA = await one(`insert into core.households (org_id, family_name, address, phone, email) values ($1, 'Guardian family', '12 Lake Road', '+919876500009', 'family@a.test') returning id`, [A.id]);
+  const guardianA = await one(`insert into core.guardians (org_id, household_id, name, relation, phone, email, user_id, is_primary) values ($1, $2, 'Gita Guardian', 'mother', '+919876500009', 'gita@a.test', $3, true) returning id`, [A.id, householdA, u.aGuardian]);
+  const learnerA = await one(`insert into core.students (org_id, branch_id, household_id, first_name, last_name, dob, status) values ($1, $2, $3, 'Leo', 'Learner', '2014-07-01', 'admitted') returning id`, [A.id, A.branches.a1, householdA]);
+  await q(`insert into core.student_sensitive (org_id, student_id, blood_group, allergies) values ($1, $2, 'B+', 'peanuts')`, [A.id, learnerA]);
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'mother')`, [A.id, u.aGuardian, learnerA]);
-  const learnerB = id();
+  // the organisation logo is a file row: org deletion has to null the pointer before the file goes
+  const logo = await one(`insert into core.files (org_id, bucket, storage_path, file_name, mime) values ($1, 'core-files', $2, 'logo.png', 'image/png') returning id`, [A.id, `${A.id}/branding/logo.png`]);
+  await q(`update core.organizations set logo_file_id = $2 where id = $1`, [A.id, logo]);
+  const householdB = await one(`insert into core.households (org_id, family_name) values ($1, 'B family') returning id`, [B.id]);
+  const learnerB = await one(`insert into core.students (org_id, branch_id, household_id, first_name, last_name, status) values ($1, $2, $3, 'Bob', 'Learner', 'admitted') returning id`, [B.id, B.branches.b1, householdB]);
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'father')`, [B.id, u.bTeacher, learnerB]);
+  // things the teacher wrote and did: helpdesk ticket, notification, leave, attendance
+  await q(`insert into core.notifications (org_id, user_id, staff_id, product_key, event_key, title, body) values ($1, $2, $3, 'os', 'test', 'Hello Tara', 'Your leave was approved')`, [A.id, u.aTeacher, teacherStaffA]);
+  await q(`insert into core.device_tokens (org_id, user_id, staff_id, token, platform) values ($1, $2, $3, 'tok-tara-1', 'android')`, [A.id, u.aTeacher, teacherStaffA]);
+  await q(`insert into core.tickets (org_id, product_key, title, description, raised_by_user_id, raised_by_staff_id, raised_by_name) values ($1, 'os', 'Projector broken', 'Tara says room 8A projector is dead', $2, $3, 'Tara Teacher')`, [A.id, u.aTeacher, teacherStaffA]);
+  await q(`insert into core.staff_attendance (org_id, staff_id, date, check_in_lat, check_in_lng, note) values ($1, $2, current_date, 17.385, 78.486, 'late: bus')`, [A.id, teacherStaffA]);
+  await q(`insert into core.outbox (org_id, product_key, channel, to_address, body) values ($1, 'os', 'whatsapp', '+919876500009', 'Fee reminder for Leo Learner'), ($1, 'os', 'whatsapp', '+919876500020', 'Hello Tara')`, [A.id]);
 
   // ---- simulated future product tables, set up exactly like a real migration would
   await q(`insert into core.product_modules (product_key, module_key, name) values ('crm', 'leads', 'Leads'), ('erp', 'fees', 'Fees')`);
@@ -200,12 +218,11 @@ async function build(pool: pg.Pool, q: World['q']) {
   );
   // a retention rule for old leads that never became students (disabled and draft, like every seeded rule)
   await q(
-    `insert into core.retention_rules (scope, data_type, product_key, schema_name, table_name, date_column, filter_column, filter_values, action, period_value, period_unit, enabled, legal_status, legal_note)
+    `insert into core.retention_policies (scope, data_type, product_key, schema_name, table_name, date_column, filter_column, filter_values, action, period_value, period_unit, enabled, legal_status, legal_note)
      values ('table', 'crm_leads_not_admitted', 'crm', 'crm', 'leads', 'last_activity_at', 'status', array['new','lost'], 'delete', 24, 'months', false, 'draft', 'CONFIRM 24 months')`,
   );
 
-  const teacher = u.aTeacher!;
-  const lead = async (orgId: string, branch: string, name: string, phone: string, email: string, status: string, ageDays: number) =>
+    const lead = async (orgId: string, branch: string, name: string, phone: string, email: string, status: string, ageDays: number) =>
     (
       await q<{ id: string }>(
         `insert into crm.leads (org_id, branch_id, full_name, phone, email, status, last_activity_at) values ($1, $2, $3, $4, $5, $6, now() - make_interval(days => $7)) returning id`,
@@ -233,7 +250,7 @@ async function build(pool: pg.Pool, q: World['q']) {
 
   // consents
   await q(
-    `insert into core.consents (org_id, person_type, person_id, channel, contact, purpose, status, source) values
+    `insert into core.consent_events (org_id, person_type, person_id, channel, contact, purpose, status, source) values
        ($1, 'lead', $2, 'whatsapp', '+919876500001', 'promotional', 'opted_in', 'form'),
        ($3, 'lead', $4, 'whatsapp', '+919876500001', 'promotional', 'opted_out', 'stop')`,
     [A.id, leadA, B.id, leadB],
@@ -249,8 +266,7 @@ async function build(pool: pg.Pool, q: World['q']) {
              values ($1, $2, $3, '2026-27', current_date, 'issued', '36', $4, '36', 499900, 44991, 44991, 589882)`, [inv, o.id, `AE/2026-27/00000${n}`, `Legal ${n}`]);
   }
   void pool;
-  void teacher;
-  return { A, B, C, u, p: { teacher: u.aTeacher!, guardian: u.aGuardian!, learnerA, leadA, leadB, teacherB: u.bTeacher! } };
+  return { A, B, C, u, p: { teacher: teacherStaffA, teacherUser: u.aTeacher!, guardian: guardianA, guardianUser: u.aGuardian!, learnerA, leadA, leadB, teacherB: teacherStaffB, teacherBUser: u.bTeacher! } };
 }
 
 /** Moves a subscription's end back in time so grace periods can be tested. Edits the config history the rule reads. */

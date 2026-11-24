@@ -50,7 +50,7 @@ const uuid = z.string().uuid();
 const personType = z.enum(PERSON_TYPES);
 const product = z.enum(PRODUCT_KEYS);
 const channel = z.enum(CONSENT_CHANNELS);
-const person = z.object({ orgId: uuid, personType, personId: uuid, identifiers: z.array(z.string().min(1).max(200)).max(20).optional() });
+const person = z.object({ orgId: uuid, personType, personId: uuid, identifiers: z.array(z.string().min(1).max(200)).max(20).optional(), dataRequestId: uuid.optional() });
 
 type Handler = (req: ComplianceRequest, ctx: ComplianceContext, params: Record<string, string>, actor: string) => Promise<ComplianceResponse>;
 

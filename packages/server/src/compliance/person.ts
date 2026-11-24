@@ -14,6 +14,8 @@ export interface PersonRef {
   personId: string;
   /** Phone numbers and emails the person is known by, so rows keyed by contact (leads, consents) are found. */
   identifiers?: string[];
+  /** The client's own request register entry (core.data_requests) this work answers; it is closed when done. */
+  dataRequestId?: string;
 }
 
 export interface PersonExportData {
@@ -94,7 +96,7 @@ export async function exportPerson(db: ComplianceDb, actorUserId: string, p: Per
   assertPerson(p);
   const data = await guarded(() =>
     db.run('platform_admin_server', { actorUserId, statementTimeoutMs: 120_000 }, async (q) => {
-      const r = await q.query<{ r: PersonExportData }>(`select app.compliance_person_export($1, $2, $3, $4) as r`, [p.orgId, p.personType, p.personId, expandIdentifiers(p.identifiers)]);
+      const r = await q.query<{ r: PersonExportData }>(`select app.compliance_person_export($1, $2, $3, $4, $5) as r`, [p.orgId, p.personType, p.personId, expandIdentifiers(p.identifiers), p.dataRequestId ?? null]);
       return r.rows[0]!.r;
     }),
   );
@@ -119,13 +121,14 @@ export async function planPersonErasure(db: ComplianceDb, actorUserId: string, p
   assertPerson(p);
   const r = await guarded(() =>
     db.run('platform_admin_server', { actorUserId }, async (q) => {
-      const res = await q.query<{ r: Record<string, unknown> }>(`select app.compliance_person_erasure_plan($1, $2, $3, $4, $5, $6) as r`, [
+      const res = await q.query<{ r: Record<string, unknown> }>(`select app.compliance_person_erasure_plan($1, $2, $3, $4, $5, $6, $7) as r`, [
         p.orgId,
         p.personType,
         p.personId,
         expandIdentifiers(p.identifiers),
         input.reason,
         input.identityVerified ?? false,
+        p.dataRequestId ?? null,
       ]);
       return res.rows[0]!.r;
     }),

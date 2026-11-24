@@ -6,9 +6,9 @@
 -- Roles (docs/adr/001): everything privileged is a security definer function in schema app that only
 -- platform_admin_server (org and person tools), job_runner (retention purge) and service_role may EXECUTE.
 -- crm_server / os_server / erp_server cannot execute them and never see another product's schema. Only the
--- consent helpers are executable by the product roles (they work on core.consents of the caller's own org).
+-- consent helpers are executable by the product roles (they work on core.consent_events of the caller's own org).
 --
--- Periods are DATA (core.retention_rules), never constants: docs/legal/data-retention-schedule.md is a draft
+-- Periods are DATA (core.retention_policies), never constants: docs/legal/data-retention-schedule.md is a draft
 -- and every period in it is marked CONFIRM. Seeded table rules are DISABLED until counsel confirms them.
 
 -- ================================================================ registries and configuration
@@ -22,12 +22,14 @@ create table core.pii_registry (
   table_name text not null,
   classification text not null default 'personal' check (classification in ('personal','exempt')),
   person_type text check (person_type in ('staff','student','guardian','lead')),
-  key_column text,                                   -- column holding the person's id (uuid)
+  key_column text,                                   -- column holding the person's id (uuid, or uuid[] such as incidents.student_ids); null = match by contact only
   filter_column text,                                -- optional: only rows where this column is one of filter_values
   filter_values text[],
   contact_columns text[] not null default '{}',      -- phone / email columns: rows are also matched on these values
-  is_subject boolean not null default false,         -- the row IS the person's profile (contact values are read from it)
+  is_subject boolean not null default false,         -- the row IS the person's profile: contact values are read from it, and link_columns give the person's other ids
+  link_columns text[] not null default '{}',         -- on a subject row: other uuid columns of the same person (staff.user_id, guardians.user_id)
   pii_columns text[] not null default '{}',          -- columns removed on anonymise and stripped from audit images
+  audit_columns text[] not null default '{}',        -- more columns stripped from audit images only (generated columns such as full_name)
   anonymise_values jsonb not null default '{}'::jsonb, -- column -> replacement literal (needed for NOT NULL columns)
   erasure_mode text not null default 'delete' check (erasure_mode in ('delete','anonymise','retain')),
   retain_reason text,
@@ -39,7 +41,7 @@ create table core.pii_registry (
   updated_at timestamptz not null default now(),
   check ((filter_column is null) = (filter_values is null)),
   check (classification = 'exempt' and exempt_reason is not null and length(btrim(exempt_reason)) >= 10
-         or classification = 'personal' and person_type is not null and key_column is not null),
+         or classification = 'personal' and person_type is not null and (key_column is not null or cardinality(contact_columns) > 0)),
   check (erasure_mode <> 'retain' or (retain_reason is not null and length(btrim(retain_reason)) >= 10)),
   check (classification = 'exempt' or erasure_mode = 'retain' or cardinality(pii_columns) > 0)
 );
@@ -70,7 +72,7 @@ create index table_policy_org on core.table_policy(org_id);
 -- Retention periods and lifecycle periods as rows. scope 'table' rules are applied by the purge job;
 -- scope 'lifecycle' rows hold the contract-end periods (decision 42) and confirmation-token lifetime.
 -- An org row may only SHORTEN the platform default of the same data_type (the schedule is AutoEd's maximum).
-create table core.retention_rules (
+create table core.retention_policies (
   id uuid primary key default gen_random_uuid(),
   org_id uuid references core.organizations(id) on delete cascade,
   scope text not null default 'table' check (scope in ('table','lifecycle')),
@@ -100,9 +102,9 @@ create table core.retention_rules (
   -- nothing is switched on while counsel's confirmation is open, unless someone states why
   check (not enabled or legal_status = 'confirmed' or length(btrim(coalesce(enabled_override_reason, ''))) >= 10)
 );
-create unique index retention_rules_unique on core.retention_rules (
+create unique index retention_policies_unique on core.retention_policies (
   coalesce(org_id, '00000000-0000-0000-0000-000000000000'::uuid), data_type);
-create index retention_rules_org on core.retention_rules(org_id);
+create index retention_policies_org on core.retention_policies(org_id);
 
 -- A legal hold suspends erasure, purge and deletion (retention schedule principle 3).
 create table core.legal_holds (
@@ -141,6 +143,7 @@ create table core.compliance_requests (
   blockers jsonb,
   reason text,
   requested_by uuid,
+  data_request_id uuid,                              -- the client's own request register entry (core.data_requests), closed when this is executed
   identity_verified_at timestamptz,
   identity_verified_by uuid,
   token_hash text,
@@ -152,6 +155,8 @@ create table core.compliance_requests (
   completed_at timestamptz
 );
 create index compliance_requests_org on core.compliance_requests(org_id, created_at desc);
+alter table core.compliance_requests add constraint compliance_requests_data_request_fk
+  foreign key (org_id, data_request_id) references core.data_requests(org_id, id) on delete set null (data_request_id);
 
 -- Whole-organisation export (CSV + XLSX per table, manifest with row counts and sha256).
 create table core.org_export_jobs (
@@ -179,7 +184,7 @@ create index org_export_jobs_org on core.org_export_jobs(org_id, created_at desc
 -- Consent ledger (messaging-consent.md 2.2). Append-only: a change is a new row; the latest row per
 -- (contact, channel, purpose) is the current state. purpose is 'service' or 'promotional' per row; the helper
 -- expands 'both' into two rows.
-create table core.consents (
+create table core.consent_events (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references core.organizations(id) on delete cascade,
   person_type text check (person_type in ('staff','student','guardian','lead')),
@@ -195,8 +200,8 @@ create table core.consents (
   recorded_by uuid,
   recorded_at timestamptz not null default now()
 );
-create index consents_lookup on core.consents(org_id, channel, contact, purpose, recorded_at desc);
-create index consents_person on core.consents(org_id, person_id);
+create index consent_events_lookup on core.consent_events(org_id, channel, contact, purpose, recorded_at desc);
+create index consent_events_person on core.consent_events(org_id, person_id);
 
 -- Purge log (retention schedule principle 4): what class, which org, how many rows, when. Never the data.
 create table audit.purge_log (
@@ -234,22 +239,22 @@ grant all on private.compliance_request_secrets to service_role;
 
 create trigger trg_touch before update on core.pii_registry for each row execute function app.touch_updated_at();
 create trigger trg_touch before update on core.table_policy for each row execute function app.touch_updated_at();
-create trigger trg_touch before update on core.retention_rules for each row execute function app.touch_updated_at();
+create trigger trg_touch before update on core.retention_policies for each row execute function app.touch_updated_at();
 
--- Used by the retention_rules policy (a policy may not select from its own table: infinite recursion).
+-- Used by the retention_policies policy (a policy may not select from its own table: infinite recursion).
 create or replace function app._compliance_default_rule_exists(p_data_type text, p_scope text) returns boolean
 language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from core.retention_rules d where d.org_id is null and d.data_type = p_data_type and d.scope = p_scope)
+  select exists (select 1 from core.retention_policies d where d.org_id is null and d.data_type = p_data_type and d.scope = p_scope)
 $$;
 
 -- ================================================================ policies, grants, audit triggers
 alter table core.pii_registry enable row level security;
 alter table core.table_policy enable row level security;
-alter table core.retention_rules enable row level security;
+alter table core.retention_policies enable row level security;
 alter table core.legal_holds enable row level security;
 alter table core.compliance_requests enable row level security;
 alter table core.org_export_jobs enable row level security;
-alter table core.consents enable row level security;
+alter table core.consent_events enable row level security;
 alter table audit.purge_log enable row level security;
 
 -- Platform defaults (org_id null) are visible to platform admins only (the isolation harness allows no row without an org
@@ -261,10 +266,10 @@ create policy sel on core.table_policy for select using (
   app.is_platform_admin() or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
 create policy wr on core.table_policy for all using (app.is_platform_admin()) with check (app.is_platform_admin());
 
-create policy sel on core.retention_rules for select using (
+create policy sel on core.retention_policies for select using (
   app.is_platform_admin() or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
 -- A client admin may only add or change a row that overrides an existing platform default of the same data_type.
-create policy wr on core.retention_rules for all
+create policy wr on core.retention_policies for all
   using (app.is_platform_admin()
          or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'manage', org_id)))
   with check (app.is_platform_admin()
@@ -281,26 +286,26 @@ create policy sel on core.compliance_requests for select using (
   app.is_platform_admin() or (org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
 create policy sel on core.org_export_jobs for select using (
   app.is_platform_admin() or (org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
-create policy sel on core.consents for select using (
+create policy sel on core.consent_events for select using (
   app.is_platform_admin() or (org_id = app.current_org_id() and app.user_has_any_product(org_id)));
 create policy sel on audit.purge_log for select using (
   app.is_platform_admin() or (org_id = app.current_org_id() and app.can_any_product('audit', 'view', org_id)));
 
 select app.enable_audit('core', 'pii_registry', true);
 select app.enable_audit('core', 'table_policy', true);
-select app.enable_audit('core', 'retention_rules', true);
+select app.enable_audit('core', 'retention_policies', true);
 select app.enable_audit('core', 'legal_holds', true);
 select app.enable_audit('core', 'compliance_requests');
 select app.enable_audit('core', 'org_export_jobs');
-select app.enable_audit('core', 'consents');
+select app.enable_audit('core', 'consent_events');
 
-grant select on core.pii_registry, core.table_policy, core.retention_rules, core.legal_holds, core.compliance_requests,
-  core.org_export_jobs, core.consents to authenticated, crm_server, os_server, erp_server, platform_admin_server;
-grant insert, update, delete on core.pii_registry, core.table_policy, core.retention_rules to platform_admin_server;
+grant select on core.pii_registry, core.table_policy, core.retention_policies, core.legal_holds, core.compliance_requests,
+  core.org_export_jobs, core.consent_events to authenticated, crm_server, os_server, erp_server, platform_admin_server;
+grant insert, update, delete on core.pii_registry, core.table_policy, core.retention_policies to platform_admin_server;
 grant insert, update on core.legal_holds to platform_admin_server;
 grant select on audit.purge_log to authenticated, platform_admin_server;
-grant all on core.pii_registry, core.table_policy, core.retention_rules, core.legal_holds, core.compliance_requests,
-  core.org_export_jobs, core.consents, audit.purge_log to service_role;
+grant all on core.pii_registry, core.table_policy, core.retention_policies, core.legal_holds, core.compliance_requests,
+  core.org_export_jobs, core.consent_events, audit.purge_log to service_role;
 -- Org admins edit retention overrides and holds through platform_admin_server, as themselves (the policies above decide).
 
 -- ================================================================ small internal helpers (owner only)
@@ -460,9 +465,9 @@ $$;
 create or replace function app._compliance_lifecycle_days(p_org uuid, p_type text, p_fallback integer) returns integer
 language sql stable security definer set search_path = '' as $$
   select least(
-    coalesce((select d.period_value from core.retention_rules d where d.org_id is null and d.scope = 'lifecycle' and d.data_type = p_type), p_fallback),
-    coalesce((select o.period_value from core.retention_rules o where o.org_id = p_org and o.scope = 'lifecycle' and o.data_type = p_type),
-             (select d.period_value from core.retention_rules d where d.org_id is null and d.scope = 'lifecycle' and d.data_type = p_type), p_fallback))
+    coalesce((select d.period_value from core.retention_policies d where d.org_id is null and d.scope = 'lifecycle' and d.data_type = p_type), p_fallback),
+    coalesce((select o.period_value from core.retention_policies o where o.org_id = p_org and o.scope = 'lifecycle' and o.data_type = p_type),
+             (select d.period_value from core.retention_policies d where d.org_id is null and d.scope = 'lifecycle' and d.data_type = p_type), p_fallback))
 $$;
 
 create or replace function app._compliance_deletion_status(p_org uuid, p_product text default null) returns jsonb
@@ -555,13 +560,25 @@ language sql stable security definer set search_path = '' as $$
   order by x.erase_order, x.schema_name, x.table_name, x.key_column
 $$;
 
-create or replace function app._compliance_person_where(p_reg core.pii_registry, p_org uuid, p_person uuid, p_ids text[]) returns text
-language plpgsql stable set search_path = '' as $$
+-- The WHERE of one registry row for one person: the key column against every id of the person (uuid, uuid[] or text
+-- columns), or any contact column against the person's phones/emails. Always inside the org.
+create or replace function app._compliance_person_where(p_reg core.pii_registry, p_org uuid, p_keys uuid[], p_ids text[]) returns text
+language plpgsql stable security definer set search_path = '' as $$
 declare
-  v_parts text[] := array[format('t.%I = %L', p_reg.key_column, p_person)];
+  v_parts text[] := '{}';
+  v_type text;
   c text;
   w text;
 begin
+  if p_reg.key_column is not null then
+    select pg_catalog.format_type(a.atttypid, a.atttypmod) into v_type from pg_catalog.pg_attribute a
+     where a.attrelid = (pg_catalog.quote_ident(p_reg.schema_name) || '.' || pg_catalog.quote_ident(p_reg.table_name))::pg_catalog.regclass
+       and a.attname = p_reg.key_column and not a.attisdropped;
+    v_parts := array_append(v_parts, case
+      when v_type = 'uuid' then format('t.%I = any(%L::uuid[])', p_reg.key_column, p_keys)
+      when v_type = 'uuid[]' then format('t.%I && %L::uuid[]', p_reg.key_column, p_keys)
+      else format('t.%I::text = any(%L::text[])', p_reg.key_column, (select coalesce(array_agg(k::text), '{}') from unnest(p_keys) k)) end);
+  end if;
   foreach c in array p_reg.contact_columns loop
     v_parts := array_append(v_parts, format('lower(btrim(t.%I::text)) = any(%L::text[])', c, coalesce(p_ids, '{}'::text[])));
   end loop;
@@ -583,10 +600,10 @@ begin
     return 'org_has_no_such_product';
   end if;
   if not app.has_column(p_reg.schema_name, p_reg.table_name, 'org_id')
-     or not app.has_column(p_reg.schema_name, p_reg.table_name, p_reg.key_column) then
+     or (p_reg.key_column is not null and not app.has_column(p_reg.schema_name, p_reg.table_name, p_reg.key_column)) then
     return 'column_missing';
   end if;
-  foreach c in array (p_reg.contact_columns || p_reg.pii_columns) loop
+  foreach c in array (p_reg.contact_columns || p_reg.pii_columns || p_reg.link_columns) loop
     if not app.has_column(p_reg.schema_name, p_reg.table_name, c) then return 'column_missing'; end if;
   end loop;
   if p_reg.filter_column is not null and not app.has_column(p_reg.schema_name, p_reg.table_name, p_reg.filter_column) then
@@ -595,8 +612,30 @@ begin
   return null;
 end $$;
 
--- Phone/email values of the person, read from rows flagged is_subject, plus what the caller supplied (lower-cased).
-create or replace function app._compliance_identifiers(p_org uuid, p_person_type text, p_person uuid, p_given text[]) returns text[]
+-- All ids of the person: the id the caller gave plus the other ids on the person's subject row(s)
+-- (a staff id and its user id, a guardian id and its login). Found through rows flagged is_subject, so it is registry-driven.
+create or replace function app._compliance_person_keys(p_org uuid, p_person_type text, p_person uuid) returns uuid[]
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  reg core.pii_registry;
+  v_cols text[];
+  v_match text;
+  v_found uuid[];
+  v uuid[] := array[p_person];
+begin
+  for reg in select * from app._compliance_registry_for(p_org, p_person_type) r where r.is_subject and r.key_column is not null loop
+    if app._compliance_registry_usable(reg, p_org) is not null then continue; end if;
+    v_cols := array_prepend(reg.key_column, reg.link_columns);
+    v_match := (select string_agg(format('t.%I = %L', x, p_person), ' or ') from unnest(v_cols) x);
+    execute format('select coalesce(array_agg(distinct y) filter (where y is not null), ''{}'') from (select unnest(array[%s]) as y from %I.%I t where t.org_id = %L and (%s)) s',
+                   (select string_agg(format('t.%I::uuid', x), ', ') from unnest(v_cols) x), reg.schema_name, reg.table_name, p_org, v_match) into v_found;
+    v := (select coalesce(array_agg(distinct z), '{}') from unnest(v || v_found) z);
+  end loop;
+  return v;
+end $$;
+
+-- Phone/email values of the person, read from subject rows, plus what the caller supplied (lower-cased).
+create or replace function app._compliance_identifiers(p_org uuid, p_person_type text, p_keys uuid[], p_given text[]) returns text[]
 language plpgsql volatile security definer set search_path = '' as $$
 declare
   reg core.pii_registry;
@@ -604,11 +643,11 @@ declare
   v text[] := coalesce((select array_agg(distinct lower(btrim(x))) from unnest(coalesce(p_given, '{}'::text[])) x where btrim(x) <> ''), '{}'::text[]);
   w text[];
 begin
-  for reg in select * from app._compliance_registry_for(p_org, p_person_type) r where r.is_subject loop
+  for reg in select * from app._compliance_registry_for(p_org, p_person_type) r where r.is_subject and r.key_column is not null loop
     if app._compliance_registry_usable(reg, p_org) is not null then continue; end if;
     foreach c in array reg.contact_columns loop
-      execute format('select coalesce(array_agg(distinct lower(btrim(t.%I::text))) filter (where t.%I is not null), ''{}'') from %I.%I t where t.org_id = %L and t.%I = %L',
-                     c, c, reg.schema_name, reg.table_name, p_org, reg.key_column, p_person) into w;
+      execute format('select coalesce(array_agg(distinct lower(btrim(t.%I::text))) filter (where t.%I is not null and btrim(t.%I::text) <> ''''), ''{}'') from %I.%I t where t.org_id = %L and t.%I = any(%L::uuid[])',
+                     c, c, c, reg.schema_name, reg.table_name, p_org, reg.key_column, p_keys) into w;
       v := (select coalesce(array_agg(distinct y), '{}') from unnest(v || w) y);
     end loop;
   end loop;
@@ -616,22 +655,41 @@ begin
 end $$;
 
 -- Hold that stops everything for this org or this person (table holds are checked per table).
-create or replace function app._compliance_person_hold(p_org uuid, p_person_type text, p_person uuid) returns uuid
+create or replace function app._compliance_person_hold(p_org uuid, p_person_type text, p_keys uuid[]) returns uuid
 language sql stable security definer set search_path = '' as $$
   select h.id from core.legal_holds h
    where h.org_id = p_org and h.released_at is null
-     and (h.scope = 'org' or (h.scope = 'person' and h.person_id = p_person and (h.person_type is null or h.person_type = p_person_type)))
+     and (h.scope = 'org' or (h.scope = 'person' and h.person_id = any(p_keys) and (h.person_type is null or h.person_type = p_person_type)))
    order by h.placed_at limit 1
 $$;
 
+-- The client's own request register (core.data_requests) is the front door; the engine links to it and closes it.
+create or replace function app._compliance_check_data_request(p_org uuid, p_data_request uuid) returns void
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if p_data_request is not null and not exists (select 1 from core.data_requests d where d.org_id = p_org and d.id = p_data_request and d.deleted_at is null) then
+    raise exception 'compliance: unknown data request for this organisation' using errcode = '22023';
+  end if;
+end $$;
+
+create or replace function app._compliance_close_data_request(p_org uuid, p_data_request uuid, p_request uuid, p_outcome jsonb) returns void
+language plpgsql volatile security definer set search_path = '' as $$
+begin
+  if p_data_request is null then return; end if;
+  update core.data_requests d set status = 'done',
+         evidence = d.evidence || jsonb_build_object('compliance_request_id', p_request, 'completed_at', now(), 'outcome', p_outcome)
+   where d.org_id = p_org and d.id = p_data_request;
+end $$;
+
 -- ================================================================ (1) per-person export
 create or replace function app.compliance_person_export(p_org uuid, p_person_type text, p_person_id uuid,
-  p_identifiers text[] default '{}') returns jsonb
+  p_identifiers text[] default '{}', p_data_request uuid default null) returns jsonb
 language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_actor uuid;
   reg core.pii_registry;
   v_ids text[];
+  v_keys uuid[];
   v_why text;
   v_rows jsonb;
   v_tables jsonb := '[]'::jsonb;
@@ -644,7 +702,9 @@ begin
   if p_person_type not in ('staff','student','guardian','lead') then
     raise exception 'compliance: unknown person type %', p_person_type using errcode = '22023';
   end if;
-  v_ids := app._compliance_identifiers(p_org, p_person_type, p_person_id, p_identifiers);
+  perform app._compliance_check_data_request(p_org, p_data_request);
+  v_keys := app._compliance_person_keys(p_org, p_person_type, p_person_id);
+  v_ids := app._compliance_identifiers(p_org, p_person_type, v_keys, p_identifiers);
   for reg in select * from app._compliance_registry_for(p_org, p_person_type) loop
     if not reg.export then continue; end if;
     v_why := app._compliance_registry_usable(reg, p_org);
@@ -653,15 +713,16 @@ begin
       continue;
     end if;
     execute format('select coalesce(jsonb_agg(to_jsonb(t) order by t.ctid), ''[]''::jsonb) from %I.%I t where %s',
-                   reg.schema_name, reg.table_name, app._compliance_person_where(reg, p_org, p_person_id, v_ids)) into v_rows;
+                   reg.schema_name, reg.table_name, app._compliance_person_where(reg, p_org, v_keys, v_ids)) into v_rows;
     v_n := jsonb_array_length(v_rows);
-    v_counts := v_counts || jsonb_build_object(reg.schema_name || '.' || reg.table_name || ':' || reg.key_column, v_n);
-    v_tables := v_tables || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', reg.key_column,
+    v_counts := v_counts || jsonb_build_object(reg.schema_name || '.' || reg.table_name || ':' || coalesce(reg.key_column, 'contact'), v_n);
+    v_tables := v_tables || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', coalesce(reg.key_column, 'contact'),
                                                'person_type', reg.person_type, 'rows', v_rows);
   end loop;
-  insert into core.compliance_requests (org_id, kind, status, person_type, subject_person_id, requested_by, result, completed_at)
-  values (p_org, 'person_export', 'executed', p_person_type, p_person_id, v_actor, jsonb_build_object('rows', v_counts), now())
+  insert into core.compliance_requests (org_id, kind, status, person_type, subject_person_id, requested_by, result, completed_at, data_request_id)
+  values (p_org, 'person_export', 'executed', p_person_type, p_person_id, v_actor, jsonb_build_object('rows', v_counts), now(), p_data_request)
   returning id into v_req;
+  perform app._compliance_close_data_request(p_org, p_data_request, v_req, jsonb_build_object('kind', 'export', 'tables', jsonb_array_length(v_tables)));
   insert into audit.log (org_id, actor_user_id, support_session_id, action, schema_name, table_name, row_id, detail)
   values (p_org, v_actor, app.support_session_id(), 'compliance.person_export', 'core', 'compliance_requests', v_req,
           jsonb_build_object('person_type', p_person_type, 'rows', v_counts));
@@ -672,7 +733,7 @@ end $$;
 -- ================================================================ (2) per-person erasure / anonymisation
 -- Per registry row: delete, anonymise (pii_columns -> null or the registered literal) or retain. Then the PII is
 -- stripped from the audit images of the affected rows, so the trail (who, when, which row) stays and the data goes.
-create or replace function app._compliance_erase(p_org uuid, p_person_type text, p_person uuid, p_ids text[],
+create or replace function app._compliance_erase(p_org uuid, p_person_type text, p_keys uuid[], p_ids text[],
   p_dry boolean, p_request uuid) returns jsonb
 language plpgsql volatile security definer set search_path = '' as $$
 declare
@@ -692,21 +753,22 @@ declare
   v_anon bigint := 0;
   v_retained bigint := 0;
   v_user_deleted boolean := false;
+  v_users uuid[] := (select coalesce(array_agg(u.user_id), '{}') from core.org_users u where u.org_id = p_org and u.user_id = any(p_keys));
 begin
   for reg in select * from app._compliance_registry_for(p_org, p_person_type) loop
     v_why := app._compliance_registry_usable(reg, p_org);
     if v_why is not null then
-      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', reg.key_column,
+      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', coalesce(reg.key_column, 'contact'),
                                            'mode', 'skip', 'rows', 0, 'reason', v_why);
       continue;
     end if;
-    v_where := app._compliance_person_where(reg, p_org, p_person, p_ids);
+    v_where := app._compliance_person_where(reg, p_org, p_keys, p_ids);
     v_n := app._compliance_count(reg.schema_name, reg.table_name, v_where);
     v_hold := exists (select 1 from core.legal_holds h where h.org_id = p_org and h.released_at is null and h.scope = 'table'
                        and h.schema_name = reg.schema_name and h.table_name = reg.table_name);
     if v_hold then
       v_retained := v_retained + v_n;
-      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', reg.key_column,
+      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', coalesce(reg.key_column, 'contact'),
                                            'mode', 'retain', 'rows', v_n, 'reason', 'legal_hold');
       perform app._compliance_log_purge(p_org, null, 'person_erasure', p_request, null, reg.person_type, reg.schema_name, reg.table_name,
                                         'retain', 'skipped_legal_hold', v_n, 0, null, p_dry);
@@ -714,7 +776,7 @@ begin
     end if;
     if reg.erasure_mode = 'retain' then
       v_retained := v_retained + v_n;
-      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', reg.key_column,
+      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', coalesce(reg.key_column, 'contact'),
                                            'mode', 'retain', 'rows', v_n, 'reason', reg.retain_reason);
       perform app._compliance_log_purge(p_org, null, 'person_erasure', p_request, null, reg.person_type, reg.schema_name, reg.table_name,
                                         'retain', case when p_dry then 'dry_run' else 'skipped_retained' end, v_n, 0, null, p_dry,
@@ -723,10 +785,10 @@ begin
     end if;
 
     v_cols := (select coalesce(array_agg(distinct x), '{}') from unnest(
-                 reg.pii_columns || reg.contact_columns || array(select jsonb_object_keys(reg.anonymise_values))) x);
+                 reg.pii_columns || reg.audit_columns || reg.contact_columns || array(select jsonb_object_keys(reg.anonymise_values))) x);
     if p_dry then
       if reg.erasure_mode = 'delete' then v_deleted := v_deleted + v_n; else v_anon := v_anon + v_n; end if;
-      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', reg.key_column,
+      v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', coalesce(reg.key_column, 'contact'),
                                            'mode', reg.erasure_mode, 'rows', v_n);
       perform app._compliance_log_purge(p_org, null, 'person_erasure', p_request, null, reg.person_type, reg.schema_name, reg.table_name,
                                         reg.erasure_mode, 'dry_run', v_n, 0, null, true);
@@ -760,25 +822,27 @@ begin
      where h.org_id = p_org and h.schema_name = reg.schema_name and h.table_name = reg.table_name
        and (h.row_id = any(v_ids) or h.id > v_mark_cfg);
 
-    v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', reg.key_column,
+    v_out := v_out || jsonb_build_object('schema', reg.schema_name, 'table', reg.table_name, 'key_column', coalesce(reg.key_column, 'contact'),
                                          'mode', reg.erasure_mode, 'rows', v_n);
     perform app._compliance_log_purge(p_org, null, 'person_erasure', p_request, null, reg.person_type, reg.schema_name, reg.table_name,
                                       reg.erasure_mode, 'done', v_n, v_n, null, false);
   end loop;
   return jsonb_build_object('tables', v_out, 'deleted', v_deleted, 'anonymised', v_anon, 'retained', v_retained,
     'external_actions', case when v_user_deleted
-      then jsonb_build_array(jsonb_build_object('kind', 'auth_user_delete', 'user_id', p_person,
+      then jsonb_build_array(jsonb_build_object('kind', 'auth_user_delete', 'user_ids', to_jsonb(v_users),
                                                 'note', 'delete the Supabase Auth user (email/phone) through the admin API; not reachable from SQL'))
       else '[]'::jsonb end);
 end $$;
 
 -- Step 1: dry-run plan + token. Nothing changes. identity_verified is the data-subject-rights step 2 outcome.
 create or replace function app.compliance_person_erasure_plan(p_org uuid, p_person_type text, p_person_id uuid,
-  p_identifiers text[] default '{}', p_reason text default null, p_identity_verified boolean default false) returns jsonb
+  p_identifiers text[] default '{}', p_reason text default null, p_identity_verified boolean default false,
+  p_data_request uuid default null) returns jsonb
 language plpgsql volatile security definer set search_path = '' as $$
 declare
   v_actor uuid;
   v_ids text[];
+  v_keys uuid[];
   v_hold uuid;
   v_plan jsonb;
   v_token text;
@@ -792,26 +856,28 @@ begin
   if p_reason is null or length(btrim(p_reason)) < 10 then
     raise exception 'compliance: a reason of at least 10 characters is required' using errcode = '22023';
   end if;
-  v_hold := app._compliance_person_hold(p_org, p_person_type, p_person_id);
+  perform app._compliance_check_data_request(p_org, p_data_request);
+  v_keys := app._compliance_person_keys(p_org, p_person_type, p_person_id);
+  v_hold := app._compliance_person_hold(p_org, p_person_type, v_keys);
   if v_hold is not null then
-    insert into core.compliance_requests (org_id, kind, status, person_type, subject_person_id, reason, requested_by, blockers, completed_at)
+    insert into core.compliance_requests (org_id, kind, status, person_type, subject_person_id, reason, requested_by, blockers, completed_at, data_request_id)
     values (p_org, 'person_erasure', 'refused', p_person_type, p_person_id, btrim(p_reason), v_actor,
-            jsonb_build_array(jsonb_build_object('code', 'legal_hold', 'hold_id', v_hold)), now())
+            jsonb_build_array(jsonb_build_object('code', 'legal_hold', 'hold_id', v_hold)), now(), p_data_request)
     returning id into v_req;
     return jsonb_build_object('request_id', v_req, 'status', 'refused', 'eligible', false,
                               'blockers', jsonb_build_array(jsonb_build_object('code', 'legal_hold', 'hold_id', v_hold)));
   end if;
-  v_ids := app._compliance_identifiers(p_org, p_person_type, p_person_id, p_identifiers);
+  v_ids := app._compliance_identifiers(p_org, p_person_type, v_keys, p_identifiers);
   v_req := gen_random_uuid();
-  v_plan := app._compliance_erase(p_org, p_person_type, p_person_id, v_ids, true, v_req);
+  v_plan := app._compliance_erase(p_org, p_person_type, v_keys, v_ids, true, v_req);
   v_ttl := app._compliance_lifecycle_days(p_org, 'confirmation_token_minutes', 60);   -- unit is minutes for this row
   v_token := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
   insert into core.compliance_requests (id, org_id, kind, status, person_type, subject_person_id, plan, reason, requested_by,
-                                        identity_verified_at, identity_verified_by, token_hash, token_expires_at)
+                                        identity_verified_at, identity_verified_by, token_hash, token_expires_at, data_request_id)
   values (v_req, p_org, 'person_erasure', 'planned', p_person_type, p_person_id,
           v_plan, btrim(p_reason), v_actor,
           case when p_identity_verified then now() end, case when p_identity_verified then v_actor end,
-          app._compliance_hash(v_token), now() + make_interval(mins => v_ttl));
+          app._compliance_hash(v_token), now() + make_interval(mins => v_ttl), p_data_request);
   -- opportunistic housekeeping: plans nobody confirmed within a day
   delete from private.compliance_request_secrets x where x.created_at < now() - interval '1 day';
   insert into private.compliance_request_secrets (request_id, org_id, identifiers) values (v_req, p_org, v_ids);
@@ -827,6 +893,7 @@ declare
   r core.compliance_requests;
   v_actor uuid;
   v_hold uuid;
+  v_keys uuid[];
   v_res jsonb;
 begin
   select * into r from core.compliance_requests q where q.id = p_request for update;
@@ -845,19 +912,22 @@ begin
     update core.compliance_requests q set status = 'refused', blockers = jsonb_build_array(jsonb_build_object('code', 'identity_not_verified')), completed_at = now() where q.id = r.id;
     return jsonb_build_object('ok', false, 'status', 'refused', 'blockers', jsonb_build_array(jsonb_build_object('code', 'identity_not_verified')));
   end if;
-  v_hold := app._compliance_person_hold(r.org_id, r.person_type, r.subject_person_id);
+  v_keys := app._compliance_person_keys(r.org_id, r.person_type, r.subject_person_id);
+  v_hold := app._compliance_person_hold(r.org_id, r.person_type, v_keys);
   if v_hold is not null then
     delete from private.compliance_request_secrets x where x.request_id = r.id;
     update core.compliance_requests q set status = 'refused', blockers = jsonb_build_array(jsonb_build_object('code', 'legal_hold', 'hold_id', v_hold)), completed_at = now() where q.id = r.id;
     return jsonb_build_object('ok', false, 'status', 'refused', 'blockers', jsonb_build_array(jsonb_build_object('code', 'legal_hold', 'hold_id', v_hold)));
   end if;
-  v_res := app._compliance_erase(r.org_id, r.person_type, r.subject_person_id,
+  v_res := app._compliance_erase(r.org_id, r.person_type, v_keys,
              coalesce((select x.identifiers from private.compliance_request_secrets x where x.request_id = r.id), '{}'::text[]), false, r.id);
   -- the tombstone: request id, class, date, counts. The identifiers are dropped.
   delete from private.compliance_request_secrets x where x.request_id = r.id;
   update core.compliance_requests q set status = 'executed', result = v_res,
          confirmed_by = v_actor, confirmed_at = now(), completed_at = now(), token_hash = null
    where q.id = r.id;
+  perform app._compliance_close_data_request(r.org_id, r.data_request_id, r.id,
+            jsonb_build_object('kind', 'erasure', 'deleted', v_res -> 'deleted', 'anonymised', v_res -> 'anonymised', 'retained', v_res -> 'retained'));
   insert into audit.log (org_id, actor_user_id, support_session_id, action, schema_name, table_name, row_id, detail)
   values (r.org_id, v_actor, app.support_session_id(), 'compliance.person_erased', 'core', 'compliance_requests', r.id,
           jsonb_build_object('person_type', r.person_type, 'deleted', v_res -> 'deleted', 'anonymised', v_res -> 'anonymised', 'retained', v_res -> 'retained'));
@@ -969,6 +1039,10 @@ begin
     return jsonb_build_object('tables', v_tables, 'retained', v_retained, 'total_rows', v_total, 'auth_user_ids', to_jsonb(v_users));
   end if;
 
+  -- the retained organisation row must not point at a file row that is about to go
+  if p_product is null and app.has_column('core', 'organizations', 'logo_file_id') then
+    update core.organizations o set logo_file_id = null where o.id = p_org;
+  end if;
   -- delete in passes: a foreign-key violation just means a child table must go first; retry until nothing is left
   loop
     v_pass := v_pass + 1;
@@ -1102,22 +1176,25 @@ begin
 end $$;
 
 -- ================================================================ (4) retention purge
--- Effective rule per data_type for an org: the platform default decides table, clock, filter and action; an org row
--- may only shorten the period and switch the rule on or off.
+-- Effective rule per data_type for an org: the platform default (core.retention_policies) decides table, clock, filter and
+-- action. The period is the SHORTEST of: the default, an org override row in core.retention_policies, and the client's own
+-- rule of the same data_type in core.retention_rules (keep_years, the master-data table clients edit). A client may only
+-- shorten. An org policy row may also switch the rule on or off.
 create or replace function app._compliance_effective_rules(p_org uuid)
 returns table (rule_id uuid, data_type text, product_key text, schema_name text, table_name text, date_column text,
                filter_column text, filter_values text[], action text, anonymise_columns text[], anonymise_values jsonb,
                period_value integer, period_unit text, enabled boolean, legal_status text, org_override boolean)
 language sql stable security definer set search_path = '' as $$
   select d.id, d.data_type, d.product_key, d.schema_name, d.table_name, d.date_column, d.filter_column, d.filter_values, d.action,
-         d.anonymise_columns, d.anonymise_values,
-         case when o.id is not null and app._compliance_interval(o.period_value, o.period_unit) < app._compliance_interval(d.period_value, d.period_unit)
-              then o.period_value else d.period_value end,
-         case when o.id is not null and app._compliance_interval(o.period_value, o.period_unit) < app._compliance_interval(d.period_value, d.period_unit)
-              then o.period_unit else d.period_unit end,
-         coalesce(o.enabled, d.enabled), coalesce(o.legal_status, d.legal_status), o.id is not null
-    from core.retention_rules d
-    left join core.retention_rules o on o.org_id = p_org and o.data_type = d.data_type and o.scope = 'table'
+         d.anonymise_columns, d.anonymise_values, best.v, best.u,
+         coalesce(o.enabled, d.enabled), coalesce(o.legal_status, d.legal_status), (o.id is not null or c.keep_years is not null)
+    from core.retention_policies d
+    left join core.retention_policies o on o.org_id = p_org and o.data_type = d.data_type and o.scope = 'table'
+    left join lateral (select min(r.keep_years) as keep_years from core.retention_rules r
+                        where r.org_id = p_org and r.deleted_at is null and r.keep_years > 0 and r.data_type = d.data_type
+                          and (r.product_key is null or r.product_key is not distinct from d.product_key)) c on true
+    cross join lateral (select x.v, x.u from (values (d.period_value, d.period_unit), (o.period_value, o.period_unit), (c.keep_years * 12, 'months')) x(v, u)
+                         where x.v is not null order by app._compliance_interval(x.v, x.u) limit 1) best
    where d.org_id is null and d.scope = 'table'
 $$;
 
@@ -1317,7 +1394,7 @@ begin
   if p_purpose not in ('service','promotional','both') then raise exception 'consent: unknown purpose %', p_purpose using errcode = '22023'; end if;
   v_purposes := case when p_purpose = 'both' then array['service','promotional'] else array[p_purpose] end;
   foreach x in array v_purposes loop
-    insert into core.consents (org_id, person_type, person_id, guardian_id, guardian_relation, channel, contact, purpose, status, source, proof, recorded_by)
+    insert into core.consent_events (org_id, person_type, person_id, guardian_id, guardian_relation, channel, contact, purpose, status, source, proof, recorded_by)
     values (p_org, p_person_type, p_person_id, p_guardian_id, p_guardian_relation, p_channel, v_contact, x, p_status, p_source,
             coalesce(p_proof, '{}'::jsonb), auth.uid())
     returning id into v_id;
@@ -1331,7 +1408,7 @@ create or replace function app.compliance_consent_status(p_org uuid, p_channel t
 language plpgsql stable security definer set search_path = '' as $$
 begin
   perform app._compliance_consent_allowed(p_org);
-  return coalesce((select c.status from core.consents c
+  return coalesce((select c.status from core.consent_events c
                     where c.org_id = p_org and c.channel = p_channel and c.purpose = p_purpose
                       and c.contact = app.compliance_normalise_contact(p_channel, p_contact)
                     order by c.recorded_at desc, c.id desc limit 1), 'unknown');
@@ -1385,50 +1462,140 @@ begin
 end $$;
 
 -- ================================================================ seed: registry (platform defaults)
--- core identity tables. Person ids are auth user ids (staff, guardians, students with a login) or learner ids.
-do $$
+-- Person ids. A staff person is core.staff.id, a guardian core.guardians.id, a student core.students.id, a lead the CRM
+-- contact id; a login (auth user id) is also accepted: the subject rows (is_subject, link_columns) resolve every id of the
+-- person, so tables keyed by user_id, staff_id, guardian_id or student_id are all found.
+create function pg_temp.reg(p_table text, p_key text, p_types text[], p_mode text, p_pii text[], p_ord integer, p_note text,
+  p_av jsonb default '{}', p_reason text default null, p_contact text[] default '{}', p_audit text[] default '{}',
+  p_subject boolean default false, p_link text[] default '{}', p_fcol text default null, p_fvals text[] default null) returns void
+language plpgsql as $$
 declare
   pt text;
 begin
-  foreach pt in array array['staff','guardian','student'] loop
-    -- the profile row: removed. The Supabase Auth user (email, phone) is deleted by the server (external action).
-    insert into core.pii_registry (schema_name, table_name, person_type, key_column, filter_column, filter_values, is_subject, pii_columns, erasure_mode, erase_order, note)
-    values ('core', 'org_users', pt, 'user_id', 'kind',
-            case pt when 'staff' then array['staff'] when 'guardian' then array['guardian','parent'] else array['student'] end,
-            true, array['display_name'], 'delete', 900, 'Profile link of a portal/staff user. Cascades to access rows.');
-    insert into core.pii_registry (schema_name, table_name, person_type, key_column, pii_columns, erasure_mode, erase_order, note)
-    values ('core', 'user_branch_access', pt, 'user_id', array['user_id'], 'delete', 100, 'Branch access of the user.'),
-           ('core', 'user_product_access', pt, 'user_id', array['user_id'], 'delete', 100, 'Product access of the user.'),
-           ('core', 'user_security', pt, 'user_id', array['user_id'], 'delete', 100, 'Password/lockout bookkeeping.');
-    insert into core.pii_registry (schema_name, table_name, person_type, key_column, pii_columns, anonymise_values, erasure_mode, erase_order, note)
-    values ('core', 'login_events', pt, 'user_id', array['user_id','ip','user_agent'], '{}', 'anonymise', 100,
-            'Security log: events stay for counts, the person, IP and device are removed.');
-    insert into core.pii_registry (schema_name, table_name, person_type, key_column, erasure_mode, retain_reason, pii_columns, erase_order, note)
-    values ('core', 'compliance_requests', pt, 'subject_person_id', 'retain',
-            'Request register and tombstone: proof that a right was exercised; holds an opaque id only (retention schedule 2.1).',
-            array['subject_person_id'], 800, 'Register of the person''s own requests.'),
-           ('core', 'legal_holds', pt, 'person_id', 'retain',
-            'A legal hold must survive until released; it is lifted by the court or counsel, not by an erasure request.',
-            array['person_id'], 800, null);
+  foreach pt in array p_types loop
+    insert into core.pii_registry (schema_name, table_name, person_type, key_column, filter_column, filter_values, contact_columns, is_subject, link_columns,
+                                   pii_columns, audit_columns, anonymise_values, erasure_mode, retain_reason, erase_order, note)
+    values ('core', p_table, pt, p_key, p_fcol, case when p_fcol = 'person_type' then array[pt] else p_fvals end, p_contact, p_subject, p_link, p_pii, p_audit, p_av, p_mode, p_reason, p_ord, p_note);
   end loop;
-  -- guardians and students are also linked to each other through learner_links
-  insert into core.pii_registry (schema_name, table_name, person_type, key_column, pii_columns, erasure_mode, erase_order, note)
-  values ('core', 'learner_links', 'guardian', 'user_id', array['user_id','learner_id'], 'delete', 100, 'Guardian to learner link.'),
-         ('core', 'learner_links', 'student', 'learner_id', array['user_id','learner_id'], 'delete', 100, 'Learner side of the link.');
-  insert into core.pii_registry (schema_name, table_name, person_type, key_column, pii_columns, erasure_mode, erase_order, note)
-  values ('core', 'user_product_access', 'staff', 'granted_by', array['granted_by'], 'anonymise', 100, 'Grants this staff member made: the granter is removed, the grant stays.');
-  -- the consent ledger is proof of lawful processing: retained for its own retention period
-  foreach pt in array array['staff','guardian','student','lead'] loop
-    insert into core.pii_registry (schema_name, table_name, person_type, key_column, filter_column, filter_values, contact_columns, pii_columns, erasure_mode, retain_reason, erase_order, note)
-    values ('core', 'consents', pt, 'person_id', 'person_type', array[pt], array['contact'], array['contact','person_id','guardian_id'], 'retain',
-            'Consent and opt-out records are proof of lawful processing and are kept for the relationship plus 3 years (retention schedule 2.1, CONFIRM with counsel).',
-            800, 'Ledger; also matched by phone/email.');
-  end loop;
+end $$;
+
+do $$
+declare
+  logins constant text[] := array['staff','guardian','student'];
+  r_keep constant text := 'Kept on purpose: ';
+begin
+  -- ------------------------------------------------------------ the people (subject rows)
+  perform pg_temp.reg('staff', 'id', array['staff'], 'anonymise',
+    array['first_name','last_name','email','phone','dob','photo_file_id','employee_code','user_id','custom','ui_prefs'], 850, 'Staff profile: kept as a pseudonymous row (timetable, attendance and approvals point at it), the person is removed.',
+    '{"first_name":"Erased person","custom":"{}","ui_prefs":"{}"}', null, array['email','phone'], array['full_name'], true, array['user_id']);
+  perform pg_temp.reg('guardians', 'id', array['guardian'], 'anonymise',
+    array['name','phone','alt_phone','email','occupation','qualification','photo_file_id','user_id'], 850, 'Guardian profile: kept as a pseudonymous row, the person is removed.',
+    '{"name":"Erased person"}', null, array['phone','alt_phone','email'], '{}', true, array['user_id','household_id']);
+  perform pg_temp.reg('students', 'id', array['student'], 'anonymise',
+    array['first_name','last_name','dob','apaar_id','pen','photo_file_id','previous_school','user_id','crm_prospect_id','house','mother_tongue','nationality','custom'], 850,
+    'Student profile: the admission number and academic placement stay as a pseudonymous school record (transfer certificates, board rules: counsel to confirm), the person is removed.',
+    '{"first_name":"Erased person","custom":"{}"}', null, '{}', array['full_name'], true, array['user_id','household_id']);
+  perform pg_temp.reg('households', 'id', array['guardian','student'], 'retain',
+    array['address','phone','email','family_name'], 800, 'Shared family record.', '{}',
+    'The household is shared with the other guardians and children of the family; it is removed when its last member is erased (manual step) and is included in every member''s export.', array['phone','email']);
+  perform pg_temp.reg('student_sensitive', 'student_id', array['student'], 'delete',
+    array['student_id','blood_group','allergies','medical_conditions','medications','disability','special_needs','social_category','religion','caste','emergency_notes'], 100,
+    'Health and category data: deleted.');
+
+  -- ------------------------------------------------------------ logins (user_id keyed)
+  perform pg_temp.reg('org_users', 'user_id', array['staff'], 'delete', array['display_name'], 900, 'Login link; cascades to access rows. The Auth user is deleted by the server.', '{}', null, '{}', '{}', true, '{}', 'kind', array['staff']);
+  perform pg_temp.reg('org_users', 'user_id', array['guardian'], 'delete', array['display_name'], 900, 'Login link; cascades to access rows. The Auth user is deleted by the server.', '{}', null, '{}', '{}', true, '{}', 'kind', array['guardian','parent']);
+  perform pg_temp.reg('org_users', 'user_id', array['student'], 'delete', array['display_name'], 900, 'Login link; cascades to access rows. The Auth user is deleted by the server.', '{}', null, '{}', '{}', true, '{}', 'kind', array['student']);
+  perform pg_temp.reg('user_branch_access', 'user_id', logins, 'delete', array['user_id'], 100, 'Branch access of the user.');
+  perform pg_temp.reg('user_product_access', 'user_id', logins, 'delete', array['user_id'], 100, 'Product access of the user.');
+  perform pg_temp.reg('user_product_access', 'granted_by', array['staff'], 'anonymise', array['granted_by'], 100, 'Grants this staff member made: the granter is removed, the grant stays.');
+  perform pg_temp.reg('user_security', 'user_id', logins, 'delete', array['user_id'], 100, 'Password and lockout bookkeeping.');
+  perform pg_temp.reg('login_events', 'user_id', logins, 'anonymise', array['user_id','ip','user_agent'], 100, 'Security log: events stay for counts; the person, IP and device are removed.');
+  perform pg_temp.reg('learner_links', 'user_id', array['guardian'], 'delete', array['user_id','learner_id'], 100, 'Guardian to learner link.');
+  perform pg_temp.reg('learner_links', 'learner_id', array['student'], 'delete', array['user_id','learner_id'], 100, 'Learner side of the link.');
+
+  -- ------------------------------------------------------------ notifications and messages
+  perform pg_temp.reg('notifications', 'user_id', logins, 'delete', array['user_id','staff_id','title','body','data','link'], 100, 'In-app notifications of the user.');
+  perform pg_temp.reg('notifications', 'staff_id', array['staff'], 'delete', array['user_id','staff_id','title','body','data','link'], 100, 'In-app notifications of the staff member.');
+  perform pg_temp.reg('notification_prefs', 'user_id', logins, 'delete', array['user_id'], 100, 'Notification preferences.');
+  perform pg_temp.reg('device_tokens', 'user_id', logins, 'delete', array['user_id','staff_id','token','device_name'], 100, 'Push tokens.');
+  perform pg_temp.reg('device_tokens', 'staff_id', array['staff'], 'delete', array['user_id','staff_id','token','device_name'], 100, 'Push tokens.');
+  perform pg_temp.reg('outbox', 'guardian_id', array['guardian'], 'anonymise', array['to_address','body','error','provider_ref','guardian_id'], 100, 'Sent messages: the address and text are removed, delivery metadata stays (retention schedule 2.1).',
+    '{"to_address":"erased"}', null, array['to_address']);
+  perform pg_temp.reg('outbox', 'student_id', array['student'], 'anonymise', array['to_address','body','error','provider_ref','student_id'], 100, 'Sent messages about the student.', '{"to_address":"erased"}');
+  -- messages to a phone or email are also found by the person's own contact values (staff, guardian, lead)
+  perform pg_temp.reg('outbox', null, array['staff','guardian','lead'], 'anonymise', array['to_address','body','error','provider_ref'], 100, 'Sent messages to the person''s phone or email.', '{"to_address":"erased"}', null, array['to_address']);
+
+  -- ------------------------------------------------------------ helpdesk and approvals (free text may name the person)
+  perform pg_temp.reg('support_tickets', 'user_id', logins, 'anonymise', array['user_id','staff_id','body','reply'], 100, 'Support tickets: text removed, ticket stays.', '{"subject":"Erased request"}');
+  perform pg_temp.reg('support_tickets', 'staff_id', array['staff'], 'anonymise', array['user_id','staff_id','body','reply'], 100, 'Support tickets: text removed, ticket stays.', '{"subject":"Erased request"}');
+  perform pg_temp.reg('tickets', 'raised_by_user_id', logins, 'anonymise', array['raised_by_user_id','raised_by_staff_id','raised_by_name','description','photo_file_id','voice_file_id','payload'], 100, 'Helpdesk tickets raised by the person: personal text and media removed, ticket stays.', '{"title":"Erased request","payload":"{}"}');
+  perform pg_temp.reg('tickets', 'raised_by_staff_id', array['staff'], 'anonymise', array['raised_by_user_id','raised_by_staff_id','raised_by_name','description','photo_file_id','voice_file_id','payload'], 100, 'Helpdesk tickets raised by the staff member.', '{"title":"Erased request","payload":"{}"}');
+  perform pg_temp.reg('tickets', 'owner_staff_id', array['staff'], 'anonymise', array['owner_staff_id'], 100, 'Tickets the staff member handled: the handler is removed.');
+  perform pg_temp.reg('tickets', 'student_id', array['student'], 'anonymise', array['student_id','description','photo_file_id','voice_file_id','payload'], 100, 'Tickets about the student: personal text and media removed.', '{"title":"Erased request","payload":"{}"}');
+  perform pg_temp.reg('ticket_events', 'actor_user_id', logins, 'anonymise', array['actor_user_id','actor_staff_id','actor_name','note'], 100, 'Ticket history entries by the person.');
+  perform pg_temp.reg('ticket_events', 'actor_staff_id', array['staff'], 'anonymise', array['actor_user_id','actor_staff_id','actor_name','note'], 100, 'Ticket history entries by the staff member.');
+  perform pg_temp.reg('approval_requests', 'applicant_user_id', logins, 'anonymise', array['applicant_user_id','applicant_staff_id','requested_by_name','summary','impact','data'], 100, 'Approval requests: applicant and text removed, decision trail stays.', '{"title":"Erased request","data":"{}"}');
+  perform pg_temp.reg('approval_requests', 'applicant_staff_id', array['staff'], 'anonymise', array['applicant_user_id','applicant_staff_id','requested_by_name','summary','impact','data'], 100, 'Approval requests of the staff member.', '{"title":"Erased request","data":"{}"}');
+  perform pg_temp.reg('approval_requests', 'student_id', array['student'], 'anonymise', array['student_id','requested_by_name','summary','impact','data'], 100, 'Approval requests about the student.', '{"title":"Erased request","data":"{}"}');
+  perform pg_temp.reg('approval_actions', 'actor_user_id', logins, 'anonymise', array['actor_user_id','actor_staff_id','actor_name','comment'], 100, 'Approval actions by the person: name and comment removed, the action stays.');
+  perform pg_temp.reg('approval_actions', 'actor_staff_id', array['staff'], 'anonymise', array['actor_user_id','actor_staff_id','actor_name','comment'], 100, 'Approval actions by the staff member.');
+  perform pg_temp.reg('approval_steps', 'approver_staff_id', array['staff'], 'anonymise', array['approver_staff_id'], 100, 'A flow step that named this approver: the name is removed.');
+  perform pg_temp.reg('delegations', 'staff_id', array['staff'], 'delete', array['staff_id','delegate_id','reason'], 100, 'Delegations from the staff member.');
+  perform pg_temp.reg('delegations', 'delegate_id', array['staff'], 'delete', array['staff_id','delegate_id','reason'], 100, 'Delegations to the staff member.');
+
+  -- ------------------------------------------------------------ attendance, leave, timetable, content
+  perform pg_temp.reg('staff_attendance', 'staff_id', array['staff'], 'anonymise', array['check_in_lat','check_in_lng','check_in_distance_m','selfie_file_id','note'], 100, 'Staff attendance: location, selfie and notes removed; the attendance fact stays on the pseudonymous staff row.');
+  perform pg_temp.reg('leave_requests', 'staff_id', array['staff'], 'anonymise', array['reason','handover_note','attachment_file_id'], 100, 'Leave requests: reasons and attachments (often medical) removed; dates and days stay.');
+  perform pg_temp.reg('leave_balances', 'staff_id', array['staff'], 'retain', array['staff_id'], 100, 'Leave balances.', '{}', r_keep || 'numbers only, attached to the pseudonymous staff row.');
+  perform pg_temp.reg('student_leave_requests', 'student_id', array['student'], 'anonymise', array['reason','attachment_file_id','requested_by_user_id'], 100, 'Student leave: reasons and attachments removed.');
+  perform pg_temp.reg('student_leave_requests', 'requested_by_user_id', array['guardian','student'], 'anonymise', array['reason','attachment_file_id','requested_by_user_id'], 100, 'Leave applied for by this login: reasons and attachments removed.');
+  perform pg_temp.reg('student_attendance_marks', 'student_id', array['student'], 'anonymise', array['note'], 100, 'Attendance marks: notes removed; the mark stays on the pseudonymous student row.');
+  perform pg_temp.reg('student_attendance_sessions', 'marked_by_staff_id', array['staff'], 'anonymise', array['marked_by_staff_id','marked_by_name'], 100, 'Attendance sessions this staff member marked: the marker is removed.');
+  perform pg_temp.reg('student_status_events', 'student_id', array['student'], 'anonymise', array['reason','actor_name'], 100, 'Status history: reasons removed.');
+  perform pg_temp.reg('student_status_events', 'actor_user_id', array['staff'], 'anonymise', array['actor_user_id','actor_name'], 100, 'Status changes this staff member made: the actor is removed.');
+  perform pg_temp.reg('enrolments', 'student_id', array['student'], 'retain', array['student_id'], 100, 'Year-wise placement.', '{}', r_keep || 'academic placement history of the pseudonymous student record (board and transfer-certificate rules, counsel to confirm).');
+  perform pg_temp.reg('exam_seating', 'student_id', array['student'], 'retain', array['student_id'], 100, 'Exam seating.', '{}', r_keep || 'exam administration records of the pseudonymous student record.');
+  perform pg_temp.reg('class_posts', 'student_id', array['student'], 'anonymise', array['student_id','body','attachment_file_id'], 100, 'Posts addressed to the student: text removed.', '{"title":"Erased post"}');
+  perform pg_temp.reg('class_posts', 'staff_id', array['staff'], 'retain', array['staff_id'], 100, 'Posts authored by the staff member.', '{}', r_keep || 'school content authored in the course of employment; the author row is pseudonymous.');
+  perform pg_temp.reg('teacher_allocations', 'staff_id', array['staff'], 'retain', array['staff_id'], 100, 'Teaching allocations.', '{}', r_keep || 'timetable history; the staff row is pseudonymous.');
+  perform pg_temp.reg('timetable_entries', 'staff_id', array['staff'], 'retain', array['staff_id'], 100, 'Timetable.', '{}', r_keep || 'timetable history; the staff row is pseudonymous.');
+  perform pg_temp.reg('departments', 'head_staff_id', array['staff'], 'anonymise', array['head_staff_id'], 100, 'Departments this staff member headed: the head is removed.');
+  perform pg_temp.reg('events', 'owner_staff_id', array['staff'], 'anonymise', array['owner_staff_id'], 100, 'Events this staff member owned: the owner is removed.');
+  perform pg_temp.reg('incidents', 'student_ids', array['student'], 'retain', array['student_ids','staff_ids','description','action_taken','follow_up'], 100, 'Incident records.', '{}',
+    'Safeguarding and legal records about incidents are kept until counsel has decided the period (retention schedule 2.1 and open point 1); access exports include them.');
+  perform pg_temp.reg('incidents', 'staff_ids', array['staff'], 'retain', array['student_ids','staff_ids','description','action_taken','follow_up'], 100, 'Incident records.', '{}',
+    'Safeguarding and legal records about incidents are kept until counsel has decided the period (retention schedule 2.1 and open point 1); access exports include them.');
+  perform pg_temp.reg('incidents', 'owner_staff_id', array['staff'], 'retain', array['owner_staff_id','reported_by_user_id','reported_by_staff_id'], 100, 'Incident records owned or reported by the staff member.', '{}',
+    'Incident records are kept until counsel has decided the period (retention schedule 2.1); the staff row is pseudonymous.');
+  perform pg_temp.reg('files', 'owner_id', logins, 'retain', array['owner_id','file_name','storage_path'], 100, 'File records owned by the person.', '{}',
+    'File rows are removed with the record they belong to; the stored objects are deleted through the Storage API (external action) in the same request.');
+
+  -- ------------------------------------------------------------ the client's consent and request registers, AutoEd's compliance records
+  perform pg_temp.reg('consents', 'staff_id', array['staff'], 'retain', array['staff_id','user_id'], 100, 'Consent records per purpose.', '{}',
+    'Consent and opt-out records are proof of lawful processing and are kept for the relationship plus 3 years (retention schedule 2.1, CONFIRM with counsel).');
+  perform pg_temp.reg('consents', 'guardian_id', array['guardian'], 'retain', array['guardian_id','user_id'], 100, 'Consent records per purpose.', '{}',
+    'Consent and opt-out records are proof of lawful processing and are kept for the relationship plus 3 years (retention schedule 2.1, CONFIRM with counsel).');
+  perform pg_temp.reg('consents', 'student_id', array['student'], 'retain', array['student_id','user_id'], 100, 'Consent records per purpose.', '{}',
+    'Consent and opt-out records are proof of lawful processing and are kept for the relationship plus 3 years (retention schedule 2.1, CONFIRM with counsel).');
+  perform pg_temp.reg('consents', 'crm_contact_id', array['lead'], 'retain', array['crm_contact_id','user_id'], 100, 'Consent records of a pre-admission lead.', '{}',
+    'Consent and opt-out records are proof of lawful processing and are kept for the relationship plus 3 years (retention schedule 2.1, CONFIRM with counsel).');
+  perform pg_temp.reg('data_requests', 'requested_by_user_id', logins, 'retain', array['requested_by_user_id','subject','details'], 100, 'The person''s own data-subject requests.', '{}',
+    'The client''s request register is proof that a right was exercised (data-subject-rights-procedure 7); it holds the request, not the exported data.');
+  perform pg_temp.reg('data_requests', 'subject_id', array['staff','guardian','student','lead'], 'retain', array['subject_id','subject','details'], 100, 'Requests made about the person.', '{}',
+    'The client''s request register is proof that a right was exercised (data-subject-rights-procedure 7); it holds the request, not the exported data.');
+  perform pg_temp.reg('consent_events', 'person_id', array['staff','guardian','student','lead'], 'retain', array['contact','person_id','guardian_id'], 800, 'Consent ledger of contacts and channels; also matched by phone/email.', '{}',
+    'Consent and opt-out records are proof of lawful processing and are kept for the relationship plus 3 years (retention schedule 2.1, CONFIRM with counsel).', array['contact'], '{}', false, '{}', 'person_type', null);
+  perform pg_temp.reg('compliance_requests', 'subject_person_id', array['staff','guardian','student','lead'], 'retain', array['subject_person_id'], 800, 'Register of the person''s own requests.', '{}',
+    'Request register and tombstone: proof that a right was exercised; holds an opaque id only (retention schedule 2.1).');
+  perform pg_temp.reg('legal_holds', 'person_id', array['staff','guardian','student','lead'], 'retain', array['person_id'], 800, 'Legal holds on the person.', '{}',
+    'A legal hold must survive until released; it is lifted by the court or counsel, not by an erasure request.');
 end $$;
 
 -- Reviewed exemptions: tables that look personal by column name but are not client personal data.
 insert into core.pii_registry (schema_name, table_name, classification, exempt_reason) values
   ('core', 'pii_registry', 'exempt', 'The registry itself: it names columns (contact_columns, pii_columns) and holds no personal data.'),
+  ('core', 'branches', 'exempt', 'Branch address, phone and email are the organisation''s own business contact, not a person''s data; deleted and exported with the organisation.'),
   ('core', 'platform_admins', 'exempt', 'AutoEd platform staff accounts: AutoEd is the fiduciary, outside any client organisation; handled under AutoEd''s own procedure.'),
   ('core', 'support_sessions', 'exempt', 'Access log of AutoEd platform staff (platform_user_id); evidence that is shown to the client and kept with the audit log.'),
   ('billing', 'accounts', 'exempt', 'Organisation billing profile (legal name, GSTIN, billing email): AutoEd''s own invoicing record, retained about 8 years (retention schedule 2.3).'),
@@ -1452,7 +1619,7 @@ insert into core.table_policy (schema_name, table_name, org_deletion, retain_rea
   ('billing', 'usage', 'retain', 'Metered usage backing invoices: kept with billing records.', true);
 
 -- ================================================================ seed: retention rules and lifecycle periods (all CONFIRM)
-insert into core.retention_rules (scope, data_type, description, period_value, period_unit, enabled, legal_status, legal_note) values
+insert into core.retention_policies (scope, data_type, description, period_value, period_unit, enabled, legal_status, legal_note) values
   ('lifecycle', 'product_read_only_days', 'Days a product stays read-only after the client stops paying, then export and delete (decision 42).', 30, 'days', false, 'confirmed', 'Fixed by the owner (decision 42).'),
   ('lifecycle', 'org_exit_deletion_days', 'Days between a client leaving (export delivered) and deletion of its data (decision 42).', 30, 'days', false, 'confirmed', 'Fixed by the owner (decision 42).'),
   ('lifecycle', 'trial_unconverted_days', 'Read-only days after a trial that did not convert, then deletion.', 30, 'days', false, 'draft', 'ASSUMPTION in the retention schedule 2.4.'),
@@ -1460,7 +1627,7 @@ insert into core.retention_rules (scope, data_type, description, period_value, p
   ('lifecycle', 'export_link_days', 'Days an organisation export stays downloadable.', 7, 'days', false, 'draft', 'Operational default.'),
   ('lifecycle', 'confirmation_token_minutes', 'Lifetime of the second-step confirmation token for erasure and deletion.', 60, 'minutes', false, 'draft', 'Operational default.');
 
-insert into core.retention_rules (scope, data_type, description, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status, legal_note) values
+insert into core.retention_policies (scope, data_type, description, schema_name, table_name, date_column, action, period_value, period_unit, enabled, legal_status, legal_note) values
   ('table', 'audit_log', 'Audit log rows (who changed what).', 'audit', 'log', 'created_at', 'delete', 36, 'months', false, 'draft',
    'ASSUMPTION 3 years, at least 1 year in all cases; LAWYER TO CONFIRM (retention schedule 2.2).'),
   ('table', 'audit_config_history', 'Configuration and entitlement history.', 'audit', 'config_history', 'created_at', 'delete', 36, 'months', false, 'draft',
@@ -1487,7 +1654,7 @@ begin
   end loop;
 end $$;
 
--- the retention_rules write policy calls this as the invoker
+-- the retention_policies write policy calls this as the invoker
 grant execute on function app._compliance_default_rule_exists(text, text) to platform_admin_server;
 
 -- org and person tools: platform_admin_server only (as the signed-in admin; the function authorises the actor)
@@ -1495,8 +1662,8 @@ grant execute on function
   app.compliance_authorize(uuid, text, boolean),
   app.compliance_table_counts(uuid, boolean),
   app.compliance_read_rows(uuid, text, text, text, integer),
-  app.compliance_person_export(uuid, text, uuid, text[]),
-  app.compliance_person_erasure_plan(uuid, text, uuid, text[], text, boolean),
+  app.compliance_person_export(uuid, text, uuid, text[], uuid),
+  app.compliance_person_erasure_plan(uuid, text, uuid, text[], text, boolean, uuid),
   app.compliance_person_erasure_execute(uuid, text),
   app.compliance_org_export_start(uuid, text[], text, text[]),
   app.compliance_org_export_finish(uuid, boolean, jsonb, text, text, bigint, text, text, bigint),

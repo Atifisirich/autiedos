@@ -11,7 +11,7 @@ import type { Queryable } from './db';
 
 /** Column names that identify a person (matched per underscore-separated token group). */
 export const PERSONAL_COLUMN_PATTERN =
-  /(^|_)(first_name|last_name|full_name|display_name|date_of_birth|birth_date|user_agent|ip_address)(_|$)|(^|_)(email|phone|mobile|msisdn|whatsapp|dob|aadhaar|aadhar|passport|address|contact|photo|guardian_id|parent_id|father_name|mother_name|student_id|learner_id|staff_id|lead_id|person_id|user_id|owner_id|ip)(_|$)/;
+  /(^|_)(first_name|last_name|full_name|display_name|date_of_birth|birth_date|user_agent|ip_address)(_|$)|(^|_)(email|phone|mobile|msisdn|whatsapp|dob|aadhaar|aadhar|passport|address|contact|photo|guardian_id|parent_id|father_name|mother_name|student_ids?|learner_ids?|staff_ids?|guardian_ids?|lead_ids?|person_id|user_id|owner_id|ip)(_|$)/;
 
 /** Schemas whose tables hold client or AutoEd personal data. audit and private are scrubbed or purged, not registered. */
 export const REGISTRY_SCHEMAS = ['core', 'crm', 'os', 'erp', 'billing'] as const;
@@ -54,8 +54,8 @@ export async function findRegistryProblems(q: Queryable): Promise<string[]> {
   const problems: string[] = [];
   const reg = await q.query<{
     id: string; schema_name: string; table_name: string; classification: string; person_type: string | null; key_column: string | null;
-    filter_column: string | null; contact_columns: string[]; pii_columns: string[]; anonymise_values: Record<string, unknown>; erasure_mode: string;
-  }>(`select id, schema_name, table_name, classification, person_type, key_column, filter_column, contact_columns, pii_columns, anonymise_values, erasure_mode from core.pii_registry where org_id is null`);
+    filter_column: string | null; contact_columns: string[]; pii_columns: string[]; audit_columns: string[]; link_columns: string[]; anonymise_values: Record<string, unknown>; erasure_mode: string;
+  }>(`select id, schema_name, table_name, classification, person_type, key_column, filter_column, contact_columns, pii_columns, audit_columns, link_columns, anonymise_values, erasure_mode from core.pii_registry where org_id is null`);
   const cols = await q.query<{ schema: string; table: string; column: string; notnull: boolean; hasdefault: boolean }>(
     `select n.nspname::text as schema, c.relname::text as "table", a.attname::text as "column", a.attnotnull as notnull, a.atthasdef as hasdefault
        from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
@@ -77,7 +77,7 @@ export async function findRegistryProblems(q: Queryable): Promise<string[]> {
       continue;
     }
     if (r.classification === 'exempt') continue;
-    const need = [r.key_column, r.filter_column, ...r.contact_columns, ...r.pii_columns, ...Object.keys(r.anonymise_values)].filter((x): x is string => !!x);
+    const need = [r.key_column, r.filter_column, ...r.contact_columns, ...r.pii_columns, ...r.audit_columns, ...r.link_columns, ...Object.keys(r.anonymise_values)].filter((x): x is string => !!x);
     for (const c of need) if (!t.has(c)) problems.push(`${k}: registered column ${c} does not exist`);
     if (!t.has('org_id')) problems.push(`${k}: has no org_id, so exports and erasure cannot be scoped to an organisation`);
     if (r.erasure_mode === 'anonymise') {

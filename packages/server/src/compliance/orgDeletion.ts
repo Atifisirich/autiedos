@@ -116,7 +116,7 @@ function toState(r: StateRow): SubscriptionState {
 
 /**
  * Products whose read-only window is over, per organisation, using the same rule the app uses for access
- * (packages/shared entitlements.ts computeEntitlements, with the period from core.retention_rules). Only a list:
+ * (packages/shared entitlements.ts computeEntitlements, with the period from core.retention_policies). Only a list:
  * the database refuses the deletion itself unless all conditions hold.
  */
 export async function listDeletionDue(db: ComplianceDb, actorUserId: string, now: Date = new Date()): Promise<DueItem[]> {

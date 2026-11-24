@@ -86,7 +86,7 @@ describe('the seeded registry covers the foundation tables and decides erasure p
     const by = (t: string) => rows.filter((r) => r.table_name === t).map((r) => r.erasure_mode);
     expect(new Set(by('org_users'))).toEqual(new Set(['delete']));
     expect(new Set(by('login_events'))).toEqual(new Set(['anonymise']));
-    expect(new Set(by('consents'))).toEqual(new Set(['retain']));
+    expect(new Set(by('consent_events'))).toEqual(new Set(['retain']));
     // changing a table from delete to anonymise is an update of one row (here: for one org only)
     await w.q(`insert into core.pii_registry (org_id, schema_name, table_name, person_type, key_column, pii_columns, anonymise_values, erasure_mode)
                values ($1, 'core', 'org_users', 'staff', 'user_id', array['display_name'], '{"display_name":"Erased person"}', 'anonymise')`, [w.A.id]);
