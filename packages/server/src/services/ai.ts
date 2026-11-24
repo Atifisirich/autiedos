@@ -15,7 +15,7 @@ import { need, run, now, staffWithRole, type Ctx } from '../core';
  * so these rows are written on their own connection and survive it.
  */
 async function recordFailed(row: Record<string, unknown>): Promise<void> {
-  await asService((cc) => insert(cc, 'ai_generations', row));
+  await asService((cc) => insert(cc, 'core.ai_generations', row));
 }
 
 export async function costTable(c: Tx): Promise<CostRow[]> {
@@ -26,7 +26,7 @@ export async function costTable(c: Tx): Promise<CostRow[]> {
 const UNSET_MODELS: AiModels = { strong: 'PLACEHOLDER_GEMINI_STRONG_MODEL_ID', fast: 'PLACEHOLDER_GEMINI_FAST_MODEL_ID', prices: null };
 
 async function models(c: Tx): Promise<AiModels> {
-  const r = await maybe<{ value: AiModels }>(c, `select value from public.platform_settings where key = 'ai_models'`);
+  const r = await maybe<{ value: AiModels }>(c, `select value from core.platform_settings where key = 'ai_models'`);
   return r?.value ?? UNSET_MODELS;
 }
 
@@ -88,7 +88,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
   await ensureAllowance(c, o.orgId, o.branchId, period);
   const costs = await costTable(c);
   const state = await creditState(c, o.branchId, period, o.staffId);
-  const usesToday = o.staffId ? (await one<{ n: number }>(c, `select count(*)::int as n from public.ai_generations where staff_id = $1 and action = $2 and created_at >= current_date`, [o.staffId, o.action])).n : 0;
+  const usesToday = o.staffId ? (await one<{ n: number }>(c, `select count(*)::int as n from core.ai_generations where staff_id = $1 and action = $2 and created_at >= current_date`, [o.staffId, o.action])).n : 0;
   const decision = checkCredits(o.action, { ...state, usesToday }, costs, o.units ?? 1);
   const model = await models(c);
   if (!decision.allowed) {
@@ -154,7 +154,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
     await recordFailed(genRow);
     throw new ValidationError('ai_output_invalid', { issues: lastIssues });
   }
-  const gen = await insert<{ id: string }>(c, 'ai_generations', genRow);
+  const gen = await insert<{ id: string }>(c, 'core.ai_generations', genRow);
   if (credits > 0) {
     await insert(c, 'ai_credit_ledger', { org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, kind: 'usage', action: o.action, period, credits: -credits, generation_id: gen.id, tokens: tokensIn + tokensOut, provider_cost: cost });
     const beforePct = state.granted ? (state.used / state.granted) * 100 : 0;
@@ -190,8 +190,8 @@ export async function creditsSummary(ctx: Ctx, period?: string) {
       return creditState(c, ctx.branchId, p, ctx.staffId);
     });
     const byAction = await q(c, `select action, -sum(credits) as credits, count(*)::int as uses from public.ai_credit_ledger where branch_id = $1 and period = $2 and kind = 'usage' group by action order by credits desc`, [ctx.branchId, p]);
-    const byTeacher = await q(c, `select s.full_name, -sum(l.credits) as credits from public.ai_credit_ledger l join public.staff s on s.id = l.staff_id where l.branch_id = $1 and l.period = $2 and l.kind = 'usage' group by s.full_name order by credits desc limit 50`, [ctx.branchId, p]);
-    const ledger = await q(c, `select l.created_at, l.kind, l.action, l.credits, l.note, s.full_name from public.ai_credit_ledger l left join public.staff s on s.id = l.staff_id where l.branch_id = $1 and l.period = $2 order by l.created_at desc limit 200`, [ctx.branchId, p]);
+    const byTeacher = await q(c, `select s.full_name, -sum(l.credits) as credits from public.ai_credit_ledger l join core.staff s on s.id = l.staff_id where l.branch_id = $1 and l.period = $2 and l.kind = 'usage' group by s.full_name order by credits desc limit 50`, [ctx.branchId, p]);
+    const ledger = await q(c, `select l.created_at, l.kind, l.action, l.credits, l.note, s.full_name from public.ai_credit_ledger l left join core.staff s on s.id = l.staff_id where l.branch_id = $1 and l.period = $2 order by l.created_at desc limit 200`, [ctx.branchId, p]);
     const requests = await q(c, `select * from public.credit_topup_requests where branch_id = $1 order by created_at desc limit 20`, [ctx.branchId]);
     return { period: p, granted: st.granted, used: st.used, balance: Math.round((st.granted - st.used) * 100) / 100, pct: st.granted ? Math.round((st.used / st.granted) * 1000) / 10 : 0, teacher_cap: st.teacherCap, my_used: st.teacherUsed, by_action: byAction, by_teacher: byTeacher, ledger, requests };
   });

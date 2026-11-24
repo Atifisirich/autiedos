@@ -47,16 +47,16 @@ export async function loadKb(c: Tx, dir: string): Promise<{ articles: number; ch
     }
     for (const f of files) {
       const { meta, body } = parseFrontmatter(await readFile(join(dir, lang, f), 'utf8'));
-      const existing = await maybe<{ id: string }>(c, `select id from public.kb_articles where org_id is null and slug = $1 and language = $2`, [meta.slug, lang]);
+      const existing = await maybe<{ id: string }>(c, `select id from os.kb_articles where org_id is null and slug = $1 and language = $2`, [meta.slug, lang]);
       const row = { org_id: null, slug: meta.slug, language: lang, title: meta.title, body, screen_path: meta.screen ?? null, module_key: meta.module ?? null, role_keys: meta.roles ?? [], tags: meta.tags ?? [] };
-      const art = existing ? await update<{ id: string }>(c, 'kb_articles', existing.id, row) : await insert<{ id: string }>(c, 'kb_articles', row);
-      await c.query(`delete from public.kb_chunks where article_id = $1`, [art.id]);
+      const art = existing ? await update<{ id: string }>(c, 'os.kb_articles', existing.id, row) : await insert<{ id: string }>(c, 'os.kb_articles', row);
+      await c.query(`delete from os.kb_chunks where article_id = $1`, [art.id]);
       // One chunk per article keeps steps together; long articles split.
       const parts = body.length > 1500 ? chunkText(body, 1200) : [body];
       let seq = 1;
       for (const part of parts) {
         const content = `${meta.title}\n${part}`;
-        await c.query(`insert into public.kb_chunks (org_id, article_id, language, seq, content, embedding) values (null,$1,$2,$3,$4,$5::vector)`, [art.id, lang, seq++, content, toVectorLiteral(embed(`${meta.title} ${meta.title} ${part}`))]);
+        await c.query(`insert into os.kb_chunks (org_id, article_id, language, seq, content, embedding) values (null,$1,$2,$3,$4,$5::vector)`, [art.id, lang, seq++, content, toVectorLiteral(embed(`${meta.title} ${meta.title} ${part}`))]);
         chunks++;
       }
       articles++;
@@ -69,9 +69,9 @@ export async function loadKb(c: Tx, dir: string): Promise<{ articles: number; ch
 export async function addSop(ctx: Ctx, input: { title: string; body: string; language: Lang }) {
   return run(ctx, async (c) => {
     const slug = `sop-${input.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50)}-${Date.now().toString(36)}`;
-    const art = await insert<{ id: string }>(c, 'kb_articles', { org_id: ctx.orgId, slug, language: input.language, title: input.title, body: input.body, tags: ['sop'] });
+    const art = await insert<{ id: string }>(c, 'os.kb_articles', { org_id: ctx.orgId, slug, language: input.language, title: input.title, body: input.body, tags: ['sop'] });
     let seq = 1;
-    for (const part of chunkText(input.body, 1200)) await c.query(`insert into public.kb_chunks (org_id, article_id, language, seq, content, embedding) values ($1,$2,$3,$4,$5,$6::vector)`, [ctx.orgId, art.id, input.language, seq++, `${input.title}\n${part}`, toVectorLiteral(embed(`${input.title} ${part}`))]);
+    for (const part of chunkText(input.body, 1200)) await c.query(`insert into os.kb_chunks (org_id, article_id, language, seq, content, embedding) values ($1,$2,$3,$4,$5,$6::vector)`, [ctx.orgId, art.id, input.language, seq++, `${input.title}\n${part}`, toVectorLiteral(embed(`${input.title} ${part}`))]);
     return { id: art.id };
   });
 }
@@ -118,13 +118,13 @@ interface Hit {
 }
 
 async function retrieve(c: Tx, ctx: Ctx, question: string, lang: Lang): Promise<Hit[]> {
-  const roleKeys = (await q<{ key: string }>(c, `select r.key from public.staff_roles sr join public.roles r on r.id = sr.role_id where sr.staff_id = $1`, [ctx.staffId])).map((r) => r.key);
+  const roleKeys = (await q<{ key: string }>(c, `select r.key from os.staff_roles sr join os.roles r on r.id = sr.role_id where sr.staff_id = $1`, [ctx.staffId])).map((r) => r.key);
   const hits = await q<Hit>(
     c,
     `select a.id as article_id, a.title, a.body, a.screen_path, a.module_key, a.role_keys,
             1 - (k.embedding <=> $2::vector) as score,
             ts_rank(k.tsv, plainto_tsquery('simple', $3)) as text_rank
-     from public.kb_chunks k join public.kb_articles a on a.id = k.article_id
+     from os.kb_chunks k join os.kb_articles a on a.id = k.article_id
      where k.language = $1 and a.deleted_at is null and (a.org_id is null or a.org_id = $4)
      order by (1 - (k.embedding <=> $2::vector)) + least(ts_rank(k.tsv, plainto_tsquery('simple', $3)), 0.3) desc limit 40`,
     [lang, toVectorLiteral(embed(question)), question, ctx.orgId],
@@ -156,9 +156,9 @@ export interface BotMessage {
 export async function askBot(ctx: Ctx, input: { conversation_id?: string | null; message: string; screen_path?: string }) {
   if (ctx.modules.help_bot === false) throw new ValidationError('module_disabled');
   return run(ctx, async (c, sys) => {
-    let conv = input.conversation_id ? await maybe<{ id: string; messages: BotMessage[] }>(c, `select id, messages from public.bot_conversations where id = $1`, [input.conversation_id]) : null;
+    let conv = input.conversation_id ? await maybe<{ id: string; messages: BotMessage[] }>(c, `select id, messages from os.bot_conversations where id = $1`, [input.conversation_id]) : null;
     if (input.conversation_id && !conv) throw new NotFoundError();
-    if (!conv) conv = await insert<{ id: string; messages: BotMessage[] }>(c, 'bot_conversations', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, language: ctx.lang, screen_path: input.screen_path ?? null, messages: [] });
+    if (!conv) conv = await insert<{ id: string; messages: BotMessage[] }>(c, 'os.bot_conversations', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, language: ctx.lang, screen_path: input.screen_path ?? null, messages: [] });
     const hits = await retrieve(c, ctx, `${input.message}`, ctx.lang);
     const relevant = hits
       .map((h) => ({ ...h, rel: overlaps(input.message, h.title) * 2 + overlaps(input.message, h.body) + h.score }))
@@ -187,32 +187,32 @@ export async function askBot(ctx: Ctx, input: { conversation_id?: string | null;
     const now = ctx.now.toISOString();
     const reply: BotMessage = answer.answerable && answer.steps.length ? { role: 'assistant', content: answer.steps.map((s, i) => `${i + 1}. ${s}`).join('\n'), steps: answer.steps, link: answer.screen, answerable: true, at: now } : { role: 'assistant', content: ctx.t('bot.cannotAnswer'), answerable: false, link: null, at: now };
     const messages = [...conv.messages, { role: 'user' as const, content: input.message, at: now }, reply];
-    await update(c, 'bot_conversations', conv.id, { messages, status: reply.answerable ? 'answered' : 'unanswered', screen_path: input.screen_path ?? null });
+    await update(c, 'os.bot_conversations', conv.id, { messages, status: reply.answerable ? 'answered' : 'unanswered', screen_path: input.screen_path ?? null });
     return { conversation_id: conv.id, message: reply, index: messages.length - 1 };
   });
 }
 
 export async function botFeedback(ctx: Ctx, input: { conversation_id: string; message_index: number; rating: 1 | -1; comment?: string }) {
   return run(ctx, async (c) => {
-    const conv = await maybe<{ messages: BotMessage[] }>(c, `select messages from public.bot_conversations where id = $1`, [input.conversation_id]);
+    const conv = await maybe<{ messages: BotMessage[] }>(c, `select messages from os.bot_conversations where id = $1`, [input.conversation_id]);
     if (!conv) throw new NotFoundError();
     const question = conv.messages[input.message_index - 1]?.content ?? null;
-    return insert(c, 'bot_feedback', { org_id: ctx.orgId, branch_id: ctx.branchId, conversation_id: input.conversation_id, staff_id: ctx.staffId, message_index: input.message_index, rating: input.rating, question, comment: input.comment ?? null });
+    return insert(c, 'os.bot_feedback', { org_id: ctx.orgId, branch_id: ctx.branchId, conversation_id: input.conversation_id, staff_id: ctx.staffId, message_index: input.message_index, rating: input.rating, question, comment: input.comment ?? null });
   });
 }
 
 /** If the bot cannot answer, it offers a support ticket to AutoEd with the conversation attached. */
 export async function escalateToSupport(ctx: Ctx, conversationId: string) {
   return run(ctx, async (c) => {
-    const conv = await maybe<{ messages: BotMessage[] }>(c, `select messages from public.bot_conversations where id = $1`, [conversationId]);
+    const conv = await maybe<{ messages: BotMessage[] }>(c, `select messages from os.bot_conversations where id = $1`, [conversationId]);
     if (!conv) throw new NotFoundError();
     const lastQ = [...conv.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
-    const t = await insert<{ id: string }>(c, 'support_tickets', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, subject: lastQ.slice(0, 200), body: conv.messages.map((m) => `${m.role}: ${m.content}`).join('\n'), conversation_id: conversationId });
-    await update(c, 'bot_conversations', conversationId, { status: 'escalated' });
+    const t = await insert<{ id: string }>(c, 'core.support_tickets', { org_id: ctx.orgId, branch_id: ctx.branchId, staff_id: ctx.staffId, subject: lastQ.slice(0, 200), body: conv.messages.map((m) => `${m.role}: ${m.content}`).join('\n'), conversation_id: conversationId });
+    await update(c, 'os.bot_conversations', conversationId, { status: 'escalated' });
     return { id: t.id };
   });
 }
 
 export async function articleCoverage(c: Tx) {
-  return q(c, `select slug, array_agg(language order by language) as languages, max(screen_path) as screen from public.kb_articles where org_id is null and deleted_at is null group by slug order by slug`);
+  return q(c, `select slug, array_agg(language order by language) as languages, max(screen_path) as screen from os.kb_articles where org_id is null and deleted_at is null group by slug order by slug`);
 }

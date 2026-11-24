@@ -16,7 +16,7 @@ const users: Record<string, { userId: string; staffId: string }> = {};
 
 async function user(email: string) {
   if (!users[email]) {
-    users[email] = await asService((c) => one<{ userId: string; staffId: string }>(c, `select u.id as "userId", s.id as "staffId" from auth.users u join public.staff s on s.user_id = u.id where u.email = $1`, [email]));
+    users[email] = await asService((c) => one<{ userId: string; staffId: string }>(c, `select u.id as "userId", s.id as "staffId" from auth.users u join core.staff s on s.user_id = u.id where u.email = $1`, [email]));
   }
   return users[email]!;
 }
@@ -170,31 +170,31 @@ describe('scope and permission rules', () => {
   const chairman = 'chairman@demo.school';
 
   it('teachers see only their own leave; managers see their team; principal sees the branch', async () => {
-    const own = await as(otherTeacher, (c) => q(c, `select id from public.leave_requests`));
+    const own = await as(otherTeacher, (c) => q(c, `select id from core.leave_requests`));
     const ownStaff = (await user(otherTeacher)).staffId;
     expect(own.length).toBeGreaterThan(0);
-    const peer = await as(teacher, (c) => q<{ staff_id: string }>(c, `select staff_id from public.leave_requests`));
+    const peer = await as(teacher, (c) => q<{ staff_id: string }>(c, `select staff_id from core.leave_requests`));
     expect(peer.some((r) => r.staff_id === ownStaff)).toBe(false);
-    const p = await as(principal, (c) => q(c, `select id from public.leave_requests`));
+    const p = await as(principal, (c) => q(c, `select id from core.leave_requests`));
     expect(p.length).toBeGreaterThanOrEqual(2);
   });
 
   it('branch principal cannot see the other branch; group chairman can', async () => {
-    const p2 = await as(principal2, (c) => one<{ n: number }>(c, `select count(*)::int as n from public.staff_attendance sa join public.branches b on b.id = sa.branch_id where b.code = 'GACH'`));
+    const p2 = await as(principal2, (c) => one<{ n: number }>(c, `select count(*)::int as n from core.staff_attendance sa join core.branches b on b.id = sa.branch_id where b.code = 'GACH'`));
     expect(p2.n).toBe(0);
-    const ch = await as(chairman, (c) => one<{ n: number }>(c, `select count(*)::int as n from public.staff_attendance sa join public.branches b on b.id = sa.branch_id where b.code = 'GACH'`));
+    const ch = await as(chairman, (c) => one<{ n: number }>(c, `select count(*)::int as n from core.staff_attendance sa join core.branches b on b.id = sa.branch_id where b.code = 'GACH'`));
     expect(ch.n).toBeGreaterThan(0);
   });
 
   it('team scope follows the reporting tree including secondary lines', async () => {
-    const hodSees = await as(scienceHod, (c) => q<{ staff_id: string }>(c, `select distinct staff_id from public.class_logs`));
+    const hodSees = await as(scienceHod, (c) => q<{ staff_id: string }>(c, `select distinct staff_id from os.class_logs`));
     expect(hodSees.map((r) => r.staff_id)).toContain((await user(teacher)).staffId);
   });
 
   it('question papers are visible only to setter and named reviewers before the exam date', async () => {
     // The seeded paper: future exam date, setter = teacher, reviewers = Science HOD and coordinator.
-    const seeded = await asService((c) => one<{ id: string }>(c, `select id from public.question_papers where org_id = $1 and status = 'hod_review' order by created_at limit 1`, [demoOrg]));
-    const sees = async (email: string) => (await as(email, (c) => q(c, `select id from public.question_papers where id = $1`, [seeded.id]))).length;
+    const seeded = await asService((c) => one<{ id: string }>(c, `select id from os.question_papers where org_id = $1 and status = 'hod_review' order by created_at limit 1`, [demoOrg]));
+    const sees = async (email: string) => (await as(email, (c) => q(c, `select id from os.question_papers where id = $1`, [seeded.id]))).length;
     expect(await sees(teacher)).toBe(1); // setter
     expect(await sees(scienceHod)).toBe(1); // reviewer
     expect(await sees(otherTeacher)).toBe(0);
@@ -203,42 +203,42 @@ describe('scope and permission rules', () => {
 
   it('confidential incidents need the confidential permission', async () => {
     const reporter = 'vikram.teacher12@demo.school';
-    const visible = await as(reporter, (c) => q<{ confidential: boolean }>(c, `select confidential from public.incidents`));
+    const visible = await as(reporter, (c) => q<{ confidential: boolean }>(c, `select confidential from core.incidents`));
     expect(visible.some((r) => r.confidential)).toBe(false);
-    const vp = await as('vp@demo.school', (c) => q<{ confidential: boolean }>(c, `select confidential from public.incidents`));
+    const vp = await as('vp@demo.school', (c) => q<{ confidential: boolean }>(c, `select confidential from core.incidents`));
     expect(vp.some((r) => r.confidential)).toBe(true);
   });
 
   it('appraisal scores are hidden from the teacher until released', async () => {
-    expect((await as(teacher, (c) => q(c, `select id from public.appraisal_scores`))).length).toBe(0);
-    await asService((c) => c.query(`update public.appraisal_cycles set released = true where org_id = $1`, [demoOrg]));
-    expect((await as(teacher, (c) => q(c, `select id from public.appraisal_scores`))).length).toBe(1);
-    await asService((c) => c.query(`update public.appraisal_cycles set released = false where org_id = $1`, [demoOrg]));
+    expect((await as(teacher, (c) => q(c, `select id from os.appraisal_scores`))).length).toBe(0);
+    await asService((c) => c.query(`update os.appraisal_cycles set released = true where org_id = $1`, [demoOrg]));
+    expect((await as(teacher, (c) => q(c, `select id from os.appraisal_scores`))).length).toBe(1);
+    await asService((c) => c.query(`update os.appraisal_cycles set released = false where org_id = $1`, [demoOrg]));
   });
 
   it('notifications are personal', async () => {
-    const mine = await as(teacher, (c) => q(c, `select id from public.notifications`));
+    const mine = await as(teacher, (c) => q(c, `select id from core.notifications`));
     const me = await user(teacher);
-    const others = await as(otherTeacher, (c) => q<{ staff_id: string }>(c, `select staff_id from public.notifications`));
+    const others = await as(otherTeacher, (c) => q<{ staff_id: string }>(c, `select staff_id from core.notifications`));
     expect(mine.length).toBeGreaterThan(0);
     expect(others.every((n) => n.staff_id !== me.staffId)).toBe(true);
   });
 
   it('a disabled module is blocked for scoped access', async () => {
-    const before = await as(principal, (c) => one<{ n: number }>(c, `select count(*)::int as n from public.tickets`));
+    const before = await as(principal, (c) => one<{ n: number }>(c, `select count(*)::int as n from core.tickets`));
     expect(before.n).toBeGreaterThan(0);
-    await asService((c) => c.query(`update public.module_flags set enabled = false where module_key = 'helpdesk' and branch_id = (select id from public.branches where code = 'GACH' and org_id = $1)`, [demoOrg]));
-    const after = await as(principal, (c) => one<{ n: number }>(c, `select count(*)::int as n from public.tickets`));
+    await asService((c) => c.query(`update os.module_flags set enabled = false where module_key = 'helpdesk' and branch_id = (select id from core.branches where code = 'GACH' and org_id = $1)`, [demoOrg]));
+    const after = await as(principal, (c) => one<{ n: number }>(c, `select count(*)::int as n from core.tickets`));
     expect(after.n).toBe(0);
-    await asService((c) => c.query(`update public.module_flags set enabled = true where module_key = 'helpdesk'`));
+    await asService((c) => c.query(`update os.module_flags set enabled = true where module_key = 'helpdesk'`));
   });
 
   it('changing a role permission takes effect immediately', async () => {
-    const before = await as(otherTeacher, (c) => one<{ n: number }>(c, `select count(*)::int as n from public.staff_attendance`));
-    await asService((c) => c.query(`update public.role_permissions set scope = 'branch' where module = 'staff_attendance' and action = 'view' and role_id in (select id from public.roles where org_id = $1 and key = 'class_teacher')`, [demoOrg]));
-    const after = await as(otherTeacher, (c) => one<{ n: number }>(c, `select count(*)::int as n from public.staff_attendance`));
+    const before = await as(otherTeacher, (c) => one<{ n: number }>(c, `select count(*)::int as n from core.staff_attendance`));
+    await asService((c) => c.query(`update os.role_permissions set scope = 'branch' where module = 'staff_attendance' and action = 'view' and role_id in (select id from os.roles where org_id = $1 and key = 'class_teacher')`, [demoOrg]));
+    const after = await as(otherTeacher, (c) => one<{ n: number }>(c, `select count(*)::int as n from core.staff_attendance`));
     expect(after.n).toBeGreaterThan(before.n);
-    await asService((c) => c.query(`update public.role_permissions set scope = 'own' where module = 'staff_attendance' and action = 'view' and role_id in (select id from public.roles where org_id = $1 and key = 'class_teacher')`, [demoOrg]));
+    await asService((c) => c.query(`update os.role_permissions set scope = 'own' where module = 'staff_attendance' and action = 'view' and role_id in (select id from os.roles where org_id = $1 and key = 'class_teacher')`, [demoOrg]));
   });
 
   it('has_permission() agrees with the policies', async () => {
@@ -249,9 +249,9 @@ describe('scope and permission rules', () => {
         c,
         `select public.has_permission($1, 'leave', 'view', jsonb_build_object('org_id', $3::text, 'branch_id', s.branch_id, 'owner_id', $2::text)) as own,
                 public.has_permission($1, 'leave', 'view', jsonb_build_object('org_id', $3::text, 'branch_id', s.branch_id, 'owner_id', $4::text)) as peer,
-                public.has_permission((select user_id from public.staff where id = s.reports_to), 'leave', 'approve', jsonb_build_object('org_id', $3::text, 'branch_id', s.branch_id, 'owner_id', $2::text)) as hod,
+                public.has_permission((select user_id from core.staff where id = s.reports_to), 'leave', 'approve', jsonb_build_object('org_id', $3::text, 'branch_id', s.branch_id, 'owner_id', $2::text)) as hod,
                 public.has_permission($1, 'leave', 'view', jsonb_build_object('org_id', $5::text, 'branch_id', s.branch_id, 'owner_id', $2::text)) as cross
-         from public.staff s where s.id = $2::uuid`,
+         from core.staff s where s.id = $2::uuid`,
         [t.userId, t.staffId, demoOrg, o.staffId, otherOrg],
       ),
     );
@@ -260,7 +260,7 @@ describe('scope and permission rules', () => {
 
   it('audit log records who changed what', async () => {
     const t = await user(teacher);
-    await asUser({ userId: t.userId, staffId: t.staffId, device: 'test-device' }, (c) => c.query(`update public.tasks set description = 'audited change' where owner_id = $1 and source = 'self'`, [t.staffId]));
+    await asUser({ userId: t.userId, staffId: t.staffId, device: 'test-device' }, (c) => c.query(`update os.tasks set description = 'audited change' where owner_id = $1 and source = 'self'`, [t.staffId]));
     const row = await asService((c) => one<{ actor_user_id: string; device: string; before: { description: string | null }; after: { description: string } }>(c, `select * from public.audit_log where table_name = 'tasks' and actor_user_id = $1 order by at desc limit 1`, [t.userId]));
     expect(row.device).toBe('test-device');
     expect(row.after.description).toBe('audited change');

@@ -20,12 +20,12 @@ function needSetup(ctx: Ctx) {
 export async function wizardState(ctx: Ctx) {
   needSetup(ctx);
   return run(ctx, async (c) => {
-    const org = await one<{ id: string; name: string; preset_key: string | null; setup_step: number; setup_completed_at: string | null; branding: Record<string, unknown> }>(c, `select id, name, preset_key, setup_step, setup_completed_at, branding from public.organizations where id = $1`, [ctx.orgId]);
-    const branch = await one(c, `select * from public.branches where id = $1`, [ctx.branchId]);
-    const counts = await one(c, `select (select count(*)::int from public.academic_years where branch_id = $1) as years, (select count(*)::int from public.wings where branch_id = $1 and deleted_at is null) as wings,
-        (select count(*)::int from public.sections where branch_id = $1 and deleted_at is null) as sections, (select count(*)::int from public.subjects where (branch_id = $1 or branch_id is null) and org_id = $2 and deleted_at is null) as subjects,
-        (select count(*)::int from public.staff where org_id = $2 and deleted_at is null) as staff, (select count(*)::int from public.staff where org_id = $2 and reports_to is not null) as reporting,
-        (select count(*)::int from public.bell_schedules where branch_id = $1) as bells`, [ctx.branchId, ctx.orgId]);
+    const org = await one<{ id: string; name: string; preset_key: string | null; setup_step: number; setup_completed_at: string | null; branding: Record<string, unknown> }>(c, `select id, name, preset_key, setup_step, setup_completed_at, branding from core.organizations where id = $1`, [ctx.orgId]);
+    const branch = await one(c, `select * from core.branches where id = $1`, [ctx.branchId]);
+    const counts = await one(c, `select (select count(*)::int from core.academic_years where branch_id = $1) as years, (select count(*)::int from core.wings where branch_id = $1 and deleted_at is null) as wings,
+        (select count(*)::int from core.sections where branch_id = $1 and deleted_at is null) as sections, (select count(*)::int from core.subjects where (branch_id = $1 or branch_id is null) and org_id = $2 and deleted_at is null) as subjects,
+        (select count(*)::int from core.staff where org_id = $2 and deleted_at is null) as staff, (select count(*)::int from core.staff where org_id = $2 and reports_to is not null) as reporting,
+        (select count(*)::int from core.bell_schedules where branch_id = $1) as bells`, [ctx.branchId, ctx.orgId]);
     return { org, branch, counts, steps: ['profile', 'year', 'structure', 'subjects', 'staff', 'org_chart', 'roles', 'modules'] };
   });
 }
@@ -33,7 +33,7 @@ export async function wizardState(ctx: Ctx) {
 export async function setStep(ctx: Ctx, step: number) {
   needSetup(ctx);
   return run(ctx, async (c) => {
-    await c.query(`update public.organizations set setup_step = greatest(setup_step, $2), setup_completed_at = case when $2 >= 8 then coalesce(setup_completed_at, now()) else setup_completed_at end where id = $1`, [ctx.orgId, step]);
+    await c.query(`update core.organizations set setup_step = greatest(setup_step, $2), setup_completed_at = case when $2 >= 8 then coalesce(setup_completed_at, now()) else setup_completed_at end where id = $1`, [ctx.orgId, step]);
     return { step };
   });
 }
@@ -42,10 +42,10 @@ export async function setStep(ctx: Ctx, step: number) {
 export async function saveProfile(ctx: Ctx, input: { name: string; preset_key: PresetKey; branch: { name: string; code: string; address?: string; latitude?: number | null; longitude?: number | null; geofence_radius_m: number } }) {
   needSetup(ctx);
   return run(ctx, async (c, sys) => {
-    await update(c, 'organizations', ctx.orgId, { name: input.name, preset_key: input.preset_key });
-    await update(c, 'branches', ctx.branchId, { name: input.branch.name, code: input.branch.code, address: input.branch.address ?? null, latitude: input.branch.latitude ?? null, longitude: input.branch.longitude ?? null, geofence_radius_m: input.branch.geofence_radius_m });
+    await update(c, 'core.organizations', ctx.orgId, { name: input.name, preset_key: input.preset_key });
+    await update(c, 'core.branches', ctx.branchId, { name: input.branch.name, code: input.branch.code, address: input.branch.address ?? null, latitude: input.branch.latitude ?? null, longitude: input.branch.longitude ?? null, geofence_radius_m: input.branch.geofence_radius_m });
     await sys(() => applyPreset(c, ctx.orgId, ctx.branchId, input.preset_key));
-    await c.query(`update public.organizations set setup_step = greatest(setup_step, 1) where id = $1`, [ctx.orgId]);
+    await c.query(`update core.organizations set setup_step = greatest(setup_step, 1) where id = $1`, [ctx.orgId]);
     return { ok: true };
   });
 }
@@ -55,20 +55,20 @@ export async function saveYear(ctx: Ctx, input: { name: string; starts_on: strin
   needSetup(ctx);
   if (input.ends_on <= input.starts_on) throw new ValidationError('year_dates');
   return run(ctx, async (c) => {
-    await c.query(`update public.academic_years set is_current = false where branch_id = $1`, [ctx.branchId]);
-    const ay = await insert<{ id: string }>(c, 'academic_years', { org_id: ctx.orgId, branch_id: ctx.branchId, name: input.name, starts_on: input.starts_on, ends_on: input.ends_on, is_current: true });
-    for (const [i, t] of input.terms.entries()) await insert(c, 'terms', { org_id: ctx.orgId, branch_id: ctx.branchId, academic_year_id: ay.id, name: t.name, seq: i + 1, starts_on: t.starts_on, ends_on: t.ends_on });
-    await c.query(`update public.branches set working_days = $2 where id = $1`, [ctx.branchId, input.working_days]);
-    await c.query(`update public.bell_schedules set active = false where branch_id = $1`, [ctx.branchId]);
+    await c.query(`update core.academic_years set is_current = false where branch_id = $1`, [ctx.branchId]);
+    const ay = await insert<{ id: string }>(c, 'core.academic_years', { org_id: ctx.orgId, branch_id: ctx.branchId, name: input.name, starts_on: input.starts_on, ends_on: input.ends_on, is_current: true });
+    for (const [i, t] of input.terms.entries()) await insert(c, 'core.terms', { org_id: ctx.orgId, branch_id: ctx.branchId, academic_year_id: ay.id, name: t.name, seq: i + 1, starts_on: t.starts_on, ends_on: t.ends_on });
+    await c.query(`update core.branches set working_days = $2 where id = $1`, [ctx.branchId, input.working_days]);
+    await c.query(`update core.bell_schedules set active = false where branch_id = $1`, [ctx.branchId]);
     for (const b of input.bell) {
-      const bs = await insert<{ id: string }>(c, 'bell_schedules', { org_id: ctx.orgId, branch_id: ctx.branchId, wing_id: b.wing_id ?? null, name: b.name, days: input.working_days });
+      const bs = await insert<{ id: string }>(c, 'core.bell_schedules', { org_id: ctx.orgId, branch_id: ctx.branchId, wing_id: b.wing_id ?? null, name: b.name, days: input.working_days });
       let ti = 0;
       for (const [i, p] of b.periods.entries()) {
         if (p.ends_at <= p.starts_at) throw new ValidationError('period_times', { row: i + 1 });
-        await insert(c, 'periods', { org_id: ctx.orgId, branch_id: ctx.branchId, bell_schedule_id: bs.id, seq: i + 1, label: p.label, kind: p.kind, starts_at: p.starts_at, ends_at: p.ends_at, teaching_index: p.kind === 'period' ? ++ti : null });
+        await insert(c, 'core.periods', { org_id: ctx.orgId, branch_id: ctx.branchId, bell_schedule_id: bs.id, seq: i + 1, label: p.label, kind: p.kind, starts_at: p.starts_at, ends_at: p.ends_at, teaching_index: p.kind === 'period' ? ++ti : null });
       }
     }
-    await c.query(`update public.organizations set setup_step = greatest(setup_step, 2) where id = $1`, [ctx.orgId]);
+    await c.query(`update core.organizations set setup_step = greatest(setup_step, 2) where id = $1`, [ctx.orgId]);
     return { academic_year_id: ay.id };
   });
 }
@@ -143,7 +143,7 @@ export async function importRows(ctx: Ctx, kind: string, rows: Record<string, un
     if (dryRun || res.errors.length) await c.query('rollback to savepoint import');
     else {
       const stepFor: Record<string, number> = { wings_classes_sections: 3, subjects: 4, staff: 5, org_chart: 6 };
-      if (stepFor[kind]) await c.query(`update public.organizations set setup_step = greatest(setup_step, $2) where id = $1`, [ctx.orgId, stepFor[kind]]);
+      if (stepFor[kind]) await c.query(`update core.organizations set setup_step = greatest(setup_step, $2) where id = $1`, [ctx.orgId, stepFor[kind]]);
     }
     return { ...res, ok: !res.errors.length };
   });
@@ -159,7 +159,7 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
     for (const col of cols) if (!get(r, col)) (err(i, col, 'required'), (ok = false));
     return ok;
   };
-  const ay = await maybe<{ id: string }>(c, `select id from public.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
+  const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
   switch (kind) {
     case 'rooms':
       for (const [i, r] of rows.entries()) {
@@ -169,9 +169,9 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
           err(i, 'Capacity', 'must_be_positive_integer', get(r, 'Capacity'));
           continue;
         }
-        const ex = await maybe<{ id: string }>(c, `select id from public.rooms where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Name')]);
-        if (ex) (await update(c, 'rooms', ex.id, { room_type: get(r, 'Type') || 'classroom', capacity: cap }), updated++);
-        else (await insert(c, 'rooms', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Name'), room_type: get(r, 'Type') || 'classroom', capacity: cap }), created++);
+        const ex = await maybe<{ id: string }>(c, `select id from core.rooms where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Name')]);
+        if (ex) (await update(c, 'core.rooms', ex.id, { room_type: get(r, 'Type') || 'classroom', capacity: cap }), updated++);
+        else (await insert(c, 'core.rooms', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Name'), room_type: get(r, 'Type') || 'classroom', capacity: cap }), created++);
       }
       break;
     case 'wings_classes_sections':
@@ -187,18 +187,18 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
           err(i, 'Grade', 'invalid_grade', get(r, 'Grade'));
           continue;
         }
-        let wing = await maybe<{ id: string }>(c, `select id from public.wings where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Wing')]);
-        if (!wing) wing = await insert<{ id: string }>(c, 'wings', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Wing'), board });
-        let cls = await maybe<{ id: string }>(c, `select id from public.classes where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Class')]);
-        if (!cls) cls = await insert<{ id: string }>(c, 'classes', { org_id: ctx.orgId, branch_id: ctx.branchId, wing_id: wing.id, name: get(r, 'Class'), grade_level: grade, seq: grade + 10 });
-        const room = get(r, 'Room') ? await maybe<{ id: string }>(c, `select id from public.rooms where branch_id = $1 and name = $2`, [ctx.branchId, get(r, 'Room')]) : null;
-        const roomId = room?.id ?? (get(r, 'Room') ? (await insert<{ id: string }>(c, 'rooms', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Room'), room_type: 'classroom', capacity: 40 })).id : null);
-        const ct = get(r, 'Class teacher code') ? await maybe<{ id: string }>(c, `select id from public.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Class teacher code')]) : null;
+        let wing = await maybe<{ id: string }>(c, `select id from core.wings where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Wing')]);
+        if (!wing) wing = await insert<{ id: string }>(c, 'core.wings', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Wing'), board });
+        let cls = await maybe<{ id: string }>(c, `select id from core.programmes where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Class')]);
+        if (!cls) cls = await insert<{ id: string }>(c, 'core.programmes', { org_id: ctx.orgId, branch_id: ctx.branchId, wing_id: wing.id, name: get(r, 'Class'), grade_level: grade, seq: grade + 10 });
+        const room = get(r, 'Room') ? await maybe<{ id: string }>(c, `select id from core.rooms where branch_id = $1 and name = $2`, [ctx.branchId, get(r, 'Room')]) : null;
+        const roomId = room?.id ?? (get(r, 'Room') ? (await insert<{ id: string }>(c, 'core.rooms', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Room'), room_type: 'classroom', capacity: 40 })).id : null);
+        const ct = get(r, 'Class teacher code') ? await maybe<{ id: string }>(c, `select id from core.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Class teacher code')]) : null;
         if (get(r, 'Class teacher code') && !ct) err(i, 'Class teacher code', 'unknown_employee_code', get(r, 'Class teacher code'));
-        const ex = await maybe<{ id: string }>(c, `select id from public.sections where class_id = $1 and name = $2 and deleted_at is null`, [cls.id, get(r, 'Section')]);
-        const row = { org_id: ctx.orgId, branch_id: ctx.branchId, class_id: cls.id, academic_year_id: ay?.id ?? null, name: get(r, 'Section'), strength: Number(get(r, 'Strength') || 0), room_id: roomId, class_teacher_id: ct?.id ?? null };
-        if (ex) (await update(c, 'sections', ex.id, row), updated++);
-        else (await insert(c, 'sections', row), created++);
+        const ex = await maybe<{ id: string }>(c, `select id from core.sections where programme_id = $1 and name = $2 and deleted_at is null`, [cls.id, get(r, 'Section')]);
+        const row = { org_id: ctx.orgId, branch_id: ctx.branchId, programme_id: cls.id, academic_year_id: ay?.id ?? null, name: get(r, 'Section'), strength: Number(get(r, 'Strength') || 0), room_id: roomId, class_teacher_id: ct?.id ?? null };
+        if (ex) (await update(c, 'core.sections', ex.id, row), updated++);
+        else (await insert(c, 'core.sections', row), created++);
       }
       break;
     case 'subjects':
@@ -209,12 +209,12 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
           err(i, 'Language', 'must_be_en_hi_te_or_other', lang);
           continue;
         }
-        let dept = get(r, 'Department') ? await maybe<{ id: string }>(c, `select id from public.departments where org_id = $1 and name = $2`, [ctx.orgId, get(r, 'Department')]) : null;
-        if (get(r, 'Department') && !dept) dept = await insert<{ id: string }>(c, 'departments', { org_id: ctx.orgId, name: get(r, 'Department') });
-        let subj = await maybe<{ id: string }>(c, `select id from public.subjects where org_id = $1 and code = $2 and (branch_id = $3 or branch_id is null) and deleted_at is null`, [ctx.orgId, get(r, 'Code'), ctx.branchId]);
-        if (!subj) (subj = await insert<{ id: string }>(c, 'subjects', { org_id: ctx.orgId, branch_id: ctx.branchId, code: get(r, 'Code'), name: get(r, 'Name'), department_id: dept?.id ?? null, content_language: lang, is_core: get(r, 'Core') ? yes(get(r, 'Core')) : true })), created++;
+        let dept = get(r, 'Department') ? await maybe<{ id: string }>(c, `select id from core.departments where org_id = $1 and name = $2`, [ctx.orgId, get(r, 'Department')]) : null;
+        if (get(r, 'Department') && !dept) dept = await insert<{ id: string }>(c, 'core.departments', { org_id: ctx.orgId, name: get(r, 'Department') });
+        let subj = await maybe<{ id: string }>(c, `select id from core.subjects where org_id = $1 and code = $2 and (branch_id = $3 or branch_id is null) and deleted_at is null`, [ctx.orgId, get(r, 'Code'), ctx.branchId]);
+        if (!subj) (subj = await insert<{ id: string }>(c, 'core.subjects', { org_id: ctx.orgId, branch_id: ctx.branchId, code: get(r, 'Code'), name: get(r, 'Name'), department_id: dept?.id ?? null, content_language: lang, is_core: get(r, 'Core') ? yes(get(r, 'Core')) : true })), created++;
         if (get(r, 'Class')) {
-          const cls = await maybe<{ id: string }>(c, `select id from public.classes where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Class')]);
+          const cls = await maybe<{ id: string }>(c, `select id from core.programmes where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Class')]);
           if (!cls) {
             err(i, 'Class', 'unknown_class', get(r, 'Class'));
             continue;
@@ -224,12 +224,12 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
             err(i, 'Periods per week', 'invalid_number', get(r, 'Periods per week'));
             continue;
           }
-          await c.query(`insert into public.class_subjects (org_id, branch_id, class_id, subject_id, periods_per_week, double_periods, room_type) values ($1,$2,$3,$4,$5,$6,$7) on conflict (class_id, subject_id) do update set periods_per_week = excluded.periods_per_week, double_periods = excluded.double_periods, room_type = excluded.room_type`, [ctx.orgId, ctx.branchId, cls.id, subj.id, ppw, Number(get(r, 'Double periods') || 0), get(r, 'Room type') || null]);
+          await c.query(`insert into core.programme_subjects (org_id, branch_id, programme_id, subject_id, periods_per_week, double_periods, room_type) values ($1,$2,$3,$4,$5,$6,$7) on conflict (programme_id, subject_id) do update set periods_per_week = excluded.periods_per_week, double_periods = excluded.double_periods, room_type = excluded.room_type`, [ctx.orgId, ctx.branchId, cls.id, subj.id, ppw, Number(get(r, 'Double periods') || 0), get(r, 'Room type') || null]);
         }
       }
       break;
     case 'staff': {
-      const positions = await q<{ id: string; key: string; name: string; default_role_id: string | null }>(c, `select id, key, name, default_role_id from public.positions where org_id = $1 and deleted_at is null`, [ctx.orgId]);
+      const positions = await q<{ id: string; key: string; name: string; default_role_id: string | null }>(c, `select id, key, name, default_role_id from core.positions where org_id = $1 and deleted_at is null`, [ctx.orgId]);
       for (const [i, r] of rows.entries()) {
         if (!need1(r, i, ['Employee code', 'Full name', 'Position'])) continue;
         const email = get(r, 'Email');
@@ -252,39 +252,39 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
           continue;
         }
         const branchCode = get(r, 'Branch code');
-        const branch = branchCode ? await maybe<{ id: string }>(c, `select id from public.branches where org_id = $1 and code = $2`, [ctx.orgId, branchCode]) : { id: ctx.branchId };
+        const branch = branchCode ? await maybe<{ id: string }>(c, `select id from core.branches where org_id = $1 and code = $2`, [ctx.orgId, branchCode]) : { id: ctx.branchId };
         if (!branch) {
           err(i, 'Branch code', 'unknown_branch', branchCode);
           continue;
         }
-        const dept = get(r, 'Department') ? await maybe<{ id: string }>(c, `select id from public.departments where org_id = $1 and name = $2`, [ctx.orgId, get(r, 'Department')]) : null;
+        const dept = get(r, 'Department') ? await maybe<{ id: string }>(c, `select id from core.departments where org_id = $1 and name = $2`, [ctx.orgId, get(r, 'Department')]) : null;
         if (get(r, 'Department') && !dept) {
           err(i, 'Department', 'unknown_department', get(r, 'Department'));
           continue;
         }
-        const wing = get(r, 'Wing') ? await maybe<{ id: string }>(c, `select id from public.wings where org_id = $1 and name = $2`, [ctx.orgId, get(r, 'Wing')]) : null;
+        const wing = get(r, 'Wing') ? await maybe<{ id: string }>(c, `select id from core.wings where org_id = $1 and name = $2`, [ctx.orgId, get(r, 'Wing')]) : null;
         if (get(r, 'Wing') && !wing) {
           err(i, 'Wing', 'unknown_wing', get(r, 'Wing'));
           continue;
         }
         const lang = (get(r, 'Language') || 'en').toLowerCase();
         const groupLevel = ['chairman', 'director'].includes(pos.key);
-        const ex = await maybe<{ id: string }>(c, `select id from public.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Employee code')]);
+        const ex = await maybe<{ id: string }>(c, `select id from core.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Employee code')]);
         const row = { org_id: ctx.orgId, branch_id: groupLevel ? null : branch.id, employee_code: get(r, 'Employee code'), full_name: get(r, 'Full name'), email: email || null, phone: phone || null, position_id: pos.id, department_id: dept?.id ?? null, wing_id: wing?.id ?? null, language: ['en', 'hi', 'te'].includes(lang) ? lang : 'en', is_teaching: get(r, 'Teaching') ? yes(get(r, 'Teaching')) : ['class_teacher', 'subject_teacher', 'hod', 'academic_coordinator'].includes(pos.key) };
         if (ex) {
-          await sys(() => update(c, 'staff', ex.id, row));
+          await sys(() => update(c, 'core.staff', ex.id, row));
           updated++;
           continue;
         }
         // Staff are invited by the school; there is no self sign-up.
-        const dupe = email ? await sys(() => maybe(c, `select 1 from public.staff where lower(email) = lower($1)`, [email])) : null;
+        const dupe = email ? await sys(() => maybe(c, `select 1 from core.staff where lower(email) = lower($1)`, [email])) : null;
         if (dupe) {
           err(i, 'Email', 'email_already_used', email);
           continue;
         }
         const userId = await sys(() => authUser(c, email || `${get(r, 'Employee code').toLowerCase()}@${ctx.orgId.slice(0, 8)}.invite`, phone || `+910000${Math.floor(Math.random() * 1e6)}`));
-        const st = await sys(() => insert<{ id: string }>(c, 'staff', { ...row, user_id: userId, status: 'invited' }));
-        if (pos.default_role_id) await sys(() => insert(c, 'staff_roles', { org_id: ctx.orgId, branch_id: row.branch_id, staff_id: st.id, role_id: pos.default_role_id }));
+        const st = await sys(() => insert<{ id: string }>(c, 'core.staff', { ...row, user_id: userId, status: 'invited' }));
+        if (pos.default_role_id) await sys(() => insert(c, 'os.staff_roles', { org_id: ctx.orgId, branch_id: row.branch_id, staff_id: st.id, role_id: pos.default_role_id }));
         created++;
       }
       break;
@@ -292,8 +292,8 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
     case 'org_chart': {
       for (const [i, r] of rows.entries()) {
         if (!need1(r, i, ['Employee code', 'Reports to'])) continue;
-        const s = await maybe<{ id: string }>(c, `select id from public.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Employee code')]);
-        const m = await maybe<{ id: string }>(c, `select id from public.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Reports to')]);
+        const s = await maybe<{ id: string }>(c, `select id from core.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Employee code')]);
+        const m = await maybe<{ id: string }>(c, `select id from core.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Reports to')]);
         if (!s) err(i, 'Employee code', 'unknown_employee_code', get(r, 'Employee code'));
         if (!m) err(i, 'Reports to', 'unknown_employee_code', get(r, 'Reports to'));
         if (!s || !m) continue;
@@ -301,23 +301,23 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
           err(i, 'Reports to', 'cannot_report_to_self');
           continue;
         }
-        await sys(() => c.query(`update public.staff set reports_to = $2 where id = $1`, [s.id, m.id]));
+        await sys(() => c.query(`update core.staff set reports_to = $2 where id = $1`, [s.id, m.id]));
         updated++;
       }
-      const cycle = await sys(() => maybe<{ id: string }>(c, `with recursive up(id, mgr, path) as (select id, reports_to, array[id] from public.staff where org_id = $1 union all select up.id, s.reports_to, up.path || s.id from up join public.staff s on s.id = up.mgr where not s.id = any(up.path)) select id from up where mgr = any(path) limit 1`, [ctx.orgId]));
+      const cycle = await sys(() => maybe<{ id: string }>(c, `with recursive up(id, mgr, path) as (select id, reports_to, array[id] from core.staff where org_id = $1 union all select up.id, s.reports_to, up.path || s.id from up join core.staff s on s.id = up.mgr where not s.id = any(up.path)) select id from up where mgr = any(path) limit 1`, [ctx.orgId]));
       if (cycle) errors.push({ row: 0, error: 'reporting_cycle_detected' });
       break;
     }
     case 'students':
       for (const [i, r] of rows.entries()) {
         if (!need1(r, i, ['Admission no', 'Full name', 'Class', 'Section'])) continue;
-        const sec = await maybe<{ id: string; class_id: string }>(c, `select se.id, se.class_id from public.sections se join public.classes cl on cl.id = se.class_id where se.branch_id = $1 and cl.name = $2 and se.name = $3 and se.deleted_at is null`, [ctx.branchId, get(r, 'Class'), get(r, 'Section')]);
+        const sec = await maybe<{ id: string; programme_id: string }>(c, `select se.id, se.programme_id from core.sections se join core.programmes cl on cl.id = se.programme_id where se.branch_id = $1 and cl.name = $2 and se.name = $3 and se.deleted_at is null`, [ctx.branchId, get(r, 'Class'), get(r, 'Section')]);
         if (!sec) {
           err(i, 'Section', 'unknown_class_section', `${get(r, 'Class')} ${get(r, 'Section')}`);
           continue;
         }
-        const res = await q(c, `insert into public.students (org_id, branch_id, class_id, section_id, full_name, admission_no, roll_no, parent_phone) values ($1,$2,$3,$4,$5,$6,$7,$8)
-           on conflict (branch_id, admission_no) do update set class_id = excluded.class_id, section_id = excluded.section_id, full_name = excluded.full_name, roll_no = excluded.roll_no, parent_phone = excluded.parent_phone returning (xmax = 0) as inserted`, [ctx.orgId, ctx.branchId, sec.class_id, sec.id, get(r, 'Full name'), get(r, 'Admission no'), Number(get(r, 'Roll no')) || null, get(r, 'Parent phone') || null]);
+        const res = await q(c, `insert into core.students (org_id, branch_id, programme_id, section_id, full_name, admission_no, roll_no, parent_phone) values ($1,$2,$3,$4,$5,$6,$7,$8)
+           on conflict (branch_id, admission_no) do update set programme_id = excluded.programme_id, section_id = excluded.section_id, full_name = excluded.full_name, roll_no = excluded.roll_no, parent_phone = excluded.parent_phone returning (xmax = 0) as inserted`, [ctx.orgId, ctx.branchId, sec.programme_id, sec.id, get(r, 'Full name'), get(r, 'Admission no'), Number(get(r, 'Roll no')) || null, get(r, 'Parent phone') || null]);
         if ((res[0] as { inserted: boolean }).inserted) created++;
         else updated++;
       }
@@ -325,14 +325,14 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
     case 'allocations':
       for (const [i, r] of rows.entries()) {
         if (!need1(r, i, ['Employee code', 'Class', 'Section', 'Subject code', 'Periods per week'])) continue;
-        const s = await maybe<{ id: string }>(c, `select id from public.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Employee code')]);
-        const sec = await maybe<{ id: string }>(c, `select se.id from public.sections se join public.classes cl on cl.id = se.class_id where se.branch_id = $1 and cl.name = $2 and se.name = $3`, [ctx.branchId, get(r, 'Class'), get(r, 'Section')]);
-        const subj = await maybe<{ id: string }>(c, `select id from public.subjects where org_id = $1 and code = $2 and (branch_id = $3 or branch_id is null)`, [ctx.orgId, get(r, 'Subject code'), ctx.branchId]);
+        const s = await maybe<{ id: string }>(c, `select id from core.staff where org_id = $1 and employee_code = $2`, [ctx.orgId, get(r, 'Employee code')]);
+        const sec = await maybe<{ id: string }>(c, `select se.id from core.sections se join core.programmes cl on cl.id = se.programme_id where se.branch_id = $1 and cl.name = $2 and se.name = $3`, [ctx.branchId, get(r, 'Class'), get(r, 'Section')]);
+        const subj = await maybe<{ id: string }>(c, `select id from core.subjects where org_id = $1 and code = $2 and (branch_id = $3 or branch_id is null)`, [ctx.orgId, get(r, 'Subject code'), ctx.branchId]);
         if (!s) err(i, 'Employee code', 'unknown_employee_code', get(r, 'Employee code'));
         if (!sec) err(i, 'Section', 'unknown_class_section');
         if (!subj) err(i, 'Subject code', 'unknown_subject', get(r, 'Subject code'));
         if (!s || !sec || !subj) continue;
-        await c.query(`insert into public.teacher_allocations (org_id, branch_id, academic_year_id, staff_id, section_id, subject_id, periods_per_week, double_periods) values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict (section_id, subject_id, staff_id) do update set periods_per_week = excluded.periods_per_week, double_periods = excluded.double_periods`, [ctx.orgId, ctx.branchId, ay?.id ?? null, s.id, sec.id, subj.id, Number(get(r, 'Periods per week')), Number(get(r, 'Double periods') || 0)]);
+        await c.query(`insert into core.teacher_allocations (org_id, branch_id, academic_year_id, staff_id, section_id, subject_id, periods_per_week, double_periods) values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict (section_id, subject_id, staff_id) do update set periods_per_week = excluded.periods_per_week, double_periods = excluded.double_periods`, [ctx.orgId, ctx.branchId, ay?.id ?? null, s.id, sec.id, subj.id, Number(get(r, 'Periods per week')), Number(get(r, 'Double periods') || 0)]);
         created++;
       }
       break;
@@ -360,9 +360,9 @@ export async function listStaff(ctx: Ctx, opts: { q?: string; branch_id?: string
       c,
       `select s.id, s.full_name, s.employee_code, s.email, s.phone, s.status, s.branch_id, s.language, s.is_teaching, s.reports_to, s.department_id, s.wing_id, s.max_periods_day, s.max_periods_week,
          p.name as position, d.name as department, w.name as wing, m.full_name as manager, b.name as branch_name,
-         coalesce((select array_agg(r.key) from public.staff_roles sr join public.roles r on r.id = sr.role_id where sr.staff_id = s.id and sr.deleted_at is null), '{}') as role_keys
-       from public.staff s left join public.positions p on p.id = s.position_id left join public.departments d on d.id = s.department_id left join public.wings w on w.id = s.wing_id
-       left join public.staff m on m.id = s.reports_to left join public.branches b on b.id = s.branch_id
+         coalesce((select array_agg(r.key) from os.staff_roles sr join os.roles r on r.id = sr.role_id where sr.staff_id = s.id and sr.deleted_at is null), '{}') as role_keys
+       from core.staff s left join core.positions p on p.id = s.position_id left join core.departments d on d.id = s.department_id left join core.wings w on w.id = s.wing_id
+       left join core.staff m on m.id = s.reports_to left join core.branches b on b.id = s.branch_id
        where s.deleted_at is null and ($1::text is null or s.full_name ilike '%' || $1 || '%' or s.employee_code ilike $1) and ($2::uuid is null or s.branch_id = $2) and ($3 or s.status <> 'left')
        order by s.full_name limit 1000`,
       [opts.q ?? null, opts.branch_id ?? null, !!opts.all],
@@ -380,7 +380,7 @@ export async function updateStaff(ctx: Ctx, id: string, patch: Record<string, un
       const subs = await one<{ ids: string[] }>(c, `select app.subordinates_of($1) as ids`, [id]);
       if (subs.ids.includes(clean.reports_to as string)) throw new ConflictError('reporting_cycle');
     }
-    return update(c, 'staff', id, clean);
+    return update(c, 'core.staff', id, clean);
   });
 }
 
@@ -390,17 +390,17 @@ export async function moveInOrgChart(ctx: Ctx, staffId: string, reportsTo: strin
 }
 
 export async function orgChart(ctx: Ctx) {
-  return run(ctx, async (c) => q(c, `select s.id, s.full_name, s.reports_to, p.name as position, s.branch_id, d.name as department from public.staff s left join public.positions p on p.id = s.position_id left join public.departments d on d.id = s.department_id where s.org_id = $1 and s.deleted_at is null and s.status <> 'left' order by p.rank nulls last, s.full_name`, [ctx.orgId]));
+  return run(ctx, async (c) => q(c, `select s.id, s.full_name, s.reports_to, p.name as position, s.branch_id, d.name as department from core.staff s left join core.positions p on p.id = s.position_id left join core.departments d on d.id = s.department_id where s.org_id = $1 and s.deleted_at is null and s.status <> 'left' order by p.rank nulls last, s.full_name`, [ctx.orgId]));
 }
 
 export async function inviteStaff(ctx: Ctx, input: { full_name: string; email?: string; phone?: string; employee_code: string; position_id: string; department_id?: string | null; wing_id?: string | null; reports_to?: string | null }) {
   need(ctx, 'staff', 'create');
   return run(ctx, async (c, sys) => {
-    const pos = await one<{ default_role_id: string | null; key: string }>(c, `select default_role_id, key from public.positions where id = $1`, [input.position_id]);
+    const pos = await one<{ default_role_id: string | null; key: string }>(c, `select default_role_id, key from core.positions where id = $1`, [input.position_id]);
     if (!input.email && !input.phone) throw new ValidationError('email_or_phone_required');
     const userId = await sys(() => authUser(c, input.email ?? `${input.employee_code.toLowerCase()}@${ctx.orgId.slice(0, 8)}.invite`, input.phone ?? `+910000${Math.floor(Math.random() * 1e6)}`));
-    const s = await sys(() => insert<{ id: string }>(c, 'staff', { org_id: ctx.orgId, branch_id: ['chairman', 'director'].includes(pos.key) ? null : ctx.branchId, user_id: userId, full_name: input.full_name, email: input.email ?? null, phone: input.phone ?? null, employee_code: input.employee_code, position_id: input.position_id, department_id: input.department_id ?? null, wing_id: input.wing_id ?? null, reports_to: input.reports_to ?? null, status: 'invited' }));
-    if (pos.default_role_id) await sys(() => insert(c, 'staff_roles', { org_id: ctx.orgId, staff_id: s.id, role_id: pos.default_role_id }));
+    const s = await sys(() => insert<{ id: string }>(c, 'core.staff', { org_id: ctx.orgId, branch_id: ['chairman', 'director'].includes(pos.key) ? null : ctx.branchId, user_id: userId, full_name: input.full_name, email: input.email ?? null, phone: input.phone ?? null, employee_code: input.employee_code, position_id: input.position_id, department_id: input.department_id ?? null, wing_id: input.wing_id ?? null, reports_to: input.reports_to ?? null, status: 'invited' }));
+    if (pos.default_role_id) await sys(() => insert(c, 'os.staff_roles', { org_id: ctx.orgId, staff_id: s.id, role_id: pos.default_role_id }));
     return { id: s.id };
   });
 }
@@ -409,9 +409,9 @@ export async function inviteStaff(ctx: Ctx, input: { full_name: string; email?: 
 export async function deactivateStaff(ctx: Ctx, id: string) {
   need(ctx, 'staff', 'edit', 5);
   return run(ctx, async (c, sys) => {
-    await sys(() => update(c, 'staff', id, { status: 'left' }));
-    await sys(() => c.query(`update public.device_tokens set revoked_at = now() where staff_id = $1 and revoked_at is null`, [id]));
-    const open = await one<{ n: number }>(c, `select count(*)::int as n from public.tasks where owner_id = $1 and status in ('todo','in_progress','blocked','reopened')`, [id]);
+    await sys(() => update(c, 'core.staff', id, { status: 'left' }));
+    await sys(() => c.query(`update core.device_tokens set revoked_at = now() where staff_id = $1 and revoked_at is null`, [id]));
+    const open = await one<{ n: number }>(c, `select count(*)::int as n from os.tasks where owner_id = $1 and status in ('todo','in_progress','blocked','reopened')`, [id]);
     return { open_tasks: open.n };
   });
 }
@@ -419,8 +419,8 @@ export async function deactivateStaff(ctx: Ctx, id: string) {
 // ---------------------------------------------------------------- roles & matrix
 export async function rolesMatrix(ctx: Ctx) {
   return run(ctx, async (c) => {
-    const roles = await q(c, `select id, key, name, description, is_preset from public.roles where org_id = $1 and deleted_at is null order by is_preset desc, name`, [ctx.orgId]);
-    const perms = await q(c, `select role_id, module, action, scope from public.role_permissions where org_id = $1 and deleted_at is null`, [ctx.orgId]);
+    const roles = await q(c, `select id, key, name, description, is_preset from os.roles where org_id = $1 and deleted_at is null order by is_preset desc, name`, [ctx.orgId]);
+    const perms = await q(c, `select role_id, module, action, scope from os.role_permissions where org_id = $1 and deleted_at is null`, [ctx.orgId]);
     return { roles, permissions: perms, modules: PERMISSION_MODULES, actions: ACTIONS };
   });
 }
@@ -429,8 +429,8 @@ export async function rolesMatrix(ctx: Ctx) {
 export async function setPermission(ctx: Ctx, input: { role_id: string; module: string; action: string; scope: string | null }) {
   needSetup(ctx);
   return run(ctx, async (c) => {
-    if (input.scope === null) await c.query(`delete from public.role_permissions where role_id = $1 and module = $2 and action = $3`, [input.role_id, input.module, input.action]);
-    else await c.query(`insert into public.role_permissions (org_id, role_id, module, action, scope) values ($1,$2,$3,$4,$5) on conflict (role_id, module, action) do update set scope = excluded.scope, deleted_at = null`, [ctx.orgId, input.role_id, input.module, input.action, input.scope]);
+    if (input.scope === null) await c.query(`delete from os.role_permissions where role_id = $1 and module = $2 and action = $3`, [input.role_id, input.module, input.action]);
+    else await c.query(`insert into os.role_permissions (org_id, role_id, module, action, scope) values ($1,$2,$3,$4,$5) on conflict (role_id, module, action) do update set scope = excluded.scope, deleted_at = null`, [ctx.orgId, input.role_id, input.module, input.action, input.scope]);
     return { ok: true };
   });
 }
@@ -438,8 +438,8 @@ export async function setPermission(ctx: Ctx, input: { role_id: string; module: 
 export async function createRole(ctx: Ctx, input: { key: string; name: string; description?: string; copy_from_role_id?: string }) {
   needSetup(ctx);
   return run(ctx, async (c) => {
-    const role = await insert<{ id: string }>(c, 'roles', { org_id: ctx.orgId, key: input.key, name: input.name, description: input.description ?? null, is_preset: false });
-    if (input.copy_from_role_id) await c.query(`insert into public.role_permissions (org_id, role_id, module, action, scope) select org_id, $2, module, action, scope from public.role_permissions where role_id = $1 and deleted_at is null`, [input.copy_from_role_id, role.id]);
+    const role = await insert<{ id: string }>(c, 'os.roles', { org_id: ctx.orgId, key: input.key, name: input.name, description: input.description ?? null, is_preset: false });
+    if (input.copy_from_role_id) await c.query(`insert into os.role_permissions (org_id, role_id, module, action, scope) select org_id, $2, module, action, scope from os.role_permissions where role_id = $1 and deleted_at is null`, [input.copy_from_role_id, role.id]);
     return role;
   });
 }
@@ -447,38 +447,38 @@ export async function createRole(ctx: Ctx, input: { key: string; name: string; d
 export async function setStaffRoles(ctx: Ctx, staffId: string, roleIds: string[]) {
   needSetup(ctx);
   return run(ctx, async (c) => {
-    await c.query(`delete from public.staff_roles where staff_id = $1 and not (role_id = any($2))`, [staffId, roleIds]);
-    for (const r of roleIds) await c.query(`insert into public.staff_roles (org_id, staff_id, role_id) values ($1,$2,$3) on conflict (staff_id, role_id) do update set deleted_at = null`, [ctx.orgId, staffId, r]);
+    await c.query(`delete from os.staff_roles where staff_id = $1 and not (role_id = any($2))`, [staffId, roleIds]);
+    for (const r of roleIds) await c.query(`insert into os.staff_roles (org_id, staff_id, role_id) values ($1,$2,$3) on conflict (staff_id, role_id) do update set deleted_at = null`, [ctx.orgId, staffId, r]);
     return { ok: true };
   });
 }
 
 export async function assignmentRules(ctx: Ctx) {
-  return run(ctx, async (c) => q(c, `select ar.*, f.name as from_name, t.name as to_name from public.assignment_rules ar join public.roles f on f.id = ar.from_role_id join public.roles t on t.id = ar.to_role_id where ar.org_id = $1 and ar.deleted_at is null`, [ctx.orgId]));
+  return run(ctx, async (c) => q(c, `select ar.*, f.name as from_name, t.name as to_name from os.assignment_rules ar join os.roles f on f.id = ar.from_role_id join os.roles t on t.id = ar.to_role_id where ar.org_id = $1 and ar.deleted_at is null`, [ctx.orgId]));
 }
 
 export async function setAssignmentRule(ctx: Ctx, input: { from_role_id: string; to_role_id: string; rule: string | null }) {
   needSetup(ctx);
   return run(ctx, async (c) => {
-    if (input.rule === null) await c.query(`delete from public.assignment_rules where org_id = $1 and from_role_id = $2 and to_role_id = $3`, [ctx.orgId, input.from_role_id, input.to_role_id]);
-    else await c.query(`insert into public.assignment_rules (org_id, from_role_id, to_role_id, rule) values ($1,$2,$3,$4) on conflict (org_id, from_role_id, to_role_id) do update set rule = excluded.rule, deleted_at = null`, [ctx.orgId, input.from_role_id, input.to_role_id, input.rule]);
+    if (input.rule === null) await c.query(`delete from os.assignment_rules where org_id = $1 and from_role_id = $2 and to_role_id = $3`, [ctx.orgId, input.from_role_id, input.to_role_id]);
+    else await c.query(`insert into os.assignment_rules (org_id, from_role_id, to_role_id, rule) values ($1,$2,$3,$4) on conflict (org_id, from_role_id, to_role_id) do update set rule = excluded.rule, deleted_at = null`, [ctx.orgId, input.from_role_id, input.to_role_id, input.rule]);
     return { ok: true };
   });
 }
 
 export async function delegations(ctx: Ctx) {
-  return run(ctx, async (c) => q(c, `select d.*, s.full_name as staff_name, dl.full_name as delegate_name from public.delegations d join public.staff s on s.id = d.staff_id join public.staff dl on dl.id = d.delegate_id where d.org_id = $1 and d.ends_on >= current_date - 30 and d.deleted_at is null order by d.starts_on desc`, [ctx.orgId]));
+  return run(ctx, async (c) => q(c, `select d.*, s.full_name as staff_name, dl.full_name as delegate_name from core.delegations d join core.staff s on s.id = d.staff_id join core.staff dl on dl.id = d.delegate_id where d.org_id = $1 and d.ends_on >= current_date - 30 and d.deleted_at is null order by d.starts_on desc`, [ctx.orgId]));
 }
 
 export async function addDelegation(ctx: Ctx, input: { staff_id: string; delegate_id: string; starts_on: string; ends_on: string; reason?: string | null }) {
   if (input.staff_id !== ctx.staffId) need(ctx, 'staff', 'edit', 5);
-  return run(ctx, async (c, sys) => sys(() => insert(c, 'delegations', { org_id: ctx.orgId, branch_id: ctx.branchId, ...input, reason: input.reason ?? null })));
+  return run(ctx, async (c, sys) => sys(() => insert(c, 'core.delegations', { org_id: ctx.orgId, branch_id: ctx.branchId, ...input, reason: input.reason ?? null })));
 }
 
 // ---------------------------------------------------------------- module flags, branding, branch settings
 export async function moduleFlags(ctx: Ctx) {
   return run(ctx, async (c) => {
-    const flags = await q<{ branch_id: string; module_key: string; enabled: boolean }>(c, `select branch_id, module_key, enabled from public.module_flags where branch_id = any($1)`, [ctx.branchIds]);
+    const flags = await q<{ branch_id: string; module_key: string; enabled: boolean }>(c, `select branch_id, module_key, enabled from os.module_flags where branch_id = any($1)`, [ctx.branchIds]);
     return MODULE_KEYS.map((m) => ({ module_key: m, branches: Object.fromEntries(ctx.branchIds.map((b) => [b, flags.find((f) => f.branch_id === b && f.module_key === m)?.enabled ?? true])) }));
   });
 }
@@ -487,28 +487,28 @@ export async function setModuleFlag(ctx: Ctx, input: { branch_id: string; module
   needSetup(ctx);
   if (!ctx.branchIds.includes(input.branch_id)) throw new ForbiddenError();
   return run(ctx, async (c) => {
-    await c.query(`insert into public.module_flags (org_id, branch_id, module_key, enabled) values ($1,$2,$3,$4) on conflict (branch_id, module_key) do update set enabled = excluded.enabled`, [ctx.orgId, input.branch_id, input.module_key, input.enabled]);
+    await c.query(`insert into os.module_flags (org_id, branch_id, module_key, enabled) values ($1,$2,$3,$4) on conflict (branch_id, module_key) do update set enabled = excluded.enabled`, [ctx.orgId, input.branch_id, input.module_key, input.enabled]);
     return { ok: true };
   });
 }
 
 export async function updateBranding(ctx: Ctx, input: { logo_url?: string | null; branding: Record<string, string>; settings?: Record<string, unknown> }) {
   needSetup(ctx);
-  return run(ctx, async (c) => update(c, 'organizations', ctx.orgId, { logo_url: input.logo_url ?? null, branding: input.branding, ...(input.settings ? { settings: input.settings } : {}) }));
+  return run(ctx, async (c) => update(c, 'core.organizations', ctx.orgId, { logo_url: input.logo_url ?? null, branding: input.branding, ...(input.settings ? { settings: input.settings } : {}) }));
 }
 
 export async function updateBranchSettings(ctx: Ctx, input: { name?: string; latitude?: number | null; longitude?: number | null; geofence_radius_m?: number; working_days?: number[]; settings?: Record<string, unknown> }) {
   needSetup(ctx);
   return run(ctx, async (c) => {
-    const b = await one<{ settings: Record<string, unknown> }>(c, `select settings from public.branches where id = $1`, [ctx.branchId]);
-    return update(c, 'branches', ctx.branchId, { ...input, settings: input.settings ? { ...b.settings, ...input.settings } : undefined });
+    const b = await one<{ settings: Record<string, unknown> }>(c, `select settings from core.branches where id = $1`, [ctx.branchId]);
+    return update(c, 'core.branches', ctx.branchId, { ...input, settings: input.settings ? { ...b.settings, ...input.settings } : undefined });
   });
 }
 
 export async function addBranch(ctx: Ctx, input: { name: string; code: string; preset_key: PresetKey }) {
   if (rank(ctx, 'setup', 'configure') < 6) throw new ForbiddenError();
   return run(ctx, async (c, sys) => {
-    const b = await insert<{ id: string }>(c, 'branches', { org_id: ctx.orgId, name: input.name, code: input.code });
+    const b = await insert<{ id: string }>(c, 'core.branches', { org_id: ctx.orgId, name: input.name, code: input.code });
     await sys(() => applyPreset(c, ctx.orgId, b.id, input.preset_key));
     return { id: b.id };
   });
@@ -536,9 +536,9 @@ export const CONFIG_ENTITIES: Record<string, { table: string; area?: ConfigArea;
   rooms: { table: 'rooms', module: 'setup', columns: ['name', 'room_type', 'capacity'], branchScoped: true },
   wings: { table: 'wings', module: 'setup', columns: ['name', 'board', 'seq', 'student_attendance_mode', 'homework_limit_minutes'], branchScoped: true, order: 'seq' },
   classes: { table: 'classes', module: 'setup', columns: ['name', 'wing_id', 'grade_level', 'seq'], branchScoped: true, order: 'seq' },
-  sections: { table: 'sections', module: 'setup', columns: ['name', 'class_id', 'class_teacher_id', 'room_id', 'strength', 'profile'], branchScoped: true },
+  sections: { table: 'sections', module: 'setup', columns: ['name', 'programme_id', 'class_teacher_id', 'room_id', 'strength', 'profile'], branchScoped: true },
   subjects: { table: 'subjects', module: 'setup', columns: ['name', 'code', 'department_id', 'content_language', 'is_core'] },
-  class_subjects: { table: 'class_subjects', module: 'setup', columns: ['class_id', 'subject_id', 'periods_per_week', 'double_periods', 'room_type'], branchScoped: true },
+  class_subjects: { table: 'class_subjects', module: 'setup', columns: ['programme_id', 'subject_id', 'periods_per_week', 'double_periods', 'room_type'], branchScoped: true },
   calendar_holidays: { table: 'calendar_events', module: 'calendar', columns: ['layer', 'title', 'starts_on', 'ends_on', 'is_working_day'] },
   timetable_constraints: { table: 'timetable_constraints', module: 'timetable', columns: ['kind', 'data'], branchScoped: true },
 };
@@ -580,7 +580,7 @@ export async function resetConfig(ctx: Ctx, entity: string) {
   if (def.module === 'setup') needSetup(ctx);
   else need(ctx, def.module, 'configure');
   return run(ctx, async (c, sys) => {
-    const org = await one<{ preset_key: PresetKey | null }>(c, `select preset_key from public.organizations where id = $1`, [ctx.orgId]);
+    const org = await one<{ preset_key: PresetKey | null }>(c, `select preset_key from core.organizations where id = $1`, [ctx.orgId]);
     await sys(() => applyArea(c, def.area!, ctx.orgId, ctx.branchId, org.preset_key ?? 'cbse', { reset: true }));
     return { ok: true };
   });
@@ -589,14 +589,14 @@ export async function resetConfig(ctx: Ctx, entity: string) {
 /** … and a change history. */
 export async function configHistory(ctx: Ctx, entity: string, entityId?: string) {
   const def = CONFIG_ENTITIES[entity];
-  return run(ctx, async (c) => q(c, `select h.*, s.full_name as actor_name from public.config_history h left join public.staff s on s.user_id = h.actor_user_id where h.org_id = $1 and ($2::text is null or h.entity = $2) and ($3::uuid is null or h.entity_id = $3) order by h.created_at desc limit 200`, [ctx.orgId, def?.table ?? null, entityId ?? null]));
+  return run(ctx, async (c) => q(c, `select h.*, s.full_name as actor_name from public.config_history h left join core.staff s on s.user_id = h.actor_user_id where h.org_id = $1 and ($2::text is null or h.entity = $2) and ($3::uuid is null or h.entity_id = $3) order by h.created_at desc limit 200`, [ctx.orgId, def?.table ?? null, entityId ?? null]));
 }
 
 export async function resetArea(ctx: Ctx, area: ConfigArea) {
   needSetup(ctx);
   if (!CONFIG_AREAS.includes(area)) throw new ValidationError('unknown_area');
   return run(ctx, async (c, sys) => {
-    const org = await one<{ preset_key: PresetKey | null }>(c, `select preset_key from public.organizations where id = $1`, [ctx.orgId]);
+    const org = await one<{ preset_key: PresetKey | null }>(c, `select preset_key from core.organizations where id = $1`, [ctx.orgId]);
     await sys(() => applyArea(c, area, ctx.orgId, ctx.branchId, org.preset_key ?? 'cbse', { reset: true }));
     return { ok: true };
   });
@@ -607,25 +607,25 @@ export async function resetArea(ctx: Ctx, area: ConfigArea) {
 export async function yearRollover(ctx: Ctx, input: { name: string; starts_on: string; ends_on: string }) {
   needSetup(ctx);
   return run(ctx, async (c, sys) => {
-    const old = await one<{ id: string; starts_on: string }>(c, `select id, starts_on::text from public.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
-    await c.query(`update public.academic_years set is_current = false, archived = true where id = $1`, [old.id]);
-    const ay = await insert<{ id: string }>(c, 'academic_years', { org_id: ctx.orgId, branch_id: ctx.branchId, name: input.name, starts_on: input.starts_on, ends_on: input.ends_on, is_current: true });
+    const old = await one<{ id: string; starts_on: string }>(c, `select id, starts_on::text from core.academic_years where branch_id = $1 and is_current`, [ctx.branchId]);
+    await c.query(`update core.academic_years set is_current = false, archived = true where id = $1`, [old.id]);
+    const ay = await insert<{ id: string }>(c, 'core.academic_years', { org_id: ctx.orgId, branch_id: ctx.branchId, name: input.name, starts_on: input.starts_on, ends_on: input.ends_on, is_current: true });
     const shift = Math.round((Date.parse(input.starts_on) - Date.parse(old.starts_on)) / 86400000);
-    await c.query(`insert into public.terms (org_id, branch_id, academic_year_id, name, seq, starts_on, ends_on) select org_id, branch_id, $2, name, seq, starts_on + $3::int, ends_on + $3::int from public.terms where academic_year_id = $1`, [old.id, ay.id, shift]);
-    const classes = await q<{ id: string; grade_level: number; wing_id: string }>(c, `select id, grade_level, wing_id from public.classes where branch_id = $1 and deleted_at is null order by grade_level desc`, [ctx.branchId]);
+    await c.query(`insert into core.terms (org_id, branch_id, academic_year_id, name, seq, starts_on, ends_on) select org_id, branch_id, $2, name, seq, starts_on + $3::int, ends_on + $3::int from core.terms where academic_year_id = $1`, [old.id, ay.id, shift]);
+    const classes = await q<{ id: string; grade_level: number; wing_id: string }>(c, `select id, grade_level, wing_id from core.programmes where branch_id = $1 and deleted_at is null order by grade_level desc`, [ctx.branchId]);
     let promoted = 0;
     for (const cl of classes) {
       const next = classes.find((x) => x.grade_level === cl.grade_level + 1);
-      const secs = await q<{ id: string; name: string }>(c, `select id, name from public.sections where class_id = $1 and academic_year_id = $2 and deleted_at is null`, [cl.id, old.id]);
+      const secs = await q<{ id: string; name: string }>(c, `select id, name from core.sections where programme_id = $1 and academic_year_id = $2 and deleted_at is null`, [cl.id, old.id]);
       for (const s of secs) {
         // New year's section of the same class and name (structure copied).
-        await insert(c, 'sections', { org_id: ctx.orgId, branch_id: ctx.branchId, class_id: cl.id, academic_year_id: ay.id, name: s.name });
+        await insert(c, 'core.sections', { org_id: ctx.orgId, branch_id: ctx.branchId, programme_id: cl.id, academic_year_id: ay.id, name: s.name });
         if (next) {
-          const target = await maybe<{ id: string }>(c, `select id from public.sections where class_id = $1 and academic_year_id = $2 and name = $3`, [next.id, ay.id, s.name]);
-          const tid = target?.id ?? (await insert<{ id: string }>(c, 'sections', { org_id: ctx.orgId, branch_id: ctx.branchId, class_id: next.id, academic_year_id: ay.id, name: s.name })).id;
-          const r = await sys(() => q(c, `update public.students set class_id = $2, section_id = $3 where section_id = $1 and status = 'active' returning id`, [s.id, next.id, tid]));
+          const target = await maybe<{ id: string }>(c, `select id from core.sections where programme_id = $1 and academic_year_id = $2 and name = $3`, [next.id, ay.id, s.name]);
+          const tid = target?.id ?? (await insert<{ id: string }>(c, 'core.sections', { org_id: ctx.orgId, branch_id: ctx.branchId, programme_id: next.id, academic_year_id: ay.id, name: s.name })).id;
+          const r = await sys(() => q(c, `update core.students set programme_id = $2, section_id = $3 where section_id = $1 and status = 'active' returning id`, [s.id, next.id, tid]));
           promoted += r.length;
-        } else await sys(() => c.query(`update public.students set status = 'left' where section_id = $1 and status = 'active'`, [s.id]));
+        } else await sys(() => c.query(`update core.students set status = 'left' where section_id = $1 and status = 'active'`, [s.id]));
       }
     }
     // Leave balances: carry forward per type rules on the new year.
