@@ -209,6 +209,24 @@ for (const st of students.slice(0, 6)) {
   await q(`select erp.post_receipts($1, $2::jsonb, $3, 'Prakash Iyer')`, [org, JSON.stringify(payload), users.accounts.uid]);
 }
 
+// ---------------------------------------------------------------- HR and payroll, accounting
+let ei = 0;
+for (const [k, u] of Object.entries(users)) {
+  if (!u.staff) continue;
+  ei++;
+  await erpIns('salary_structures', { staff_id: u.staff, effective_from: '2026-04-01', basic: 20000 + ei * 1500, hra: 8000 + ei * 500, da: 2000, special_allowance: 3000, other_allowance: 1000, pf_applicable: true, esi_applicable: false, pt_applicable: true, tds_monthly: ei % 4 === 0 ? 1200 : 0 });
+  await erpIns('staff_payroll', { staff_id: u.staff, bank_name: 'State Bank of India', bank_account: `3300${String(100000 + ei)}`, ifsc: 'SBIN0001234', pan: `ABCDE${1000 + ei}F`, uan: `1012345${String(ei).padStart(5, '0')}`, tax_regime: 'new' });
+  await erpIns('staff_hr_profiles', { staff_id: u.staff, qualifications: 'B.Ed', experience_years: 3 + ei, bgv_status: ei % 6 === 0 ? 'pending' : 'clear' });
+}
+const vend = await erpIns('vendors', { name: 'Sri Lakshmi Stationers', type: 'stationery', gst_no: '36AAAAA0000A1Z5', phone: '+919876500001' });
+await erpIns('vendors', { name: 'Metro Uniforms', type: 'uniform', phone: '+919876500002' });
+const accExp = (await q(`select id from erp.accounts where org_id = $1 and code = '5100'`, [org]))[0].id;
+await erpIns('budgets', { branch_id: main, academic_year_id: year, account_id: accExp, amount: 500000, alert_percent: 80 });
+await erpIns('expenses', { branch_id: main, description: 'Chalk and registers', date: T, account_id: accExp, vendor_id: vend, amount: 4200, status: 'requested', payment_mode: 'cash', is_petty_cash: true, requested_by: users.accounts.uid });
+await erpIns('policies', { title: 'Staff handbook', body: 'Code of conduct, attendance and leave rules.', version: '1.0', audience: 'staff', requires_ack: true, published: true });
+await erpIns('masters', { type: 'house', name: 'Red', sort: 1 }); await erpIns('masters', { type: 'house', name: 'Blue', sort: 2 });
+await erpIns('masters', { type: 'house', name: 'Green', sort: 3 }); await erpIns('masters', { type: 'house', name: 'Yellow', sort: 4 });
+
 await c.query('commit');
 console.log(JSON.stringify({ org, branches: { main, east }, year, sections: sections.map((s) => s.name), students: students.length, marks: marked, users: Object.keys(users).length }));
 await c.end();

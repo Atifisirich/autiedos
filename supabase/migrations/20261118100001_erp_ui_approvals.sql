@@ -61,6 +61,7 @@ begin
   end if;
   v_steps := case
     when p_type = 'gate_pass' then '["class_teacher"]'::jsonb
+    when p_type = 'attendance_regularisation' then '["hr"]'::jsonb
     when p_type in ('expense', 'purchase_request', 'purchase_order') and coalesce(p_amount, 0) >= 25000 then '["accounts", "principal"]'::jsonb
     else '["principal"]'::jsonb end;
   insert into core.approval_types (org_id, key, name, product_key, is_system)
@@ -116,6 +117,25 @@ begin
   end if;
   update core.approval_requests r set status = case when p_ok then 'approved' else 'rejected' end, decided_at = now(), pending_approver_ids = '{}' where r.id = a.id;
   v_result := erp.apply_approval(a.id);
+  -- staff leave and attendance regularisation are core rows that erp.apply_approval does not know: applied here, as the decider
+  if a.linked_type = 'leave' then
+    update core.leave_requests lr set status = case when p_ok then 'approved' else 'rejected' end, decided_at = now(), approval_request_id = a.id
+     where lr.id = a.linked_id and lr.org_id = v_org and lr.status = 'pending';
+    if p_ok then
+      insert into core.staff_attendance (org_id, branch_id, staff_id, date, status, source)
+      select lr.org_id, lr.branch_id, lr.staff_id, d::date, 'on_leave', 'manual'
+        from core.leave_requests lr
+        cross join generate_series(lr.start_date, lr.end_date, interval '1 day') d
+       where lr.id = a.linked_id and lr.org_id = v_org
+         and extract(isodow from d)::int = any(coalesce((select b.working_days from core.branches b where b.id = lr.branch_id), '{1,2,3,4,5,6}'))
+      on conflict (org_id, staff_id, date) do update set status = 'on_leave', source = 'manual';
+      perform erp.notify_roles(v_org, array['coordinator', 'principal'], a.branch_id, 'leave.cover', 'Cover needed: ' || a.title, 'Open the substitution planner to assign cover.', '/erp/timetable/substitutions');
+    end if;
+  elsif a.linked_type = 'attendance_regularisation' and p_ok then
+    insert into core.staff_attendance (org_id, branch_id, staff_id, date, status, source)
+    values (v_org, a.branch_id, (a.data->>'staff_id')::uuid, (a.data->>'date')::date, coalesce(a.data->>'requested_status', 'present'), 'regularised')
+    on conflict (org_id, staff_id, date) do update set status = excluded.status, source = 'regularised';
+  end if;
   perform erp.notify_user(v_org, a.applicant_user_id, 'approval.decided', a.title || (case when p_ok then ' was approved' else ' was rejected' end), p_comment, '/erp/approvals');
   return case when p_ok then 'approved' else 'rejected' end;
 end $$;
