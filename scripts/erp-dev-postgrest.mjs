@@ -15,7 +15,7 @@ const role = 'erpui_authenticator';
 const admin = new pg.Client({ connectionString: url });
 await admin.connect();
 await admin.query(`do $$ begin if not exists (select 1 from pg_roles where rolname = '${role}') then create role ${role} login noinherit nobypassrls; end if; end $$`);
-await admin.query(`grant authenticated, anon to ${role}`);
+await admin.query(`grant authenticated, anon, erp_server to ${role}`); // erp_server: only the public document check (/erp/verify) uses it
 await admin.end();
 const u = new URL(url);
 u.username = role;

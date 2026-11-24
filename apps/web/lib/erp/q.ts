@@ -18,7 +18,13 @@ export async function masters(ctx: Ctx, type: string) {
   return (data ?? []) as { name: string; color: string | null; meta: unknown }[];
 }
 
-export const fullNameOf = (p: { first_name?: string | null; last_name?: string | null } | null | undefined) => (p ? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() : '');
+/** Next number of a series (core.number_series); when the school has not set the series up a time-based number is used so nothing blocks. */
+export async function nextNo(ctx: Ctx, key: string, prefix: string) {
+  const r = await core(ctx.sb).rpc('next_number', { p_key: key, p_branch: ctx.branchId ?? null, p_year: ctx.year?.id ?? null });
+  return r.error ? `${prefix}${Date.now().toString().slice(-7)}` : (r.data as string);
+}
+
+export const fullNameOf =(p: { first_name?: string | null; last_name?: string | null } | null | undefined) => (p ? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() : '');
 
 /** Scope a query to the selected branch (rows without a branch are visible to every branch). */
 export const scopeBranch = <T extends { or: (f: string) => T }>(q: T, ctx: Ctx) => (ctx.branchId ? q.or(`branch_id.eq.${ctx.branchId},branch_id.is.null`) : q);
