@@ -8,5 +8,6 @@ export * from './orgDeletion';
 export * from './retention';
 export * from './consent';
 export * from './holds';
+export * from './dataMap';
 export * from './catalogue';
 export { dispatchCompliance, complianceRoutes, type ComplianceContext, type ComplianceRequest, type ComplianceResponse } from './routes';

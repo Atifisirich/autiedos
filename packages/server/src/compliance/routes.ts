@@ -12,6 +12,7 @@ import { createFsSink, runOrgExport, type ExportSink } from './orgExport';
 import { executePersonErasure, exportPerson, planPersonErasure } from './person';
 import { enqueueRetentionJobs, purgeOrgProduct } from './retention';
 import { listHolds, placeHold, releaseHold } from './holds';
+import { getDataMap } from './dataMap';
 import { ComplianceError, CONSENT_CHANNELS, PERSON_TYPES, PRODUCT_KEYS } from './types';
 
 export interface ComplianceRequest {
@@ -238,6 +239,14 @@ const routes: Route[] = [
     async handler(req, ctx, _p, actor) {
       const q = z.object({ orgId: uuid, channel, contact: z.string().min(3) }).parse(req.query ?? {});
       return json(200, await consentHistory(ctx.db, req.productRole ?? 'crm_server', actor, q));
+    },
+  },
+  {
+    method: 'GET',
+    pattern: '/compliance/orgs/:orgId/data-map',
+    summary: 'What is held about people, what an erasure does to each table, and the retention periods that apply.',
+    async handler(_req, ctx, p, actor) {
+      return json(200, await getDataMap(ctx.db, actor, uuid.parse(p.orgId)));
     },
   },
   {

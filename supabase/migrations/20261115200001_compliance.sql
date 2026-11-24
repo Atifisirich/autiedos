@@ -236,6 +236,12 @@ create trigger trg_touch before update on core.pii_registry for each row execute
 create trigger trg_touch before update on core.table_policy for each row execute function app.touch_updated_at();
 create trigger trg_touch before update on core.retention_rules for each row execute function app.touch_updated_at();
 
+-- Used by the retention_rules policy (a policy may not select from its own table: infinite recursion).
+create or replace function app._compliance_default_rule_exists(p_data_type text, p_scope text) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from core.retention_rules d where d.org_id is null and d.data_type = p_data_type and d.scope = p_scope)
+$$;
+
 -- ================================================================ policies, grants, audit triggers
 alter table core.pii_registry enable row level security;
 alter table core.table_policy enable row level security;
@@ -246,23 +252,24 @@ alter table core.org_export_jobs enable row level security;
 alter table core.consents enable row level security;
 alter table audit.purge_log enable row level security;
 
--- Defaults (org_id null) are readable by every signed-in user; org rows by that org's compliance viewers.
+-- Platform defaults (org_id null) are visible to platform admins only (the isolation harness allows no row without an org
+-- to a client); clients read their effective data map through app.compliance_data_map(). Org rows: that org's compliance viewers.
 create policy sel on core.pii_registry for select using (
-  org_id is null or app.is_platform_admin() or (org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
+  app.is_platform_admin() or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
 create policy wr on core.pii_registry for all using (app.is_platform_admin()) with check (app.is_platform_admin());
 create policy sel on core.table_policy for select using (
-  org_id is null or app.is_platform_admin() or (org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
+  app.is_platform_admin() or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
 create policy wr on core.table_policy for all using (app.is_platform_admin()) with check (app.is_platform_admin());
 
 create policy sel on core.retention_rules for select using (
-  org_id is null or app.is_platform_admin() or (org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
+  app.is_platform_admin() or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
 -- A client admin may only add or change a row that overrides an existing platform default of the same data_type.
 create policy wr on core.retention_rules for all
   using (app.is_platform_admin()
          or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'manage', org_id)))
   with check (app.is_platform_admin()
          or (org_id is not null and org_id = app.current_org_id() and app.can_any_product('compliance', 'manage', org_id)
-             and exists (select 1 from core.retention_rules d where d.org_id is null and d.data_type = retention_rules.data_type and d.scope = retention_rules.scope)));
+             and app._compliance_default_rule_exists(data_type, scope)));
 
 create policy sel on core.legal_holds for select using (
   app.is_platform_admin() or (org_id = app.current_org_id() and app.can_any_product('compliance', 'view', org_id)));
@@ -869,6 +876,9 @@ declare
 begin
   v_actor := app.compliance_authorize(p_org, 'export');
   v_products := coalesce(p_products, (select coalesce(array_agg(s.product_key order by s.product_key), '{}') from core.subscriptions s where s.org_id = p_org));
+  if exists (select 1 from unnest(v_products) x where x not in ('crm','os','erp')) then
+    raise exception 'compliance: unknown product in %', v_products using errcode = '22023';
+  end if;
   insert into core.org_export_jobs (org_id, purpose, product_keys, formats, requested_by)
   values (p_org, p_purpose, v_products, p_formats, v_actor) returning id into v_id;
   insert into audit.log (org_id, actor_user_id, support_session_id, action, schema_name, table_name, row_id, detail)
@@ -1134,6 +1144,7 @@ declare
   v_assign text;
   v_guard text;
   v_cols text[];
+  v_ids uuid[];
   c text;
   v_mark_log bigint;
   v_mark_cfg bigint;
@@ -1212,36 +1223,38 @@ begin
     v_mark_cfg := coalesce((select max(h.id) from audit.config_history h), 0);
     v_total := 0;
     v_b := 0;
+    v_cols := (select coalesce(array_agg(distinct x), '{}') from unnest(r.anonymise_columns || array(select jsonb_object_keys(r.anonymise_values))) x);
     loop
       exit when v_b >= p_max_batches or v_before = 0;
       v_b := v_b + 1;
       if r.action = 'delete' then
-        execute format('with d as (delete from %1$I.%2$I t where t.ctid = any(array(select t.ctid from %1$I.%2$I t where %3$s limit %4$s)) returning 1) select count(*) from d',
-                       r.schema_name, r.table_name, v_where, v_batch) into v_n;
+        execute format('with d as (delete from %1$I.%2$I t where t.ctid = any(array(select t.ctid from %1$I.%2$I t where %3$s limit %4$s)) returning coalesce(app.try_uuid(to_jsonb(t) ->> ''id''), app.try_uuid(to_jsonb(t) ->> ''user_id'')) as rid) select coalesce(array_agg(rid), ''{}''), count(*) from d',
+                       r.schema_name, r.table_name, v_where, v_batch) into v_ids, v_n;
       else
-        execute format('with u as (update %1$I.%2$I t set %5$s where t.ctid = any(array(select t.ctid from %1$I.%2$I t where %3$s limit %4$s)) returning 1) select count(*) from u',
-                       r.schema_name, r.table_name, v_where, v_batch, v_assign) into v_n;
+        execute format('with u as (update %1$I.%2$I t set %5$s where t.ctid = any(array(select t.ctid from %1$I.%2$I t where %3$s limit %4$s)) returning coalesce(app.try_uuid(to_jsonb(t) ->> ''id''), app.try_uuid(to_jsonb(t) ->> ''user_id'')) as rid) select coalesce(array_agg(rid), ''{}''), count(*) from u',
+                       r.schema_name, r.table_name, v_where, v_batch, v_assign) into v_ids, v_n;
       end if;
       v_total := v_total + v_n;
+      -- the purge must not leave the purged data behind in the audit images (old ones by row id, new ones by position)
+      if r.schema_name <> 'audit' and v_n > 0 then
+        if r.action = 'delete' then
+          update audit.log l set before = null, after = null
+           where l.org_id = p_org and l.schema_name = r.schema_name and l.table_name = r.table_name
+             and (l.row_id = any(v_ids) or l.id > v_mark_log) and (l.before is not null or l.after is not null);
+          update audit.config_history h set before = null, after = null
+           where h.org_id = p_org and h.schema_name = r.schema_name and h.table_name = r.table_name
+             and (h.row_id = any(v_ids) or h.id > v_mark_cfg) and (h.before is not null or h.after is not null);
+        else
+          update audit.log l set before = case when l.before is null then null else l.before - v_cols end,
+                                 after = case when l.after is null then null else l.after - v_cols end
+           where l.org_id = p_org and l.schema_name = r.schema_name and l.table_name = r.table_name and (l.row_id = any(v_ids) or l.id > v_mark_log);
+          update audit.config_history h set before = case when h.before is null then null else h.before - v_cols end,
+                                            after = case when h.after is null then null else h.after - v_cols end
+           where h.org_id = p_org and h.schema_name = r.schema_name and h.table_name = r.table_name and (h.row_id = any(v_ids) or h.id > v_mark_cfg);
+        end if;
+      end if;
       exit when v_n < v_batch;
     end loop;
-    -- the purge must not leave the purged data behind in the audit images the row triggers just wrote
-    if r.schema_name <> 'audit' then
-      v_cols := (select coalesce(array_agg(distinct x), '{}') from unnest(r.anonymise_columns || array(select jsonb_object_keys(r.anonymise_values))) x);
-      if r.action = 'delete' then
-        update audit.log l set before = null, after = null where l.org_id = p_org and l.schema_name = r.schema_name and l.table_name = r.table_name
-           and l.id > v_mark_log and l.action = 'delete';
-        update audit.config_history h set before = null, after = null where h.org_id = p_org and h.schema_name = r.schema_name and h.table_name = r.table_name
-           and h.id > v_mark_cfg and h.action = 'delete';
-      else
-        update audit.log l set before = case when l.before is null then null else l.before - v_cols end,
-                               after = case when l.after is null then null else l.after - v_cols end
-         where l.org_id = p_org and l.schema_name = r.schema_name and l.table_name = r.table_name and l.id > v_mark_log;
-        update audit.config_history h set before = case when h.before is null then null else h.before - v_cols end,
-                                          after = case when h.after is null then null else h.after - v_cols end
-         where h.org_id = p_org and h.schema_name = r.schema_name and h.table_name = r.table_name and h.id > v_mark_cfg;
-      end if;
-    end if;
     v_status := 'done';
     perform app._compliance_log_purge(p_org, p_product, 'retention', null, r.rule_id, r.data_type, r.schema_name, r.table_name, r.action, v_status, v_before, v_total, v_cut, false,
                                       jsonb_build_object('batches', v_b, 'truncated', v_total < v_before));
@@ -1340,6 +1353,37 @@ begin
   return v_s <> 'opted_out';
 end $$;
 
+-- ================================================================ the client's view of what AutoEd keeps
+-- Effective registry, table policy and retention periods for one org (platform defaults with the org's overrides applied).
+-- This is what a school's compliance admin reads; the underlying default rows are visible to platform admins only.
+create or replace function app.compliance_data_map(p_org uuid) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+begin
+  perform app.compliance_authorize(p_org, 'view');
+  return jsonb_build_object(
+    'org_id', p_org,
+    'personal_data', coalesce((
+      select jsonb_agg(jsonb_build_object('schema', x.schema_name, 'table', x.table_name, 'person_type', x.person_type, 'key_column', x.key_column,
+                                          'pii_columns', x.pii_columns, 'on_erasure', x.erasure_mode, 'retain_reason', x.retain_reason, 'exported', x.export)
+                       order by x.schema_name, x.table_name, x.person_type)
+        from (select distinct on (r.schema_name, r.table_name, r.person_type, r.key_column) r.*
+                from core.pii_registry r
+               where r.classification = 'personal' and (r.org_id is null or r.org_id = p_org)
+                 and (r.schema_name not in ('crm','os','erp') or exists (select 1 from core.subscriptions s where s.org_id = p_org and s.product_key = r.schema_name))
+               order by r.schema_name, r.table_name, r.person_type, r.key_column, r.org_id nulls last) x), '[]'::jsonb),
+    'kept_when_org_deleted', coalesce((
+      select jsonb_agg(jsonb_build_object('schema', t.schema_name, 'table', t.table_name, 'reason', t.retain_reason) order by t.schema_name, t.table_name)
+        from app._compliance_org_tables(p_org, true) t where t.disposition = 'retain'), '[]'::jsonb),
+    'retention', coalesce((
+      select jsonb_agg(jsonb_build_object('data_type', e.data_type, 'schema', e.schema_name, 'table', e.table_name, 'action', e.action,
+                                          'period_value', e.period_value, 'period_unit', e.period_unit, 'enabled', e.enabled, 'legal_status', e.legal_status,
+                                          'org_override', e.org_override) order by e.data_type)
+        from app._compliance_effective_rules(p_org) e), '[]'::jsonb),
+    'lifecycle_days', jsonb_build_object(
+      'product_read_only_days', app._compliance_lifecycle_days(p_org, 'product_read_only_days', 30),
+      'org_exit_deletion_days', app._compliance_lifecycle_days(p_org, 'org_exit_deletion_days', 30)));
+end $$;
+
 -- ================================================================ seed: registry (platform defaults)
 -- core identity tables. Person ids are auth user ids (staff, guardians, students with a login) or learner ids.
 do $$
@@ -1384,6 +1428,7 @@ end $$;
 
 -- Reviewed exemptions: tables that look personal by column name but are not client personal data.
 insert into core.pii_registry (schema_name, table_name, classification, exempt_reason) values
+  ('core', 'pii_registry', 'exempt', 'The registry itself: it names columns (contact_columns, pii_columns) and holds no personal data.'),
   ('core', 'platform_admins', 'exempt', 'AutoEd platform staff accounts: AutoEd is the fiduciary, outside any client organisation; handled under AutoEd''s own procedure.'),
   ('core', 'support_sessions', 'exempt', 'Access log of AutoEd platform staff (platform_user_id); evidence that is shown to the client and kept with the audit log.'),
   ('billing', 'accounts', 'exempt', 'Organisation billing profile (legal name, GSTIN, billing email): AutoEd''s own invoicing record, retained about 8 years (retention schedule 2.3).'),
@@ -1442,6 +1487,9 @@ begin
   end loop;
 end $$;
 
+-- the retention_rules write policy calls this as the invoker
+grant execute on function app._compliance_default_rule_exists(text, text) to platform_admin_server;
+
 -- org and person tools: platform_admin_server only (as the signed-in admin; the function authorises the actor)
 grant execute on function
   app.compliance_authorize(uuid, text, boolean),
@@ -1455,6 +1503,7 @@ grant execute on function
   app.compliance_org_deletion_plan(uuid, text, text),
   app.compliance_org_deletion_execute(uuid, text),
   app.compliance_deletion_status(uuid, text),
+  app.compliance_data_map(uuid),
   app.compliance_subscription_states(),
   app.compliance_subscription_ended_at(uuid, text)
   to platform_admin_server;
