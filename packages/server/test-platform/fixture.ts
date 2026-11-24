@@ -15,6 +15,7 @@ import { owner } from './helpers';
 import { seedCore } from './fixture-core';
 import { seedCompliance } from './fixture-compliance';
 import { seedErp } from './fixture-erp';
+import { seedCrm } from './fixture-crm';
 import { resetPlatformDatabase } from './global-setup';
 
 export type World = Awaited<ReturnType<typeof buildWorld>>;
@@ -120,6 +121,9 @@ async function build(c: pg.PoolClient) {
   const coreB = await seedCore(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, guardian: u.bGuardian });
   await seedCompliance(q, A.id);
   await seedCompliance(q, B.id);
+  // CRM rows (20261117000001..6): the automation user and crm.settings come from the trigger on core.subscriptions
+  const crmA = await seedCrm(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, year: coreA.year, prog: coreA.prog });
+  const crmB = await seedCrm(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, year: coreB.year, prog: coreB.prog });
   const learnerA = coreA.learner;
   const learnerB = coreB.learner;
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'mother'), ($4, $5, $6, 'father')`, [A.id, u.aGuardian, learnerA, B.id, u.bGuardian, learnerB]);
@@ -176,5 +180,5 @@ async function build(c: pg.PoolClient) {
     await q(`insert into billing.usage (org_id, product_key, metric, quantity, period_start, period_end) values ($1, 'os', 'ai_credits', 12.5, date_trunc('month', current_date), current_date)`, [o.id]);
   }
 
-  return { A, B, C, D, u, learnerA, learnerB, coreA, coreB, erpA, erpB };
+  return { A, B, C, D, u, learnerA, learnerB, coreA, coreB, erpA, erpB, crmA, crmB };
 }

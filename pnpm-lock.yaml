@@ -146,6 +146,37 @@ importers:
         specifier: ~5.3.3
         version: 5.3.3
 
+  packages/crm-server:
+    dependencies:
+      jose:
+        specifier: 5.9.6
+        version: 5.9.6
+      pg:
+        specifier: 8.13.1
+        version: 8.13.1
+    devDependencies:
+      '@eslint/js':
+        specifier: 9.17.0
+        version: 9.17.0
+      '@types/node':
+        specifier: 22.10.2
+        version: 22.10.2
+      '@types/pg':
+        specifier: 8.11.10
+        version: 8.11.10
+      eslint:
+        specifier: 9.17.0
+        version: 9.17.0(jiti@1.21.7)
+      typescript:
+        specifier: 5.7.3
+        version: 5.7.3
+      typescript-eslint:
+        specifier: 8.18.2
+        version: 8.18.2(eslint@9.17.0(jiti@1.21.7))(typescript@5.7.3)
+      vitest:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@22.10.2)(lightningcss@1.27.0)(terser@5.51.2)
+
   packages/server:
     dependencies:
       '@autoed/shared':

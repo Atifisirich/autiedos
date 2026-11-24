@@ -16,7 +16,8 @@
     "dev": "pnpm --filter @autoed/web dev",
     "i18n:build": "node scripts/build-i18n.mjs",
     "db:reset:platform": "node scripts/db.mjs reset --platform-only",
-    "test:platform": "pnpm --filter @autoed/server test:platform"
+    "test:platform": "pnpm --filter @autoed/server test:platform",
+    "test:crm": "pnpm --filter @autoed/crm-server test:db"
   },
   "devDependencies": {
     "pg": "^8.13.1",
