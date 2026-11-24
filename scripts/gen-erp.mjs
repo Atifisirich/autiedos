@@ -156,7 +156,8 @@ function rlsSql(t) {
   const branchOk = hasBranch ? ` and (branch_id is null or branch_id = any(app.user_branch_ids()))` : '';
   const staffKind = `app.my_member_kind() in ('staff','support')`;
   const portalKind = `app.my_member_kind() in ('guardian','parent','student')`;
-  const out = [`select app.apply_rls('erp', ${lit(t.name)}, 'product', 'erp', ${lit(t.module)});`];
+  // named arguments: in a database that still has the legacy OS overload app.apply_rls(text x6) a positional 5-text call is ambiguous
+  const out = [`select app.apply_rls(p_schema => 'erp', p_table => ${lit(t.name)}, p_kind => 'product', p_product => 'erp', p_module => ${lit(t.module)});`];
   const pol = (name, cmd, expr, check) => out.push(`create policy ${name} on ${T} for ${cmd} ${cmd === 'insert' ? `with check (${expr})` : `using (${expr})${check ? ` with check (${check})` : ''}`};`);
 
   if (t.rpcOnly) {

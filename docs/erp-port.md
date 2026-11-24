@@ -264,10 +264,12 @@ Rule libraries for these screens: `import { computePayslip, lateFine, allocateOl
 
 ## Known issues and follow-ups
 
+* **Combined build.** Because the migrations sort after the legacy OS files (`20261116*`), `app.apply_rls(...)` is called with named arguments (a positional 5-text call is ambiguous next to the legacy 6-text overload). `pnpm db:reset` (legacy OS + platform + core + erp) applies cleanly and the legacy OS server tests still pass (4 files, 86 tests). `scripts/db.mjs reset` now drops the schemas one statement at a time: dropping all of them in one transaction ran out of shared memory (`max_locks_per_transaction`) once core, os, crm and erp were all present.
+
 * Plan rule 8 does not hold for the ERP (decision 51); the evidence that RLS alone is enough is the harness + PostgREST tests above. Re-run them after every table change.
 * `deleted_at` is not filtered by policies: queries must add `deleted_at is null`.
 * `erp.apply_approval` and `erp.apply_student_exit` must be called by the ERP after the core decision / status change (no database hook, by design R7).
 * `erp.module_flags` is not enforced by `app.can`; the UI must hide modules a school switched off, and the platform needs a hook.
-* `core.usage_events`, `core.webhook_deliveries`, `audit.breach_log`, `audit.export_log` (MAP A.3b rows 10, 15, 16, 17, 24) do not exist yet: another stream owns them.
+* `core.usage_events`, `core.webhook_deliveries`, `audit.breach_log`, `audit.export_log` (MAP A.3b rows 10, 16, 17, 24) do not exist yet: another stream owns them.
 * Column-level ownership of `core` rows (students, guardians, staff) written by ERP screens is a server responsibility (MAP risk D1).
 * The harness exempts `erp.trips` and `erp.trip_positions` from the audit trigger (GPS telemetry) and lists `erp.staff_payroll` / `erp.student_sensitive` as closed tables (`RPC_ONLY_TABLES` in `helpers.ts`).

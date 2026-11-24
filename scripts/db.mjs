@@ -21,8 +21,10 @@ async function main() {
   if (cmd === 'reset') {
     const admin = new pg.Client({ connectionString: url });
     await admin.connect();
-    await admin.query(SCHEMAS.map((n) => `drop schema if exists ${n} cascade;`).join(' ') +
-      ' create schema public; grant all on schema public to public;');
+    // One statement per schema: dropping them all in one transaction needs a lock per dropped table and index and runs out of
+    // shared memory (max_locks_per_transaction) once core, os, crm and erp are all present.
+    for (const n of SCHEMAS) await admin.query(`drop schema if exists ${n} cascade`);
+    await admin.query('create schema public; grant all on schema public to public;');
     await admin.end();
   }
   const client = new pg.Client({ connectionString: url });
