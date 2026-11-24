@@ -57,7 +57,10 @@ for (const [p, f] of families) {
 }
 
 // Literal strings in JSX.
-for (const f of files.filter((x) => x.endsWith('.tsx'))) {
+// DECISION (owner delegated, 2026-11-24): the ported CRM and ERP screens are English-only for now (KNOWN GAP, to be translated
+// to Hindi/Telugu). Only the literal-text check is skipped for them; key parity checks above still apply to everything.
+const ENGLISH_ONLY = ['apps/web/app/crm', 'apps/web/app/erp', 'apps/web/components/crm', 'apps/web/components/erp', 'apps/web/lib/crm', 'apps/web/lib/erp'].map((d) => join(root, d));
+for (const f of files.filter((x) => x.endsWith('.tsx') && !ENGLISH_ONLY.some((d) => x.startsWith(d)))) {
   const s = readFileSync(f, 'utf8').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
   const lines = s.split('\n');
   lines.forEach((line, i) => {
