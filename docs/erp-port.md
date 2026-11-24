@@ -21,7 +21,7 @@ Build and test (platform-only schema; own database):
 ```bash
 export DATABASE_URL=postgres://postgres@localhost:54322/erpport
 node scripts/gen-erp.mjs && git diff --exit-code supabase/migrations   # generated SQL is current
-pnpm db:reset:platform && pnpm test:platform                            # 114 tests, 9 skipped (PostgREST, opt in)
+pnpm db:reset:platform && pnpm test:platform                            # 115 tests, 9 skipped (8 PostgREST tests, opt in; 1 older skip)
 pnpm --filter @autoed/shared test                                       # 135 tests (24 are the ERP golden tests)
 POSTGREST_BIN=/path/to/postgrest pnpm --filter @autoed/server test:platform   # adds the 8 Data API tests
 ```
