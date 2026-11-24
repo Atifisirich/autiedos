@@ -7,7 +7,8 @@
  * Revocation ("sign out this device") is the platform's: when a row `session:<sid>` exists in core.device_tokens
  * (visible to its owner under RLS) and has revoked_at set, the session is refused.
  */
-import { jwtVerify } from 'jose';
+import { randomUUID } from 'node:crypto';
+import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import { asUser, UnauthorizedError, ForbiddenError, type Db, type Row } from './db';
 import { type Perms, leadScope } from './perm';
 
@@ -118,3 +119,42 @@ export function scopeSql(ctx: Ctx, params: unknown[], alias = 'e', useHeaderBran
 }
 
 export type { Db };
+
+// ---------------------------------------------------------------- issuing sessions (login screen)
+const SESSION_TTL_SECONDS = () => Number(process.env.SESSION_TTL_SECONDS ?? 60 * 60 * 24 * 14);
+
+/**
+ * Issues the platform session token (HS256, issuer AUTH_ISSUER, claim sid) for a user who has CRM access, and records
+ * `session:<sid>` in core.device_tokens (their own row, under their own claims) so it can be revoked. The same token
+ * format the OS web app and the mobile apps use, so one sign-in works across products.
+ */
+export async function issueSession(userId: string, device: { platform: 'web' | 'android' | 'ios'; name?: string | null }): Promise<{ token: string; expires_at: string }> {
+  const ctx = await loadCtx(userId);
+  if (!ctx) throw new ForbiddenError('no_crm_access');
+  const sid = randomUUID();
+  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS();
+  await asUser(userId, ctx.orgId, async (db) => {
+    const staff = await db.one('select id from core.staff where org_id = $1 and user_id = $2', [ctx.orgId, userId]);
+    await db.insert('core.device_tokens', { user_id: userId, staff_id: staff?.id ?? null, token: `session:${sid}`, platform: device.platform, device_name: device.name ?? null, last_seen_at: new Date() }, { returning: false });
+  });
+  const token = await new SignJWT({ sid }).setProtectedHeader({ alg: 'HS256' }).setSubject(userId).setIssuedAt().setExpirationTime(exp).setIssuer(issuer()).sign(secret());
+  return { token, expires_at: new Date(exp * 1000).toISOString() };
+}
+
+/** Signs this session out (revokes its device row). */
+export async function endSession(userId: string, sid: string): Promise<void> {
+  await asUser(userId, null, (db) => db.q('update core.device_tokens set revoked_at = now() where token = $1 and revoked_at is null', [`session:${sid}`]));
+}
+
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+/** Verifies a Supabase Auth access token (production sign-in: phone or email OTP, then this exchange) and returns the user id. */
+export async function verifySupabaseToken(accessToken: string): Promise<string> {
+  try {
+    if (process.env.SUPABASE_JWT_SECRET) return String((await jwtVerify(accessToken, new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET))).payload.sub);
+    if (!process.env.SUPABASE_URL) throw new Error('SUPABASE_URL missing');
+    jwks ??= createRemoteJWKSet(new URL(`${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`));
+    return String((await jwtVerify(accessToken, jwks)).payload.sub);
+  } catch {
+    throw new UnauthorizedError('invalid_supabase_token');
+  }
+}

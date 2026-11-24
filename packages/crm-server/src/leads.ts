@@ -4,7 +4,7 @@
 // per-branch product switch) decide which enquiries exist for the caller, and crm.enquiries_full shows sensitive
 // custom values only to those allowed to see them.
 import { scopeSql, type Ctx } from './auth';
-import { type Db, type Row } from './db';
+import { NotFoundError, type Db, type Row } from './db';
 import { lvl } from './perm';
 
 export type SP = Record<string, string | undefined>;
@@ -52,6 +52,10 @@ export function leadFilter(ctx: Ctx, sp: SP): { where: string; params: any[] } {
   if (sp.won === '1') where += ' and s.is_won';
   if (sp.closed === '1') where += ' and s.is_closed';
   if (sp.visited === '1') where += " and exists (select 1 from crm.visits v where v.enquiry_id = e.id and v.status = 'done')";
+  if (sp.contacted === '1') where += " and p.key <> 'prospect' and exists (select 1 from crm.activities a where a.enquiry_id = e.id and ((a.type = 'call' and a.outcome = 'connected') or a.meta->>'direction' = 'in'))";
+  if (sp.visited_applied === '1') where += " and exists (select 1 from crm.visits v where v.enquiry_id = e.id and v.status = 'done') and exists (select 1 from crm.applications a where a.enquiry_id = e.id and a.status = 'submitted')";
+  if (sp.reenq === '1') where += ' and e.reenquired';
+  if (sp.wait) where += sp.wait === '1' ? " and p.key = 'enquiry' and e.first_response_at is null and now() - e.created_at < interval '1 hour'" : sp.wait === '2' ? " and p.key = 'enquiry' and e.first_response_at is null and now() - e.created_at >= interval '1 hour' and now() - e.created_at < interval '1 day'" : sp.wait === '3' ? " and p.key = 'enquiry' and e.first_response_at is null and now() - e.created_at >= interval '1 day' and now() - e.created_at < interval '3 days'" : " and p.key = 'enquiry' and e.first_response_at is null and now() - e.created_at >= interval '3 days'";
   if (sp.applied === '1') where += " and exists (select 1 from crm.applications a where a.enquiry_id = e.id and a.status = 'submitted')";
   if (sp.ids) add("e.id::text in (select jsonb_array_elements_text(?::jsonb))", sp.ids.split(',').filter(Boolean));
   if (sp.q) {
@@ -125,7 +129,7 @@ export async function pipeline(db: Db): Promise<{ phases: Row[]; stages: Row[] }
 /** Loads an enquiry only if the caller's row policies let them see it (own / team / branch / org). */
 export async function findEnquiry(db: Db, id: string): Promise<Row> {
   const e = await db.one('select * from crm.enquiries_full where id = $1', [id]);
-  if (!e) throw new Error('This record is not available to you.');
+  if (!e) throw new NotFoundError('This record is not available to you.');
   return e;
 }
 

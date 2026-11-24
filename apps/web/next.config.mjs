@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@autoed/shared', '@autoed/server'],
+  transpilePackages: ['@autoed/shared', '@autoed/server', '@autoed/crm-server'],
   serverExternalPackages: ['pg', 'exceljs', 'docx'],
   poweredByHeader: false,
   async headers() {
