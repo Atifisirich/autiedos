@@ -3,7 +3,10 @@
 For a new person or Claude account continuing the build. Read this first, then `docs/PRD-autoed-os.md` (the spec),
 `docs/DECISIONS.md` (choices made), `docs/BUILD-LOG.md` (verification record) and `docs/AUDIT.md` (CRM audit).
 
-Repository: `github.com/Atifisirich/autiedos`, branch `claude/kind-dirac-ubke4p` (nothing merged to main, no PR opened).
+Repository: `github.com/Atifisirich/autiedos`. Latest work is on branch `claude/gallant-brown-d1cc0z` (builds on `claude/kind-dirac-ubke4p`; nothing merged to main, no PR opened).
+
+**Next direction (2026-11-24):** the owner wants CRM, OS and ERP in one database, sold separately. That plan, its open
+questions and the handoff for it are in `docs/PLAN-unified-platform.md`. Read it before starting new work.
 
 ---
 
