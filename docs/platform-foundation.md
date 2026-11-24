@@ -83,7 +83,9 @@ No `set role authenticated` (it is refused). `service_role` (bypasses RLS) is fo
 5. Run `pnpm test:platform`. A table without RLS, a policy, the product check, `org_id`, the audit trigger or
    fixture rows fails it.
 6. Shared master data (needed by two products, plan §4.5) goes in `core` with kind `'core_master'` and the
-   owning product (or `'*'`); moving a table to `core` is a DECISIONS entry.
+   owning product (or `'*'`); moving a table to `core` is a DECISIONS entry. Core master tables use the wrapper
+   `app.apply_core_rls` (read audiences, portal rows) and composite `(org_id, x_id)` foreign keys — see
+   `docs/core-master-data.md` (migrations `20261115100001..8_core_master_*`, also applied by `--platform-only`).
 
 Never: grant a product schema to another product's role, add a permissive policy without the product check (policies are OR-ed), use `auth.uid()`
 in a policy (use `app.uid()`), write a security definer function without `set search_path = ''`, or give
