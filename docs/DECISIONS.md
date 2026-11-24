@@ -81,7 +81,7 @@ Source: owner replies to PLAN-unified-platform.md §14. "Open" means the owner h
 34. **Clients can have different products per branch** (Q7).
 35. **One web app with a product switcher (CRM / ERP / OS), not three apps** (Q8, overrides plan §4.6). Isolation is still enforced in the database (three DB roles, per-product RLS); one deployment may hold three connection pools, one per role.
 36. **Logins: phone OTP, email OTP and password** (Q11). Password is added alongside OTP. `core.user_security` (password set/changed, must-change flag, failed attempts, lockout, 2FA requirement) and `core.login_events` store what Supabase Auth does not.
-37. **Logins can belong to several clients** (Q12) — confirm wording below; plan §5.3 `core.memberships` stays.
+37. **One person belongs to exactly one client** (Q12, answered 2026-11-24; replaces the earlier draft). Plan §5.3 (multi-org logins, org switcher) is **dropped**: `staff.user_id` stays unique, `app.my_org_id()` stays single-valued, no `core.memberships` switcher. AutoEd support staff reach a client only through time-limited "view as" sessions. Consequence: one phone number or email cannot be a parent in two different client organisations (branches of one client are fine).
 38. **CRM leads become `core.students` only when admission is confirmed** (Q13). The CRM's current "student row per enquiry" must be mapped to a CRM-owned child record.
 39. **Staff source of truth is OS, ERP HR/payroll adds to it** (Q14).
 40. **AI: Gemini only. Anthropic is removed** (Q15). One credit wallet per client shared across products. Gemini must be on the paid API tier in production (free-tier prompts can train Google models); development uses the mock adapter.
@@ -89,4 +89,9 @@ Source: owner replies to PLAN-unified-platform.md §14. "Open" means the owner h
 42. **When a client stops paying for a product: 30 days read-only, then export and delete** (Q19). **On leaving: CSV/Excel export, deleted 30 days later** (Q20).
 43. **Domain: `autoed.in`** is owned (Q10).
 
-Open: Q3 (which "autoedcrm"), Q6 (single modules), Q9 (mobile app structure), Q12 (wording), Q23 (who else gets admin access).
+44. **Q3: `Atifisirich/autoedcrm` is the real CRM** (repo behind Vercel `autoed-crm` and Supabase `autoed-crm-mumbai`). ERP repo: `hbi83701-tech/autoederp`. OS repo: `Atifisirich/autiedos`.
+45. **Q6: clients buy whole products only** (CRM, OS or ERP). Per-module purchase is out of scope; `os.module_flags` remain for switching modules inside a purchased product.
+46. **Q9: two mobile apps, one codebase, one API**: (a) staff/management app with CRM, OS and ERP tabs shown by entitlement; (b) parent and student app. School branding (name, logo, colours) is per-organisation configuration; separate store listings per school come later.
+47. **Q23: the owner is the only admin on Supabase, Vercel and GitHub.** Recorded as a known risk (plan §13: single account owns everything). Revisit before the first paying client.
+48. **Q22: AutoEd acts as data processor for school data.** Privacy policy, terms and Data Processing Agreement are drafts marked "needs legal review".
+49. **`autoed-crm-mumbai` is reused as the platform database** (owner confirmed it holds demo data only and may be rebuilt). Nothing is changed there until Phase 3-5 reaches staging tests on local Postgres; the demo `autoed` schema is dropped only when the CRM port is ready.
