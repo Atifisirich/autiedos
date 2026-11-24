@@ -20,6 +20,7 @@ for (const email of USERS) {
   for (const lang of LANGS) {
     const ctx = await browser.newContext();
     await ctx.addInitScript((l) => localStorage.setItem('os_lang', l), lang);
+    await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort()); // keep the test hermetic
     const page = await ctx.newPage();
     let where = '';
     page.on('pageerror', (e) => problems.push(`${email} ${lang} ${where}: page error ${e.message}`));

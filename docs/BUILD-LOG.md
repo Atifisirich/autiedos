@@ -58,6 +58,19 @@ Newest first. "Verified" means a command was run and its result seen.
   scheduler. Unit tests for the rules engines (can-assign, escalation, leave balance, substitute ranking, clash detection,
   credit cost, and more).
 
+## Session: handoff verification and first fixes
+
+Verified on a fresh Postgres 16 + pgvector (port 54322): `pnpm db:reset`, `pnpm lint`, `pnpm typecheck`, shared tests (63),
+server tests (42, includes 20 RLS), `next build`, and the browser smoke test (2 users x 3 languages x 47 screens). All passed.
+
+Found and fixed:
+- `/os/coverage` was linked from the nav and notifications and listed in the smoke test, but the page file did not exist. Added
+  `apps/web/app/os/coverage/page.tsx` (coverage table, projected finish, AI recovery plan dialog) using existing i18n keys.
+- The smoke test never settled where Google Fonts is unreachable (`networkidle`). It now aborts font requests.
+- Added `.github/workflows/ci.yml` (lint, typecheck, shared + server tests against a pgvector service, web build). Not yet run on GitHub.
+
+Reminder: run `pnpm i18n:build` before `pnpm db:reset`, or seeded notifications show raw keys.
+
 ## Blocked on Atif (built against mock adapters)
 
 | Needed | Used instead | Where to plug in |
