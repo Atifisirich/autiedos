@@ -9,7 +9,7 @@ apps/web          Next.js 15 app (all routes under /os) and the /api/os endpoint
 mobile            Expo app (My Day, tasks, student attendance, inbox) with offline outbox
 packages/shared   zod schemas, rules engines, presets, timetable generator, i18n catalogues (web + mobile)
 packages/server   API router, services, AI/messaging/push adapters, scheduler, seed, tests
-supabase          migrations (the only way the schema changes), local shim
+supabase          migrations (the only way the schema changes; OS stream = `*_os_*`, on the shared platform), local shim
 kb                help-bot articles in en / hi / te
 docs              PRD, AUDIT, DECISIONS, BUILD-LOG
 scripts           db.mjs, build-i18n.mjs, check-i18n.mjs, kb-source.py
@@ -18,7 +18,9 @@ scripts           db.mjs, build-i18n.mjs, check-i18n.mjs, kb-source.py
 ## Run it locally
 
 Needs Node 22, pnpm, and Postgres 16 with the `pgvector` extension listening on `localhost:54322`
-(or set `DATABASE_URL`).
+(or set `DATABASE_URL`). The OS server connects as the `os_server` role (same URL with the user swapped, or
+`OS_DATABASE_URL`); role passwords come from `OS_SERVER_DB_PASSWORD` / `JOB_RUNNER_DB_PASSWORD` /
+`PLATFORM_ADMIN_DB_PASSWORD` (set by `pnpm db:reset` locally), never from migrations. See `docs/adr/os-move.md`.
 
 ```bash
 pnpm install
