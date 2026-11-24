@@ -30,4 +30,5 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm --filter @autoed/shared test
       - run: pnpm --filter @autoed/server test
+      - run: pnpm --filter @autoed/server test:platform   # isolation harness on an empty platform (plan section 8)
       - run: pnpm --filter @autoed/web build
