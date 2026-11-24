@@ -35,6 +35,12 @@ async function inAdmin<T>(req: ApiRequest, section: Section, fn: (db: Db, ctx: C
 }
 const log = (db: Db, actor: { id: string; name: string }, entity: string, summary: string, before?: unknown, after?: unknown) => audit(db, actor, 'config', entity, null, summary, before, after);
 const lines = (v: unknown) => str(v).split('\n').map((x) => x.trim()).filter(Boolean);
+/** Update by id; another organisation's id is invisible under row security, so nothing matches and the person gets a 404. */
+async function mustUpdate(db: Db, table: string, id: string, data: Row): Promise<Row> {
+  const r = await db.update(table, id, data);
+  if (!r) throw new NotFoundError('Not found.');
+  return r;
+}
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 const setSettings = (db: Db, patch: Row) => db.q('update crm.settings set settings = settings || $2::jsonb where org_id = $1', [db.requireOrg(), JSON.stringify(patch)]);
 
@@ -151,22 +157,18 @@ on('POST', '/admin/years', ({ req, b }) =>
     );
     let carried = 0;
     if (bool(b.carry)) {
-      const sys = await import('../db');
-      // Carrying families forward writes enquiries for other owners: the org automation actor does it, after the person's own check above.
-      carried = await sys.asSystem(ctx.orgId, async (sdb) => {
-        const startStage = await stageByName(sdb, 'New data');
-        const lost = await sdb.q(
-          `select e.* from crm.enquiries e join crm.stages s on s.org_id = e.org_id and s.id = e.stage_id where e.org_id = $1 and e.academic_year_id = $2
-             and ((s.is_closed and e.closure_reason in ('Undecided','Fee too high','No response','No seat available')) or (not s.is_closed and not s.is_won))`,
-          [ctx.orgId, from!.id],
-        );
-        for (const e of lost) {
-          const n = await sdb.insert('crm.enquiries', { household_id: e.household_id, prospect_id: e.prospect_id, branch_id: e.branch_id, academic_year_id: year.id, board: e.board, grade: e.grade, programme_id: e.programme_id, stage_id: startStage!.id, owner_id: e.owner_id, custom: e.custom, tags: ['carried forward'] });
-          await sdb.insert('crm.source_touches', { enquiry_id: n.id, channel: 'Data', source: `Carried forward from ${from!.name}` });
-          await logActivity(sdb, { householdId: e.household_id, enquiryId: n.id, type: 'system', content: `Carried forward from ${from!.name} as a prospect for ${name}. Earlier history stays on this family's timeline.` });
-        }
-        return lost.length;
-      });
+      const startStage = await stageByName(db, 'New data');
+      const lost = await db.q(
+        `select e.* from crm.enquiries e join crm.stages s on s.org_id = e.org_id and s.id = e.stage_id where e.org_id = $1 and e.academic_year_id = $2
+           and ((s.is_closed and e.closure_reason in ('Undecided','Fee too high','No response','No seat available')) or (not s.is_closed and not s.is_won))`,
+        [ctx.orgId, from!.id],
+      );
+      for (const e of lost) {
+        const n = await db.insert('crm.enquiries', { household_id: e.household_id, prospect_id: e.prospect_id, branch_id: e.branch_id, academic_year_id: year.id, board: e.board, grade: e.grade, programme_id: e.programme_id, stage_id: startStage!.id, owner_id: e.owner_id, custom: e.custom, tags: ['carried forward'] });
+        await db.insert('crm.source_touches', { enquiry_id: n.id, channel: 'Data', source: `Carried forward from ${from!.name}` });
+        await logActivity(db, { householdId: e.household_id, enquiryId: n.id, type: 'system', content: `Carried forward from ${from!.name} as a prospect for ${name}. Earlier history stays on this family's timeline.` });
+      }
+      carried = lost.length;
     }
     await log(db, actor, 'academic_year', `Rolled over ${from!.name} to ${name}; ${carried} families carried forward`);
     return { ok: true, id: year.id, carried, message: `${name} created with programmes and seats copied. ${carried} famil${carried === 1 ? 'y' : 'ies'} carried forward as prospects.` };
@@ -375,7 +377,7 @@ on('POST', '/admin/stages', ({ req, b }) =>
     if (!data.name) fail('Give the stage a name.');
     if (str(b.id)) {
       const before = await db.one('select name, color, probability, sla_hours, exempt_next_action from crm.stages where org_id = $1 and id = $2', [ctx.orgId, str(b.id)]);
-      await db.update('crm.stages', str(b.id), data);
+      await mustUpdate(db, 'crm.stages', str(b.id), data);
       await log(db, actor, 'stage', `Edited stage "${data.name}"`, before, data);
     } else {
       const ph = await db.one('select * from crm.phases where org_id = $1 and id = $2', [ctx.orgId, str(b.phaseId)]);
@@ -428,7 +430,7 @@ on('POST', '/admin/sources', ({ req, b }) =>
   inAdmin(req, 'sources', async (db, ctx, actor) => {
     const data = { channel: str(b.channel), name: str(b.name), cost: Math.max(0, num(b.cost)), active: b.active === undefined ? true : bool(b.active) };
     if (!data.channel || !data.name) fail('Channel and source name are both needed.');
-    if (str(b.id)) await db.update('crm.sources', str(b.id), data);
+    if (str(b.id)) await mustUpdate(db, 'crm.sources', str(b.id), data);
     else await db.insert('crm.sources', data);
     await log(db, actor, 'source', `Saved source "${data.name}"`);
     return { ok: true };
@@ -454,7 +456,7 @@ on('POST', '/admin/rules', ({ req, b }) =>
       const users = (Array.isArray(b.userIds) ? b.userIds : []).map(String);
       if (!users.length) fail('Pick at least one person to receive leads.');
       const data = { name: str(b.name) || 'Rule', seq: num(b.position, 1), method: str(b.method) === 'least_load' ? 'least_load' : 'round_robin', user_ids: users, conditions: { branch_id: str(b.branch_id) || undefined, channel: str(b.channel) || undefined, grades: (Array.isArray(b.grades) ? b.grades : []).map(String) } };
-      if (str(b.id)) await db.update('crm.assignment_rules', str(b.id), data);
+      if (str(b.id)) await mustUpdate(db, 'crm.assignment_rules', str(b.id), data);
       else await db.insert('crm.assignment_rules', data);
     }
     await log(db, actor, 'assignment_rule', `Assignment rule ${str(b.what) === 'delete' ? 'deleted' : 'saved'}: ${str(b.name)}`);
@@ -493,7 +495,7 @@ on('POST', '/admin/templates', ({ req, b }) =>
     if (!data.name || !data.body) fail('A template needs a name and a body.');
     // WhatsApp templates need provider approval before use. Without a connected number this is recorded as submitted.
     const status = ['approved', 'submitted', 'draft', 'rejected', 'paused'].includes(str(b.status)) ? str(b.status) : null;
-    if (str(b.id)) await db.update('core.message_templates', str(b.id), { ...data, status: status ?? 'approved' });
+    if (str(b.id)) await mustUpdate(db, 'core.message_templates', str(b.id), { ...data, status: status ?? 'approved' });
     else await db.insert('core.message_templates', { product_key: 'crm', ...data, status: data.channel === 'whatsapp' ? 'submitted' : 'approved' });
     await log(db, actor, 'template', `Saved template "${data.name}" (${data.channel})`);
     return { ok: true, message: str(b.id) ? 'Template saved.' : data.channel === 'whatsapp' ? 'Template saved as pending approval.' : 'Template saved.' };
@@ -514,7 +516,7 @@ on('POST', '/admin/forms', ({ req, b }) =>
       fields: ['student_name', 'guardian_name', 'mobile', ...(Array.isArray(b.fields) ? b.fields : []).map(String).filter((f: string) => optional.includes(f))],
     };
     if (!data.name) fail('Give the form a name.');
-    if (str(b.id)) await db.update('crm.forms', str(b.id), { ...data, active: b.active === undefined ? true : bool(b.active) });
+    if (str(b.id)) await mustUpdate(db, 'crm.forms', str(b.id), { ...data, active: b.active === undefined ? true : bool(b.active) });
     else {
       const sl = `${slug(ctx.org.slug ?? ctx.org.name).replace(/_/g, '-')}-${slug(data.name).replace(/_/g, '-') || 'form'}-${crypto.randomBytes(2).toString('hex')}`;
       await db.insert('crm.forms', { slug: sl, ...data, active: true });
@@ -571,8 +573,7 @@ on('POST', '/admin/workflows/:id/status', ({ req, p, b }) =>
   inAdmin(req, 'workflows', async (db, ctx, actor) => {
     need(canPublishWorkflows(ctx.perms), 'Your role can draft workflows but not publish or pause them.');
     const status = ['published', 'paused', 'draft'].includes(str(b.status)) ? str(b.status) : fail('Unknown status.');
-    const wf = await db.update('crm.workflows', p.id!, { status });
-    if (!wf) throw new NotFoundError('Workflow not found.');
+    const wf = await mustUpdate(db, 'crm.workflows', p.id!, { status });
     await log(db, actor, 'workflow', `Workflow "${wf.name}" set to ${status}`);
     return { ok: true, message: status === 'published' ? 'Workflow is live.' : 'Workflow paused. Waiting steps will be cancelled when they come due.' };
   }),

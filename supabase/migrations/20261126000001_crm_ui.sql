@@ -108,6 +108,27 @@ begin
   return v_id;
 end $$;
 
+-- ---------------------------------------------------------------- family merge
+-- After a merge the old household has no enquiry left, so the row policies (which follow the enquiry) no longer show it to anybody
+-- and it cannot be deleted through them. This removes a household that is empty, for roles that may delete or merge leads.
+create or replace function crm.delete_empty_household(p_household uuid) returns boolean
+language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_org uuid := app.current_org_id();
+begin
+  if v_org is null or not app.user_has_product(v_org, 'crm')
+     or not (app.can('crm', 'leads', 'delete', v_org) or app.can('crm', 'leads', 'merge', v_org)) then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  if exists (select 1 from crm.enquiries e where e.org_id = v_org and e.household_id = p_household)
+     or exists (select 1 from crm.prospects p where p.org_id = v_org and p.household_id = p_household)
+     or exists (select 1 from crm.guardians g where g.org_id = v_org and g.household_id = p_household) then
+    return false;
+  end if;
+  delete from crm.households where org_id = v_org and id = p_household;
+  return found;
+end $$;
+
 -- ---------------------------------------------------------------- saved views
 -- The generated policy lets a person delete a saved view only with the lead 'delete' right, which counsellors do not have;
 -- a person may always remove their own view.
@@ -116,7 +137,7 @@ create policy del on crm.saved_views for delete using (
   org_id = (select app.current_org_id()) and (select app.user_has_product((select app.current_org_id()), 'crm')) and user_id = (select app.uid()));
 
 -- ---------------------------------------------------------------- grants
-revoke execute on function crm.audit_events(text, text, integer), crm.revoke_user_sessions(uuid), crm.set_user_active(uuid, boolean), crm.set_user_branches(uuid, uuid[]),
+revoke execute on function crm.delete_empty_household(uuid), crm.audit_events(text, text, integer), crm.revoke_user_sessions(uuid), crm.set_user_active(uuid, boolean), crm.set_user_branches(uuid, uuid[]),
   crm.dev_user_by_email(text), crm.dev_create_login(text, text) from public;
-grant execute on function crm.audit_events(text, text, integer), crm.revoke_user_sessions(uuid), crm.set_user_active(uuid, boolean), crm.set_user_branches(uuid, uuid[]),
+grant execute on function crm.delete_empty_household(uuid), crm.audit_events(text, text, integer), crm.revoke_user_sessions(uuid), crm.set_user_active(uuid, boolean), crm.set_user_branches(uuid, uuid[]),
   crm.dev_user_by_email(text), crm.dev_create_login(text, text) to crm_server, service_role;

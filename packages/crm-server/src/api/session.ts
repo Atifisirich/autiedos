@@ -4,9 +4,9 @@
  * for the platform session token; AUTH_PROVIDER=dev adds an email-only sign-in for demos and tests.
  */
 import { asUser, getPool, UnauthorizedError } from '../db';
-import { endSession, issueSession, loadCtx, verifySession, verifySupabaseToken } from '../auth';
+import { endSession, issueSession, verifySession, verifySupabaseToken } from '../auth';
 import { ADMIN_SECTIONS, adminSections, canCreateLeads, canEditLeads, canMessage, has, leadScope } from '../perm';
-import { asMe, bearer, fail, on, ok, str, who } from './router';
+import { asMe, bearer, fail, on, str, who } from './router';
 
 const buckets = new Map<string, { tokens: number; at: number }>();
 /** Token bucket per key (single instance memory; put a shared store in front for several instances). */

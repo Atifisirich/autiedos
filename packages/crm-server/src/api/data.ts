@@ -191,7 +191,7 @@ on('GET', '/data/duplicates', async ({ req }) => {
     const rows = await db.q(
       `with g as (select g.household_id, g.name, g.phone, g.alt_phone, lower(g.email) as email from crm.guardians g where g.org_id = $1),
             pairs as (
-              select a.household_id as a, b.household_id as b, case when a.phone = b.alt_phone or a.alt_phone = b.phone then 'one parent's phone is the other's alternate number' when a.email is not null and a.email = b.email then 'same email address' else 'same alternate number' end as why
+              select a.household_id as a, b.household_id as b, case when a.phone = b.alt_phone or a.alt_phone = b.phone then 'a phone number matches an alternate number' when a.email is not null and a.email = b.email then 'same email address' else 'same alternate number' end as why
                 from g a join g b on a.household_id < b.household_id
                where (a.phone = b.alt_phone or a.alt_phone = b.phone or (a.alt_phone is not null and a.alt_phone = b.alt_phone) or (a.email is not null and a.email = b.email))
               union
@@ -224,6 +224,8 @@ on('POST', '/households/:id/merge', async ({ req, p, b }) => {
   if (seen.length !== 2) throw new NotFoundError('Family not found.');
   return asSystem(ctx.orgId, async (db) => {
     const org = ctx.orgId;
+    // read first: once the enquiries move, the old household is no longer visible through any enquiry
+    const old = (await db.one('select * from crm.households where id = $1', [from]))!;
     const tProspects = await db.q('select id, full_name as name, dob::text as dob from crm.prospects where org_id = $1 and household_id = $2', [org, into]);
     const sProspects = await db.q('select id, full_name as name, dob::text as dob from crm.prospects where org_id = $1 and household_id = $2', [org, from]);
     const dupStage = await stageByName(db, 'Junk / duplicate');
@@ -246,10 +248,9 @@ on('POST', '/households/:id/merge', async ({ req, p, b }) => {
         await db.q('delete from crm.guardians where id = $1', [g.id]);
       } else await db.q('update crm.guardians set household_id = $2, is_primary = false where id = $1', [g.id, into]);
     }
-    for (const t of ['crm.enquiries', 'crm.prospects', 'crm.activities', 'crm.follow_ups', 'crm.messages', 'crm.visits']) await db.q(`update ${t} set household_id = $2 where org_id = $1 and household_id = $3`, [org, into, from]);
-    const old = (await db.one('select * from crm.households where id = $1', [from]))!;
+    for (const t of ['crm.prospects', 'crm.activities', 'crm.follow_ups', 'crm.messages', 'crm.visits', 'crm.enquiries']) await db.q(`update ${t} set household_id = $2 where org_id = $1 and household_id = $3`, [org, into, from]);
     await db.q('update crm.households set sibling_in_school = sibling_in_school or $2, address = coalesce(address, $3), locality = coalesce(locality, $4), pincode = coalesce(pincode, $5), heard_about = coalesce(heard_about, $6) where id = $1', [into, old.sibling_in_school, old.address, old.locality, old.pincode, old.heard_about]);
-    await db.q('delete from crm.households where org_id = $1 and id = $2', [org, from]);
+    await db.q('select crm.delete_empty_household($1)', [from]);
     await logActivity(db, { householdId: into, type: 'system', actorId: actor.id, content: `Merged a duplicate family into this one (${sProspects.map((x) => x.name).join(', ') || 'no children'}). ${closed ? `${closed} repeated enquir${closed === 1 ? 'y was' : 'ies were'} closed as duplicate.` : ''}`.trim() });
     await audit(db, actor, 'merge', 'household', into, `Merged household ${from} into ${into}`, { from }, { into });
     return { ok: true, into, closedDuplicates: closed, message: 'Families merged. Every record moved to the family you kept.' };

@@ -139,6 +139,7 @@ const queryOf = (q: Record<string, string>): SP => Object.fromEntries(Object.ent
 
 on('GET', '/leads', ({ req }) =>
   asMe(req, async (db, ctx) => {
+    need(has(ctx.perms, 'leads'), 'Your role cannot open leads.');
     const sp = queryOf(req.query);
     const view = sp.view ?? 'table';
     const page = Math.max(1, num(req.query.page, 1));
@@ -169,7 +170,12 @@ on('GET', '/leads', ({ req }) =>
 );
 
 /** Ids matching a filter (select-all across pages, campaigns, exports). */
-on('GET', '/leads/ids', ({ req }) => asMe(req, async (db, ctx) => ({ ids: await leadIds(db, ctx, queryOf(req.query)) })));
+on('GET', '/leads/ids', ({ req }) =>
+  asMe(req, async (db, ctx) => {
+    need(has(ctx.perms, 'leads'), 'Your role cannot open leads.');
+    return { ids: await leadIds(db, ctx, queryOf(req.query)) };
+  }),
+);
 
 on('GET', '/dedupe', ({ req }) =>
   asOrg(req, async (db, ctx) => {
@@ -254,7 +260,10 @@ on('POST', '/leads/bulk', async ({ req, b }) => {
     let message = '';
     if (action === 'stage') {
       need(canEditLeads(ctx.perms), 'Your role cannot change stages.');
-      for (const id of ids) ((await changeStage(db, id, str(b.stageId), actor, { closure_reason: str(b.closure_reason) || undefined })).ok ? done++ : skipped++);
+      for (const id of ids) {
+        if ((await changeStage(db, id, str(b.stageId), actor, { closure_reason: str(b.closure_reason) || undefined })).ok) done++;
+        else skipped++;
+      }
       message = `Stage changed for ${done} record${done === 1 ? '' : 's'}` + (skipped ? `; ${skipped} skipped because the stage needs information they do not have.` : '.');
     } else if (action === 'reassign') {
       need(['F', 'T'].includes(lvl(ctx.perms, 'reassign')), 'Your role cannot reassign leads.');
@@ -291,7 +300,8 @@ on('POST', '/leads/bulk', async ({ req, b }) => {
         if (!e) continue;
         const vars = await mergeVars(db, e);
         const r = await sendMessage(db, { householdId: e.household_id, enquiryId: id, channel: tpl!.channel, body: renderTemplate(tpl!.body, vars), actorId: actor.id, template: tpl, vars });
-        r.status !== 'failed' ? done++ : skipped++;
+        if (r.status !== 'failed') done++;
+        else skipped++;
       }
       message = `"${tpl!.name}" sent to ${done} famil${done === 1 ? 'y' : 'ies'}` + (skipped ? `; ${skipped} not delivered (see each timeline for why).` : '.');
     } else fail('Choose an action.');
