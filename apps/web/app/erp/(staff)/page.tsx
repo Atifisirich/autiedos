@@ -108,7 +108,7 @@ async function MyDay({ ctx }: { ctx: Ctx }) {
     core(ctx.sb).from('sections').select('id, name').eq('class_teacher_id', sid).eq('academic_year_id', ctx.year?.id ?? noYear).is('deleted_at', null),
     core(ctx.sb).from('class_posts').select('id, section_id').eq('created_by', ctx.user.id).gte('created_at', d + 'T00:00:00+05:30').is('deleted_at', null),
     erp(ctx.sb).from('assessments').select('id, name, entry_deadline, section_id, subject_id').eq('staff_id', sid).eq('status', 'open').is('deleted_at', null).order('entry_deadline').limit(8),
-    core(ctx.sb).from('periods').select('seq, starts_at, ends_at, kind, teaching_index').eq('kind', 'teaching').is('deleted_at', null).order('seq'),
+    core(ctx.sb).from('periods').select('seq, starts_at, ends_at, kind, teaching_index').eq('kind', 'period').is('deleted_at', null).order('seq'),
     core(ctx.sb).from('student_attendance_sessions').select('section_id').eq('date', d).eq('status', 'submitted').is('deleted_at', null),
   ]);
   const lk = await look(ctx, { sections: [...((subsFor.data ?? []) as { section_id: string }[]).map((x) => x.section_id), ...((due.data ?? []) as { section_id: string }[]).map((x) => x.section_id)], subjects: [...((subsFor.data ?? []) as { subject_id: string }[]).map((x) => x.subject_id), ...((due.data ?? []) as { subject_id: string }[]).map((x) => x.subject_id)] });
