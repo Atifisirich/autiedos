@@ -63,7 +63,10 @@ for (const [i, n] of ['Class 1', 'Class 2', 'Class 3'].entries()) {
 
 // ---------------------------------------------------------------- users and staff
 const users = {};
+// ERP_DEMO_DOMAIN puts the logins on another domain when the OS demo school (pnpm db:reset, also @demo.school) shares the database.
+const DEMO_DOMAIN = process.env.ERP_DEMO_DOMAIN || 'demo.school';
 async function user(email, role, name, { branch = main, kind = 'staff', position = pAdmin, dept = null, teaching = false, code = null, product = 'erp' } = {}) {
+  email = email.replace(/@demo\.school$/, `@${DEMO_DOMAIN}`);
   const uid = id();
   await q(`insert into auth.users (id, email) values ($1, $2)`, [uid, email]);
   await q(`insert into core.org_users (org_id, user_id, kind, display_name, home_branch_id) values ($1, $2, $3, $4, $5)`, [org, uid, kind, name, kind === 'staff' ? branch : null]);
