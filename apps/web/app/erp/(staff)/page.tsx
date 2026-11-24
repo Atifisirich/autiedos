@@ -6,6 +6,7 @@ import { Page, Stat, Card, Empty, Badge } from '@/components/erp/ui';
 import { inrShort, inr, today, pct, fdate } from '@/lib/erp/fmt';
 import { workingDay, weekday, DAYS } from '@/lib/erp/calendar';
 import { navFor } from '@/lib/erp/nav';
+import { look } from '@/lib/erp/lookup';
 import { balance } from '@autoed/shared/erp';
 
 export const metadata = { title: 'Home' };
@@ -102,23 +103,24 @@ async function MyDay({ ctx }: { ctx: Ctx }) {
   const noYear = '00000000-0000-0000-0000-000000000000';
   const [tt, subsFor, subsAway, mySections, posts, due, periods, subm] = await Promise.all([
     core(ctx.sb).from('timetable_entries').select('period_seq, room:rooms(name), section:sections(id, name), subject:subjects(name), version:timetable_versions!inner(status)').eq('staff_id', sid).eq('day', dow).eq('version.status', 'published').is('deleted_at', null).order('period_seq'),
-    erp(ctx.sb).from('substitutions').select('period_seq, section:sections(id, name), subject:subjects(name)').eq('substitute_staff_id', sid).eq('date', d).eq('status', 'assigned').is('deleted_at', null),
+    erp(ctx.sb).from('substitutions').select('period_seq, section_id, subject_id').eq('substitute_staff_id', sid).eq('date', d).eq('status', 'assigned').is('deleted_at', null),
     erp(ctx.sb).from('substitutions').select('period_seq').eq('absent_staff_id', sid).eq('date', d).is('deleted_at', null),
     core(ctx.sb).from('sections').select('id, name').eq('class_teacher_id', sid).eq('academic_year_id', ctx.year?.id ?? noYear).is('deleted_at', null),
     core(ctx.sb).from('class_posts').select('id, section_id').eq('created_by', ctx.user.id).gte('created_at', d + 'T00:00:00+05:30').is('deleted_at', null),
-    erp(ctx.sb).from('assessments').select('id, name, entry_deadline, section:sections(name), subject:subjects(name)').eq('staff_id', sid).eq('status', 'open').is('deleted_at', null).order('entry_deadline').limit(8),
+    erp(ctx.sb).from('assessments').select('id, name, entry_deadline, section_id, subject_id').eq('staff_id', sid).eq('status', 'open').is('deleted_at', null).order('entry_deadline').limit(8),
     core(ctx.sb).from('periods').select('seq, starts_at, ends_at, kind, teaching_index').eq('kind', 'teaching').is('deleted_at', null).order('seq'),
     core(ctx.sb).from('student_attendance_sessions').select('section_id').eq('date', d).eq('status', 'submitted').is('deleted_at', null),
   ]);
+  const lk = await look(ctx, { sections: [...((subsFor.data ?? []) as { section_id: string }[]).map((x) => x.section_id), ...((due.data ?? []) as { section_id: string }[]).map((x) => x.section_id)], subjects: [...((subsFor.data ?? []) as { subject_id: string }[]).map((x) => x.subject_id), ...((due.data ?? []) as { subject_id: string }[]).map((x) => x.subject_id)] });
   type Slot = { period_seq: number; room?: { name: string } | null; section: { id: string; name: string } | null; subject: { name: string } | null; cover?: boolean };
-  const slots: Slot[] = [...((tt.data ?? []) as unknown as Slot[]), ...((subsFor.data ?? []) as unknown as Slot[]).map((s) => ({ ...s, cover: true }))].sort((x, y) => x.period_seq - y.period_seq);
+  const slots: Slot[] = [...((tt.data ?? []) as unknown as Slot[]), ...((subsFor.data ?? []) as unknown as { period_seq: number; section_id: string; subject_id: string | null }[]).map((s) => ({ period_seq: s.period_seq, section: { id: s.section_id, name: lk.sections.name(s.section_id) }, subject: s.subject_id ? { name: lk.subjects.name(s.subject_id) } : null, cover: true }))].sort((x, y) => x.period_seq - y.period_seq);
   const time = (p: number) => { const b = ((periods.data ?? []) as { seq: number; starts_at: string; ends_at: string }[]).find((x) => x.seq === p); return b ? `${String(b.starts_at).slice(0, 5)}–${String(b.ends_at).slice(0, 5)}` : `Period ${p}`; };
   const marked = new Set(((subm.data ?? []) as { section_id: string }[]).map((s) => s.section_id));
   const posted = new Set(((posts.data ?? []) as { section_id: string }[]).map((p) => p.section_id));
   const teachSections = [...new Map(slots.filter((s) => s.section).map((s) => [s.section!.id, s.section!])).values()];
   const away = (subsAway.data ?? []) as { period_seq: number }[];
   const mine = (mySections.data ?? []) as { id: string; name: string }[];
-  const dueRows = (due.data ?? []) as unknown as { id: string; name: string; entry_deadline: string | null; section: { name: string } | null; subject: { name: string } | null }[];
+  const dueRows = ((due.data ?? []) as unknown as { id: string; name: string; entry_deadline: string | null; section_id: string; subject_id: string }[]).map((a) => ({ ...a, section: { name: lk.sections.name(a.section_id) }, subject: { name: lk.subjects.name(a.subject_id) } }));
   return (
     <Page title="My day" sub={`${DAYS[dow]}, ${fdate(d)}${wd.working ? '' : ` · ${wd.reason}`}`}>
       <div className="grid gap-4 lg:grid-cols-3">

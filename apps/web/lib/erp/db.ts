@@ -14,11 +14,18 @@ const plainPostgrest = () => !!process.env.ERP_DATA_API_URL;
 export const dataApiUrl = () => process.env.ERP_DATA_API_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:3400';
 const anonKey = () => process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.ERP_ANON_KEY ?? 'anon';
 
-const noStore: typeof fetch = (input, init) => fetch(input, { ...init, cache: 'no-store' });
-const rewrite: typeof fetch = (input, init) => {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-  return fetch(url.replace('/rest/v1/', '/'), { ...init, cache: 'no-store' });
-};
+/** Data API calls that fail are written to the server log (status, path and the error text), so a screen that shows an empty list is traceable. */
+async function logged(url: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(url, { ...init, cache: 'no-store' });
+  if (res.status >= 400 && res.status !== 406) {
+    const body = await res.clone().text().catch(() => '');
+    console.error(`[erp-data] ${res.status} ${init?.method ?? 'GET'} ${url.replace(/^https?:\/\/[^/]+/, '').slice(0, 160)} ${body.slice(0, 200)}`);
+  }
+  return res;
+}
+const urlOf = (input: RequestInfo | URL) => (typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url);
+const noStore: typeof fetch = (input, init) => logged(urlOf(input), init);
+const rewrite: typeof fetch = (input, init) => logged(urlOf(input).replace('/rest/v1/', '/'), init);
 
 /** A client that acts as the holder of `token` (or anonymous without one). */
 export function userClient(token?: string | null): Sb {
