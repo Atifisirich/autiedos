@@ -1,0 +1,38 @@
+/* ERP staff screens. Everything is scoped under .erp so it cannot touch the OS or CRM screens. */
+.erp { --erp-brand: #0f6e6e; --erp-brand-dark: #0a5252; --erp-brand-soft: #e6f2f1; --erp-ink: #17212b; --erp-muted: #5b6875; --erp-line: #dfe5ea; --erp-paper: #f6f8f9;
+  font-size: 14px; color: var(--erp-ink); background: var(--erp-paper); min-height: 100vh; }
+.erp .text-muted { color: var(--erp-muted); }
+.erp .text-brand { color: var(--erp-brand); }
+.erp .text-brand-dark { color: var(--erp-brand-dark); }
+.erp .text-ink { color: var(--erp-ink); }
+.erp .bg-brand-soft { background: var(--erp-brand-soft); }
+.erp .bg-paper { background: var(--erp-paper); }
+.erp .bg-ink { background: var(--erp-ink); }
+.erp .border-line { border-color: var(--erp-line); }
+.erp .border-brand { border-color: var(--erp-brand); }
+.erp .card { background: #fff; border: 1px solid var(--erp-line); border-radius: 12px; }
+.erp .btn, .erp .btn-ghost, .erp .btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; text-decoration: none; }
+.erp .btn { background: var(--erp-brand); color: #fff; border: 0; }
+.erp .btn:hover { background: var(--erp-brand-dark); }
+.erp .btn:disabled, .erp .btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
+.erp .btn-ghost { background: #fff; color: var(--erp-ink); border: 1px solid var(--erp-line); }
+.erp .btn-ghost:hover { background: var(--erp-paper); }
+.erp .btn-danger { background: #dc2626; color: #fff; border: 0; }
+.erp .btn-danger:hover { background: #b91c1c; }
+.erp .btn-sm { padding: 4px 10px; font-size: 12px; }
+.erp .input { width: 100%; border-radius: 8px; border: 1px solid var(--erp-line); background: #fff; padding: 8px 12px; font-size: 14px; outline: none; color: var(--erp-ink); }
+.erp .input:focus { border-color: var(--erp-brand); box-shadow: 0 0 0 3px rgba(15, 110, 110, .15); }
+.erp .label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500; color: var(--erp-muted); }
+.erp .tbl { width: 100%; font-size: 14px; border-collapse: collapse; }
+.erp .tbl th { border-bottom: 1px solid var(--erp-line); background: var(--erp-paper); padding: 8px 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--erp-muted); white-space: nowrap; }
+.erp .tbl td { border-bottom: 1px solid var(--erp-line); padding: 8px 12px; vertical-align: top; }
+.erp .tbl tr:last-child td { border-bottom: 0; }
+.erp .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 500; }
+.erp .link { color: var(--erp-brand); text-decoration: none; }
+.erp .link:hover { text-decoration: underline; }
+.erp h1, .erp h2 { margin: 0; }
+.erp a { color: inherit; }
+.erp kbd { font-family: inherit; }
+@media print { .erp { background: #fff; } .erp .no-print { display: none !important; } .erp .card { border: none; } .erp aside { display: none !important; } .erp main { margin-left: 0 !important; } }
+.erp .bg-brand { background: var(--erp-brand); }
+.erp .accent-brand { accent-color: var(--erp-brand); }
