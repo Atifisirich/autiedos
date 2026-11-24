@@ -119,7 +119,7 @@ export async function parseSheet(base64: string, fileName: string): Promise<Reco
   const buf = Buffer.from(base64, 'base64');
   if (buf.length > 5 * 1024 * 1024) throw new ValidationError('file_too_large');
   if (/\.csv$/i.test(fileName)) {
-    const lines = buf.toString('utf8').replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
+    const lines = buf.toString('utf8').replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim());
     const split = (l: string) => l.match(/("([^"]|"")*"|[^,]*)(,|$)/g)!.slice(0, -1).map((x) => x.replace(/,$/, '').replace(/^"|"$/g, '').replace(/""/g, '"').trim());
     const head = split(lines[0] ?? '');
     return lines.slice(1).map((l) => Object.fromEntries(split(l).map((v, i) => [head[i] ?? `col${i}`, v])));
@@ -175,7 +175,12 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
   const err = (row: number, column: string, error: string, value?: string) => errors.push({ row: row + 2, column, error, value });
   const need1 = (r: Record<string, unknown>, i: number, cols: string[]) => {
     let ok = true;
-    for (const col of cols) if (!get(r, col)) (err(i, col, 'required'), (ok = false));
+    for (const col of cols) {
+      if (!get(r, col)) {
+        err(i, col, 'required');
+        ok = false;
+      }
+    }
     return ok;
   };
   const ay = await maybe<{ id: string }>(c, `select id from core.academic_years where (branch_id = $1 or branch_id is null) and is_current and deleted_at is null order by branch_id nulls last limit 1`, [ctx.branchId]);
@@ -189,8 +194,13 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
           continue;
         }
         const ex = await maybe<{ id: string }>(c, `select id from core.rooms where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Name')]);
-        if (ex) (await update(c, 'core.rooms', ex.id, { kind: get(r, 'Type') || 'classroom', capacity: cap }), updated++);
-        else (await insert(c, 'core.rooms', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Name'), kind: get(r, 'Type') || 'classroom', capacity: cap }), created++);
+        if (ex) {
+          await update(c, 'core.rooms', ex.id, { kind: get(r, 'Type') || 'classroom', capacity: cap });
+          updated++;
+        } else {
+          await insert(c, 'core.rooms', { org_id: ctx.orgId, branch_id: ctx.branchId, name: get(r, 'Name'), kind: get(r, 'Type') || 'classroom', capacity: cap });
+          created++;
+        }
       }
       break;
     case 'wings_classes_sections':
@@ -216,8 +226,13 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
         if (get(r, 'Class teacher code') && !ct) err(i, 'Class teacher code', 'unknown_employee_code', get(r, 'Class teacher code'));
         const ex = await maybe<{ id: string }>(c, `select id from core.sections where programme_id = $1 and name = $2 and deleted_at is null`, [cls.id, get(r, 'Section')]);
         const row = { org_id: ctx.orgId, programme_id: cls.id, academic_year_id: ay?.id ?? null, name: get(r, 'Section'), strength: Number(get(r, 'Strength') || 0), room_id: roomId, class_teacher_id: ct?.id ?? null };
-        if (ex) (await update(c, 'core.sections', ex.id, row), updated++);
-        else (await insert(c, 'core.sections', row), created++);
+        if (ex) {
+          await update(c, 'core.sections', ex.id, row);
+          updated++;
+        } else {
+          await insert(c, 'core.sections', row);
+          created++;
+        }
       }
       break;
     case 'subjects':
@@ -231,7 +246,10 @@ async function doImport(c: Tx, ctx: Ctx, kind: string, rows: Record<string, unkn
         let dept = get(r, 'Department') ? await maybe<{ id: string }>(c, `select id from core.departments where org_id = $1 and name = $2`, [ctx.orgId, get(r, 'Department')]) : null;
         if (get(r, 'Department') && !dept) dept = await insert<{ id: string }>(c, 'core.departments', { org_id: ctx.orgId, name: get(r, 'Department') });
         let subj = await maybe<{ id: string }>(c, `select id from core.subjects where org_id = $1 and code = $2 and (branch_id = $3 or branch_id is null) and deleted_at is null`, [ctx.orgId, get(r, 'Code'), ctx.branchId]);
-        if (!subj) (subj = await insert<{ id: string }>(c, 'core.subjects', { org_id: ctx.orgId, branch_id: ctx.branchId, code: get(r, 'Code'), name: get(r, 'Name'), department_id: dept?.id ?? null, content_language: lang, is_core: get(r, 'Core') ? yes(get(r, 'Core')) : true })), created++;
+        if (!subj) {
+          subj = await insert<{ id: string }>(c, 'core.subjects', { org_id: ctx.orgId, branch_id: ctx.branchId, code: get(r, 'Code'), name: get(r, 'Name'), department_id: dept?.id ?? null, content_language: lang, is_core: get(r, 'Core') ? yes(get(r, 'Core')) : true });
+          created++;
+        }
         if (get(r, 'Class')) {
           const cls = await maybe<{ id: string }>(c, `select id from core.programmes where branch_id = $1 and name = $2 and deleted_at is null`, [ctx.branchId, get(r, 'Class')]);
           if (!cls) {

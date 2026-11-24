@@ -3,9 +3,14 @@ on:
   push:
   pull_request:
 
+# Everything we run locally, each suite on its own database of the one Postgres service:
+#   postgres   server tests (full legacy migrations + demo seed)
+#   platform   isolation / compliance harness (platform + core + os + crm + erp + compliance) + PostgREST Data API tests
+#   crm        CRM server database tests; crmsource holds the CRM demo (schema autoed) for the migration-script tests
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -15,9 +20,14 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
+      PG_BASE: postgres://postgres@localhost:54322
       DATABASE_URL: postgres://postgres@localhost:54322/postgres
       AUTH_PROVIDER: dev
       AUTH_JWT_SECRET: ci-secret
+      POSTGREST_VERSION: v12.2.3
+      POSTGREST_SHA256: 9f71269e61ac3a940281e93ff415760f5957e430e475ba4c3889f3ede7d5527c
+      # Atifisirich/autoedcrm, the CRM whose demo seed is the source of the migration-script tests (pinned for reproducibility)
+      CRM_SOURCE_REF: b87d602aa814fcf228d1c3ca06d90a1dac011f39
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -26,9 +36,97 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm --filter @autoed/shared test
-      - run: pnpm --filter @autoed/server test
-      - run: pnpm --filter @autoed/server test:platform   # isolation harness on an empty platform (plan section 8)
-      - run: pnpm --filter @autoed/web build
+
+      # ---------------------------------------------------------------- static checks
+      - name: Lint (i18n catalogue)
+        run: pnpm lint
+      - name: Lint (eslint server, shared, crm-server)
+        # @autoed/web lint is not run: its eslint config imports @eslint/eslintrc, which apps/web does not depend on yet
+        run: |
+          pnpm --filter @autoed/server lint
+          pnpm --filter @autoed/shared lint
+          pnpm --filter @autoed/crm-server lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Generated migrations are current (gen-erp, gen-core-master)
+        run: |
+          node scripts/gen-erp.mjs
+          node scripts/gen-core-master.mjs
+          git diff --exit-code supabase/migrations
+          test -z "$(git status --porcelain supabase/migrations)" || { git status --porcelain supabase/migrations; exit 1; }
+
+      # ---------------------------------------------------------------- tests without a database
+      - name: Shared tests
+        run: pnpm --filter @autoed/shared test
+      - name: CRM server unit tests
+        run: pnpm --filter @autoed/crm-server test
+      - name: Parent app (mobile-parent) tests
+        run: pnpm --filter @autoed/mobile-parent test
+
+      # ---------------------------------------------------------------- databases
+      - name: Create the test databases
+        run: |
+          node -e "
+            const pg = require('pg');
+            (async () => {
+              const c = new pg.Client({ connectionString: process.env.PG_BASE + '/postgres' });
+              await c.connect();
+              for (const d of ['platform', 'crm', 'crmsource']) await c.query('create database ' + d);
+              await c.end();
+            })().catch((e) => { console.error(e); process.exit(1); });"
+
+      - name: Server tests (database postgres)
+        run: pnpm --filter @autoed/server test
+
+      - name: Download PostgREST ${{ env.POSTGREST_VERSION }}
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/postgrest.tar.xz" "https://github.com/PostgREST/postgrest/releases/download/${POSTGREST_VERSION}/postgrest-${POSTGREST_VERSION}-linux-static-x64.tar.xz"
+          echo "${POSTGREST_SHA256}  $RUNNER_TEMP/postgrest.tar.xz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/postgrest"
+          tar -xJf "$RUNNER_TEMP/postgrest.tar.xz" -C "$RUNNER_TEMP/postgrest"
+          "$RUNNER_TEMP/postgrest/postgrest" --version
+          echo "POSTGREST_BIN=$RUNNER_TEMP/postgrest/postgrest" >> "$GITHUB_ENV"
+
+      - name: Platform harness + Data API tests (database platform)
+        env:
+          DATABASE_URL: ${{ env.PG_BASE }}/platform
+        run: pnpm db:reset:platform && pnpm test:platform
+
+      # The CRM demo is built with the CRM's own boot script; if the repository or its install is unavailable the CRM
+      # database tests still run, without the migration-script suite (it skips when SOURCE_DATABASE_URL is empty).
+      - name: Check out the CRM (demo source)
+        id: crm_checkout
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: Atifisirich/autoedcrm
+          ref: ${{ env.CRM_SOURCE_REF }}
+          path: .ci/autoedcrm
+          persist-credentials: false
+      - name: Build the CRM demo source database (database crmsource, schema autoed)
+        id: crmsource
+        if: steps.crm_checkout.outcome == 'success'
+        continue-on-error: true
+        working-directory: .ci/autoedcrm
+        env:
+          DATABASE_URL: ${{ env.PG_BASE }}/crmsource
+          PGOPTIONS: -c search_path=autoed
+          SEED_DEMO: '1'
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          node -e "
+            const pg = require('pg');
+            (async () => { const c = new pg.Client({ connectionString: process.env.DATABASE_URL }); await c.connect(); await c.query('create schema if not exists autoed'); await c.end(); })()
+              .catch((e) => { console.error(e); process.exit(1); });"
+          npx tsx scripts/setup-db.ts
+      - name: CRM database tests (database crm)
+        env:
+          DATABASE_URL: ${{ env.PG_BASE }}/crm
+          SOURCE_DATABASE_URL: ${{ steps.crmsource.outcome == 'success' && format('{0}/crmsource', env.PG_BASE) || '' }}
+        run: |
+          if [ -n "$SOURCE_DATABASE_URL" ]; then echo "migration-script tests run against the CRM demo"; else echo "::warning::CRM demo source not built: migration-script tests are skipped"; fi
+          pnpm test:crm
+
+      # ---------------------------------------------------------------- build
+      - name: Web build
+        run: pnpm --filter @autoed/web build

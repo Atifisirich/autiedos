@@ -7,6 +7,8 @@
  */
 import type { DemandRow, Mark, ResultRow, PaymentAllocation, TripRow, TestQuestion } from './logic';
 
+// supabase-js query builders are deeply generic; this module only chains their methods, so the builder stays untyped here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface PortalDb { schema(name: string): any }
 export class PortalDbError extends Error {
   constructor(message: string, public code?: string) { super(message); this.name = 'PortalDbError'; }

@@ -42,8 +42,12 @@ export interface ApiResponse {
   setSession?: { token: string; expires_at: string } | null;
 }
 
-type Handler = (a: { ctx: Ctx; p: Record<string, string>; b: any; q: Record<string, string>; req: ApiRequest }) => Promise<unknown>;
-type PublicHandler = (a: { p: Record<string, string>; b: any; q: Record<string, string>; req: ApiRequest }) => Promise<ApiResponse | unknown>;
+/** Untyped boundary of the legacy routes: request bodies (validated by each route's zod schema) and service rows read field by field. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Loose = any;
+type Body = Loose;
+type Handler = (a: { ctx: Ctx; p: Record<string, string>; b: Body; q: Record<string, string>; req: ApiRequest }) => Promise<unknown>;
+type PublicHandler = (a: { p: Record<string, string>; b: Body; q: Record<string, string>; req: ApiRequest }) => Promise<ApiResponse | unknown>;
 
 interface Route {
   method: string;
@@ -52,7 +56,7 @@ interface Route {
   schema?: ZodTypeAny;
   handler?: Handler;
   public?: PublicHandler;
-  superAdmin?: (a: { userId: string; p: Record<string, string>; b: any; q: Record<string, string> }) => Promise<unknown>;
+  superAdmin?: (a: { userId: string; p: Record<string, string>; b: Body; q: Record<string, string> }) => Promise<unknown>;
   aiLimited?: boolean;
 }
 
@@ -262,16 +266,16 @@ r('GET', '/lesson-plans/weekly.docx', async ({ ctx, q }) => {
   const ids = [...new Set(w.periods.map((x) => x.plan_id).filter((x): x is string => !!x))];
   const plans = [];
   for (const id of ids) {
-    const pl = (await plan.getPlan(ctx, id)) as any;
+    const pl = (await plan.getPlan(ctx, id)) as Loose;
     plans.push({ title: `${pl.subject_name} · ${pl.section_name} · ${pl.plan_date}`, meta: `${pl.topic_name ?? ''} · ${pl.teacher_name}`, content: pl.content, sections: pl.template.sections });
   }
   const me = await platform.me(ctx);
-  return file(await plansDocx(me.org as any, plans), `weekly-plan-${q.week_start}.docx`, DOCX);
+  return file(await plansDocx(me.org as Loose, plans), `weekly-plan-${q.week_start}.docx`, DOCX);
 });
 r('POST', '/lesson-plans/unit', ({ ctx, b }) => plan.generateUnitPlan(ctx, b), z.object({ chapter_id: S.uuid, subject_id: S.uuid, section_id: S.uuid }), { aiLimited: true });
 r('GET', '/lesson-plans/:id', ({ ctx, p }) => plan.getPlan(ctx, p.id!));
 r('GET', '/lesson-plans/:id/docx', async ({ ctx, p }) => {
-  const pl = (await plan.getPlan(ctx, p.id!)) as any;
+  const pl = (await plan.getPlan(ctx, p.id!)) as Loose;
   return file(await plansDocx(pl.org, [{ title: `${pl.subject_name} · ${pl.section_name ?? ''} · ${pl.plan_date ?? ''}`, meta: `${pl.topic_name ?? ''} · ${pl.teacher_name} · ${pl.period_count} × ${pl.period_minutes} min`, content: pl.content, sections: pl.template.sections }]), `lesson-plan-${pl.plan_date ?? pl.id}.docx`, DOCX);
 });
 r('PATCH', '/lesson-plans/:id', ({ ctx, p, b }) => plan.updatePlan(ctx, p.id!, b), S.planUpdateSchema);

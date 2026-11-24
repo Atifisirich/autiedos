@@ -122,6 +122,46 @@ Rules with no product (audit log, login events, support sessions) run once per o
 * The Supabase Auth user and Storage objects need the admin APIs. The services return them as `external_actions` and do not call Supabase.
 * `app.compliance_*` functions are plain SQL in `app`; the legacy OS migrations (`20261116*`) are untouched.
 
+## Product coverage (os, crm, erp): `20261126000001_compliance_products.sql`
+
+The scratch databases of the compliance tests hold platform + core master + compliance only (`SCRATCH_MIGRATIONS` in
+`compliance-support.ts` matches the engine's own `_compliance.sql`), so `compliance-catalogue.test.ts` never sees a product
+table. `compliance-coverage.test.ts` closes that gap: it runs on the **harness database** that `pnpm db:reset:platform` builds
+(platform, core, os, crm, erp, compliance, this migration) and fails when any table with a person column is not registered,
+or a registry / table-policy / retention row points at something that does not exist. A new product table with PII fails CI there.
+
+What the migration registers (one row per table, person type and key column; change a row to change the behaviour):
+
+| Person | Product tables | Erasure |
+|---|---|---|
+| **lead** = a CRM family | `crm.households`, `guardians`, `prospects`, `enquiries` (subject rows) and everything keyed by household or enquiry (activities, follow-ups, visits, messages, applications, documents, sensitive fields, source touches, workflow runs, Meta leads, import rows); `crm.payments`; `erp.visitors` and `core.outbox` / consents by phone | parents and everything said or uploaded **deleted**; household, child and enquiry stay as empty pseudonymous **stubs** (funnel counts, schedule 2.1 "keep counts"; `crm.payments` cascades from the enquiry, so the stub keeps the fee record, reference removed) |
+| **student** | 51 `erp` tables by `student_id`; `crm.prospects.core_student_id` | health, Aadhaar, pickup persons, notes, documents, transport, hostel, conversations **deleted**; marks, report cards, certificates, safeguarding **retained** (academic / legal record); money rows (`fee_demands`, `receipts`, `concessions`, `refunds`, `deposits`, wallets, sales) **never deleted**: free text anonymised, amounts kept on the pseudonymous student row |
+| **guardian** | `erp` logins (`announcement_recipients`, `form_responses`, `conversations`, `appointments`, `gate_passes`, `ptm_slots`, `policy_acks`), `crm.guardians.core_guardian_id`, `erp.visitors` by phone | deleted or actor removed; policy acknowledgements retained as proof |
+| **staff** | `os` (26 tables: bot chats deleted, ownership anonymised, work records retained on the pseudonymous staff row), `erp` HR and payroll, actor columns (`collected_by_user_id`, `sold_by_user_id`, ...), `crm` counsellor rows, `core.ai_generations`, `billing.ai_credit_ledger` / `credit_topup_requests`, `erp.job_applications` by phone/email | `staff_payroll` bank, address, emergency contact, Aadhaar removed (PAN/UAN/ESI kept for statutory returns, CONFIRM); payslips, salary structures, loans, tax declarations **retained** (statutory payroll, ~8 years) |
+
+Exempt (reviewed): `crm.settings` (automation login), `erp.accounts` (`parent_id` = parent account), `erp.vendors` (supplier
+business contact), `os.checklist_responses` (photo of a facility item), `billing.plans`.
+
+**Lead id resolution.** A lead is the CRM family as a whole, so `app._compliance_person_keys` resolves a lead as a closure over
+the CRM subject rows (household, guardians, prospects, enquiries): any of those ids finds the whole family. Staff, students and
+guardians keep the one-step resolution (a guardian's erasure must never reach the other parent or a sibling).
+
+**Money guard.** `erp.immutable_rows` (receipts, receipt payments and allocations, vouchers, voucher lines) still refuses every
+update and delete, also for the table owner, except from inside `app._compliance_erase`, `app._compliance_delete_scope` and
+`app.compliance_retention_purge` (checked on the call stack; request roles cannot execute them). So a person erasure can remove
+the collector or a note from a receipt, and an org / ERP product deletion (after the exit export) can remove the money tables;
+`core.table_policy` notes these tables. Tested: a plain owner `delete` / `update` on `erp.receipts` is still refused.
+
+**Retention rows** (all `enabled = false`, `legal_status = 'draft'`, CONFIRM): CRM enquiries 24 months after the last activity
+(must skip admitted children before it is enabled: the rule engine filters one column), CRM messages, outbox content, ERP
+conversation messages and announcement deliveries 12 months, AI prompts/answers 12 months, students after leaving 84 months
+(anonymise), staff after leaving 36 months (anonymise), ERP financial records 96 months (receipts, allocations, payments,
+fee demands, vouchers and lines, payslips; one rule per table, children first by `data_type` order).
+
+**Known limits.** A staff login that still owns CRM enquiries or follow-ups cannot be erased until they are reassigned (the
+login is referenced without `on delete`; the erasure fails with a foreign-key error and changes nothing). Student-related
+data other than the core record (helpdesk, notes, photos: 1 year after leaving) has no retention rule yet.
+
 ## Not done (known gaps)
 
 * **No deletion of uploaded files, embeddings, message content or AI-derived data** (`data-retention-schedule.md` 3): those tables and buckets do not exist yet. Org deletion returns the storage prefix to delete; embeddings and message tables get registry and retention rows when they land.
@@ -137,6 +177,6 @@ Rules with no product (audit log, login events, support sessions) run once per o
 ## Open points for counsel (the numbers are configuration, none is hard-coded)
 
 All periods in `core.retention_policies` are copied from the draft schedule and stay `draft` and disabled: audit log 36 months, config history 36 months, login events 12 months,
-support sessions 36 months; lifecycle 30/30 days (fixed by decision 42, marked `confirmed`); token life and export link life are operational defaults. CRM leads (24 months), students after leaving,
-messages (12 months) and financial records (about 8 years) get rows when their tables exist. Whether service messages need opt-in, the response deadline for requests, and the erase-versus-retain
+support sessions 36 months; lifecycle 30/30 days (fixed by decision 42, marked `confirmed`); token life and export link life are operational defaults. CRM leads (24 months), students after leaving
+(7 years), staff after leaving (3 years), messages and AI logs (12 months) and financial records (about 8 years) are rows since `20261126000001` (all disabled drafts). Whether service messages need opt-in, the response deadline for requests, and the erase-versus-retain
 rules per table (financial rows are anonymised here) are for counsel; each is one row to change.
