@@ -5,7 +5,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { addDays, isoWeekday, toLocal } from '@autoed/shared';
 import { dispatch, type ApiResponse } from '../src/api';
-import { asService, closePool, one, q } from '../src/db';
+import { asOwner, asSystem, closePool, one, q, type Tx } from '../src/db';
 import { escalationSweep, generateRecurrences } from '../src/services/tasks';
 import { unmarkedSweep } from '../src/services/attendance';
 import { loadKb } from '../src/services/bot';
@@ -48,8 +48,13 @@ const LANG_TEACHER = 'sneha.teacher11@demo.school';
 const LANG_HOD = 'lakshmi.hod7@demo.school';
 const HOUSEKEEPING = 'manoj.housekeeping21@demo.school';
 
+/** Scheduled sweeps run as the org's OS system actor, exactly like the scheduler (never as the table owner). */
+let demoOrg = '';
+const asDemoSystem = <T>(fn: (c: Tx) => Promise<T>) => asSystem(demoOrg, fn);
+
 beforeAll(async () => {
-  await asService((c) => loadKb(c, join(__dirname, '..', '..', '..', 'kb')));
+  demoOrg = (await asOwner((c) => one<{ id: string }>(c, `select id from core.organizations where slug = 'demo'`))).id;
+  await asOwner((c) => loadKb(c, join(__dirname, '..', '..', '..', 'kb')));
 });
 afterAll(async () => {
   await closePool();
@@ -100,8 +105,8 @@ describe('flow 1: school setup through the wizard to the first login of a teache
 
 describe('flow 2: assign -> delegate -> complete with photo proof -> verify -> task report', () => {
   it('works end to end', async () => {
-    const coord = await asService((c) => one<{ id: string }>(c, `select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [COORD]));
-    const teacher = await asService((c) => one<{ id: string }>(c, `select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [TEACHER]));
+    const coord = await asOwner((c) => one<{ id: string }>(c, `select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [COORD]));
+    const teacher = await asOwner((c) => one<{ id: string }>(c, `select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [TEACHER]));
     const created = await ok(PRINCIPAL, 'POST', '/tasks', { title: 'Photograph the new science lab setup', assignee_ids: [coord.id], priority: 'high', proof_required: 'photo', verification_required: true, due_at: new Date(Date.now() + 86400000).toISOString() });
     const id = created.id;
     expect((await call(COORD, 'POST', `/tasks/${id}/action`, { action: 'delegate', delegate_to: teacher.id })).status).toBe(200);
@@ -124,7 +129,7 @@ describe('flow 2: assign -> delegate -> complete with photo proof -> verify -> t
   });
 
   it('a peer request needs acceptance and a sudden task is logged in two taps', async () => {
-    const peer = await asService((c) => one<{ id: string }>(c, `select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [LANG_TEACHER]));
+    const peer = await asOwner((c) => one<{ id: string }>(c, `select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [LANG_TEACHER]));
     const r = await ok(TEACHER, 'POST', '/tasks', { title: 'Lend me the projector remote', assignee_ids: [peer.id] });
     expect(r.requested).toHaveLength(1);
     const t = await ok(LANG_TEACHER, 'GET', `/tasks/${r.id}`);
@@ -137,35 +142,35 @@ describe('flow 2: assign -> delegate -> complete with photo proof -> verify -> t
   });
 
   it('escalation fires on schedule and recurring tasks skip holidays', async () => {
-    const teacher = await asService((c) => one<{ id: string }>(c, `select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [TEACHER]));
+    const teacher = await asOwner((c) => one<{ id: string }>(c, `select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [TEACHER]));
     const due = new Date(Date.now() - 6 * 3600000).toISOString();
     const created = await ok(SCI_HOD, 'POST', '/tasks', { title: 'Overdue escalation test', assignee_ids: [teacher.id], due_at: due });
-    const fired = await asService((c) => escalationSweep(c, new Date()));
+    const fired = await asDemoSystem((c) => escalationSweep(c, new Date()));
     expect(fired).toBeGreaterThan(0);
-    const ev = await asService((c) => q<{ event: string; data: { level: number } }>(c, `select event, data from public.task_events where task_id = $1 and event = 'escalated'`, [created.id]));
+    const ev = await asOwner((c) => q<{ event: string; data: { level: number } }>(c, `select event, data from os.task_events where task_id = $1 and event = 'escalated'`, [created.id]));
     expect(ev.length).toBe(1);
     const holiday = nextWorkingDay(today, 3);
-    await asService(async (c) => {
-      const org = await one<{ id: string }>(c, `select id from public.organizations where slug = 'demo'`);
-      await c.query(`insert into public.calendar_events (org_id, branch_id, layer, title, starts_on, ends_on, is_working_day) values ($1, null, 'holiday', 'Test holiday', $2, $2, false)`, [org.id, holiday]);
+    await asOwner(async (c) => {
+      const org = await one<{ id: string }>(c, `select id from core.organizations where slug = 'demo'`);
+      await c.query(`insert into core.calendar_events (org_id, branch_id, layer, title, starts_on, ends_on, is_working_day) values ($1, null, 'holiday', 'Test holiday', $2, $2, false)`, [org.id, holiday]);
     });
     const rec = await ok(SCI_HOD, 'POST', '/tasks', { title: 'Daily lab log', assignee_ids: [teacher.id], recurrence: { frequency: 'daily', interval_n: 1, weekdays: [], custom_dates: [], due_time: '16:00', starts_on: today } });
-    const n = await asService((c) => generateRecurrences(c, holiday, rec.recurrence_id));
+    const n = await asDemoSystem((c) => generateRecurrences(c, holiday, rec.recurrence_id));
     expect(n).toBe(0);
-    const n2 = await asService((c) => generateRecurrences(c, nextWorkingDay(holiday), rec.recurrence_id));
+    const n2 = await asDemoSystem((c) => generateRecurrences(c, nextWorkingDay(holiday), rec.recurrence_id));
     expect(n2).toBe(1);
   });
 });
 
 describe('flow 3: leave -> approval -> substitutes assigned -> substitute sees the period and cover plan', () => {
   it('works end to end', async () => {
-    const lt = await asService((c) => one<{ id: string }>(c, `select id from public.leave_types where key = 'casual' and org_id = (select id from public.organizations where slug = 'demo')`));
+    const lt = await asOwner((c) => one<{ id: string }>(c, `select id from core.leave_types where key = 'casual' and org_id = (select id from core.organizations where slug = 'demo')`));
     // A working day on which the teacher has periods.
     let date = nextWorkingDay(today, 2);
-    const teacher = await asService((c) => one<{ id: string }>(c, `select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [TEACHER]));
+    const teacher = await asOwner((c) => one<{ id: string }>(c, `select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [TEACHER]));
     for (let i = 0; i < 10; i++) {
-      const n = await asService((c) => one<{ n: number }>(c, `select count(*)::int as n from public.timetable_entries e join public.timetable_versions v on v.id = e.version_id and v.status = 'published' where e.staff_id = $1 and e.day = $2`, [teacher.id, isoWeekday(date)]));
-      const hol = await asService((c) => q(c, `select 1 from public.calendar_events where layer = 'holiday' and $1::date between starts_on and ends_on`, [date]));
+      const n = await asOwner((c) => one<{ n: number }>(c, `select count(*)::int as n from core.timetable_entries e join core.timetable_versions v on v.id = e.version_id and v.status = 'published' where e.staff_id = $1 and e.day = $2`, [teacher.id, isoWeekday(date)]));
+      const hol = await asOwner((c) => q(c, `select 1 from core.calendar_events where layer = 'holiday' and $1::date between starts_on and ends_on`, [date]));
       if (n.n > 0 && !hol.length) break;
       date = nextWorkingDay(date);
     }
@@ -186,7 +191,7 @@ describe('flow 3: leave -> approval -> substitutes assigned -> substitute sees t
     expect(first.ranked.length).toBeGreaterThan(0);
     const sub = first.ranked[0].staffId;
     await ok(COORD, 'POST', '/substitution/assign', { substitution_id: first.id, resolution: 'substitute', substitute_staff_id: sub });
-    const subEmail = await asService((c) => one<{ email: string }>(c, `select u.email from public.staff s join auth.users u on u.id = s.user_id where s.id = $1`, [sub]));
+    const subEmail = await asOwner((c) => one<{ email: string }>(c, `select u.email from core.staff s join auth.users u on u.id = s.user_id where s.id = $1`, [sub]));
     const day = await ok(subEmail.email, 'GET', '/my-day', undefined, { date });
     const item = day.items.find((i: { kind: string }) => i.kind === 'substitution');
     expect(item).toBeTruthy();
@@ -203,10 +208,10 @@ describe('flow 3: leave -> approval -> substitutes assigned -> substitute sees t
 
 describe('flow 4: lesson plan generate, edit, submit, return, resubmit, approve, deliver, coverage', () => {
   it('works end to end, in the school template, with exact timings', async () => {
-    const ids = await asService(async (c) => {
-      const sec = await one<{ id: string }>(c, `select se.id from public.sections se join public.classes cl on cl.id = se.class_id where cl.name = 'Class 10' and se.name = 'A' and se.org_id = (select id from public.organizations where slug = 'demo')`);
-      const subj = await one<{ id: string }>(c, `select id from public.subjects where code = 'SCI' and branch_id = (select id from public.branches where code = 'GACH' and org_id = (select id from public.organizations where slug = 'demo'))`);
-      const topic = await one<{ id: string }>(c, `select t.id from public.curriculum_topics t join public.curriculum_units u on u.id = t.unit_id join public.curriculum_subjects cs on cs.id = u.subject_id join public.curriculum_boards b on b.id = cs.board_id where b.org_id is null and b.key = 'CBSE' and cs.grade_level = 10 and cs.name = 'Science' and t.kind = 'topic' order by u.seq, t.seq limit 1`);
+    const ids = await asOwner(async (c) => {
+      const sec = await one<{ id: string }>(c, `select se.id from core.sections se join core.programmes cl on cl.id = se.programme_id where cl.name = 'Class 10' and se.name = 'A' and se.org_id = (select id from core.organizations where slug = 'demo')`);
+      const subj = await one<{ id: string }>(c, `select id from core.subjects where code = 'SCI' and branch_id = (select id from core.branches where code = 'GACH' and org_id = (select id from core.organizations where slug = 'demo'))`);
+      const topic = await one<{ id: string }>(c, `select t.id from os.curriculum_topics t join os.curriculum_units u on u.id = t.unit_id join os.curriculum_subjects cs on cs.id = u.subject_id join os.curriculum_boards b on b.id = cs.board_id where b.org_id is null and b.key = 'CBSE' and cs.grade_level = 10 and cs.name = 'Science' and t.kind = 'topic' order by u.seq, t.seq limit 1`);
       return { sec: sec.id, subj: subj.id, topic: topic.id };
     });
     const quote = await ok(TEACHER, 'GET', '/lesson-plans/quote', undefined, { action: 'daily_plan' });
@@ -246,10 +251,10 @@ describe('flow 4: lesson plan generate, edit, submit, return, resubmit, approve,
   });
 
   it('a Hindi subject plan is generated in Hindi and a Cambridge plan has Cambridge elements', async () => {
-    const ids = await asService(async (c) => {
-      const sec = await one<{ id: string }>(c, `select se.id from public.sections se join public.classes cl on cl.id = se.class_id where cl.name = 'Class 8' and se.name = 'A' and se.org_id = (select id from public.organizations where slug = 'demo')`);
-      const subj = await one<{ id: string }>(c, `select id from public.subjects where code = 'HIN' and branch_id = (select id from public.branches where code = 'GACH' and org_id = (select id from public.organizations where slug = 'demo'))`);
-      const topic = await one<{ id: string }>(c, `select t.id from public.curriculum_topics t join public.curriculum_units u on u.id = t.unit_id join public.curriculum_subjects cs on cs.id = u.subject_id join public.curriculum_boards b on b.id = cs.board_id where b.org_id is null and cs.content_language = 'hi' and t.kind = 'topic' order by u.seq, t.seq limit 1`);
+    const ids = await asOwner(async (c) => {
+      const sec = await one<{ id: string }>(c, `select se.id from core.sections se join core.programmes cl on cl.id = se.programme_id where cl.name = 'Class 8' and se.name = 'A' and se.org_id = (select id from core.organizations where slug = 'demo')`);
+      const subj = await one<{ id: string }>(c, `select id from core.subjects where code = 'HIN' and branch_id = (select id from core.branches where code = 'GACH' and org_id = (select id from core.organizations where slug = 'demo'))`);
+      const topic = await one<{ id: string }>(c, `select t.id from os.curriculum_topics t join os.curriculum_units u on u.id = t.unit_id join os.curriculum_subjects cs on cs.id = u.subject_id join os.curriculum_boards b on b.id = cs.board_id where b.org_id is null and cs.content_language = 'hi' and t.kind = 'topic' order by u.seq, t.seq limit 1`);
       return { sec: sec.id, subj: subj.id, topic: topic.id };
     });
     const gen = await ok(LANG_HOD, 'POST', '/lesson-plans/generate', { section_ids: [ids.sec], subject_id: ids.subj, topic_id: ids.topic, plan_date: nextWorkingDay(today), period_count: 1, period_minutes: 40, teaching_model: 'direct', resources: [], class_profile: { ability_mix: 'mixed', medium: 'Hindi' } });
@@ -279,22 +284,22 @@ describe('flow 5: student attendance offline -> sync -> daily summary', () => {
   });
 
   it('unmarked attendance creates a reminder task after the cut-off', async () => {
-    const b = await asService((c) => one<{ id: string }>(c, `select id from public.branches where code = 'GACH' and org_id = (select id from public.organizations where slug = 'demo')`));
+    const b = await asOwner((c) => one<{ id: string }>(c, `select id from core.branches where code = 'GACH' and org_id = (select id from core.organizations where slug = 'demo')`));
     let d = today;
     while (isoWeekday(d) === 7) d = addDays(d, 1);
     const at = new Date(`${d}T11:00:00+05:30`);
-    const n = await asService((c) => unmarkedSweep(c, b.id, at));
+    const n = await asDemoSystem((c) => unmarkedSweep(c, b.id, at));
     expect(n).toBeGreaterThan(0);
-    const t = await asService((c) => q(c, `select id from public.tasks where system_key like $1`, [`att:%:${d}`]));
+    const t = await asOwner((c) => q(c, `select id from os.tasks where system_key like $1`, [`att:%:${d}`]));
     expect(t.length).toBeGreaterThan(0);
   });
 });
 
 describe('flow 6: blueprint -> generate paper -> review -> approve -> restricted access', () => {
   it('works end to end', async () => {
-    const bp = await asService((c) => one<{ id: string }>(c, `select id from public.paper_blueprints where name like 'Class 10 Science%' and org_id = (select id from public.organizations where slug = 'demo')`));
-    const hod = await asService((c) => one<{ id: string }>(c, `select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [SCI_HOD]));
-    const coord = await asService((c) => one<{ id: string }>(c, `select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [COORD]));
+    const bp = await asOwner((c) => one<{ id: string }>(c, `select id from os.paper_blueprints where name like 'Class 10 Science%' and org_id = (select id from core.organizations where slug = 'demo')`));
+    const hod = await asOwner((c) => one<{ id: string }>(c, `select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [SCI_HOD]));
+    const coord = await asOwner((c) => one<{ id: string }>(c, `select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1`, [COORD]));
     const examDate = addDays(today, 60);
     const gen = await ok(TEACHER, 'POST', '/exams/papers/generate', { blueprint_id: bp.id, exam_date: examDate, sets: 2, source: 'mixed', reviewer_ids: [hod.id, coord.id] });
     expect(gen.paper_ids).toHaveLength(2);
@@ -311,7 +316,7 @@ describe('flow 6: blueprint -> generate paper -> review -> approve -> restricted
     expect((await call(PRINCIPAL, 'GET', `/exams/papers/${paper.id}`)).status).toBe(404);
     const dl = await call(SCI_HOD, 'GET', `/exams/papers/${paper.id}/docx`, undefined, { scheme: '1' });
     expect(dl.status).toBe(200);
-    const log = await asService((c) => q<{ action: string; watermark: string | null }>(c, `select action, watermark from public.paper_access_log where paper_id = $1`, [paper.id]));
+    const log = await asOwner((c) => q<{ action: string; watermark: string | null }>(c, `select action, watermark from os.paper_access_log where paper_id = $1`, [paper.id]));
     expect(log.some((l) => l.action === 'download' && l.watermark?.includes('Priya Menon'))).toBe(true);
     expect(log.filter((l) => l.action === 'view').length).toBeGreaterThanOrEqual(1);
   });
@@ -337,17 +342,17 @@ describe('flow 7: checklist failure -> ticket -> resolve -> close', () => {
 
 describe('flow 8: credits exhausted -> blocked -> top-up -> unblocked', () => {
   it('works end to end, ledger total equals the sum of generations', async () => {
-    const branch = await asService((c) => one<{ id: string; org_id: string }>(c, `select id, org_id from public.branches where code = 'KOND' and org_id = (select id from public.organizations where slug = 'demo')`));
+    const branch = await asOwner((c) => one<{ id: string; org_id: string }>(c, `select id, org_id from core.branches where code = 'KOND' and org_id = (select id from core.organizations where slug = 'demo')`));
     const KTEACH = 'nandini.principal.kond24@demo.school';
-    const email = await asService((c) => one<{ email: string }>(c, `select u.email from public.staff s join auth.users u on u.id = s.user_id where s.branch_id = $1 and s.is_teaching order by s.full_name limit 1`, [branch.id]));
+    const email = await asOwner((c) => one<{ email: string }>(c, `select u.email from core.staff s join auth.users u on u.id = s.user_id where s.branch_id = $1 and s.is_teaching order by s.full_name limit 1`, [branch.id]));
     void KTEACH;
-    const ids = await asService(async (c) => {
-      const alloc = await one<{ section_id: string; subject_id: string }>(c, `select ta.section_id, ta.subject_id from public.teacher_allocations ta join public.staff s on s.id = ta.staff_id join auth.users u on u.id = s.user_id join public.subjects sb on sb.id = ta.subject_id where u.email = $1 limit 1`, [email.email]);
-      const topic = await one<{ id: string }>(c, `select t.id from public.curriculum_topics t join public.curriculum_units u on u.id = t.unit_id join public.curriculum_subjects cs on cs.id = u.subject_id join public.curriculum_boards b on b.id = cs.board_id where b.org_id is null and b.key = 'CAMBRIDGE' and t.kind = 'topic' limit 1`);
-      // Use up the branch's credits.
+    const ids = await asOwner(async (c) => {
+      const alloc = await one<{ section_id: string; subject_id: string }>(c, `select ta.section_id, ta.subject_id from core.teacher_allocations ta join core.staff s on s.id = ta.staff_id join auth.users u on u.id = s.user_id join core.subjects sb on sb.id = ta.subject_id where u.email = $1 limit 1`, [email.email]);
+      const topic = await one<{ id: string }>(c, `select t.id from os.curriculum_topics t join os.curriculum_units u on u.id = t.unit_id join os.curriculum_subjects cs on cs.id = u.subject_id join os.curriculum_boards b on b.id = cs.board_id where b.org_id is null and b.key = 'CAMBRIDGE' and t.kind = 'topic' limit 1`);
+      // Use up the client's credits (one AI wallet per org, decision 40).
       const period = new Date().toISOString().slice(0, 7);
-      const bal = await one<{ b: number }>(c, `select coalesce(sum(credits), 0) as b from public.ai_credit_ledger where branch_id = $1 and period = $2`, [branch.id, period]);
-      await c.query(`insert into public.ai_credit_ledger (org_id, branch_id, kind, period, credits, note) values ($1,$2,'adjustment',$3,$4,'test: use up')`, [branch.org_id, branch.id, period, -Number(bal.b)]);
+      const bal = await one<{ b: number }>(c, `select coalesce(sum(credits), 0) as b from billing.ai_credit_ledger where org_id = $1 and period = $2`, [branch.org_id, period]);
+      await c.query(`insert into billing.ai_credit_ledger (org_id, branch_id, kind, period, credits, note) values ($1,$2,'adjustment',$3,$4,'test: use up')`, [branch.org_id, branch.id, period, -Number(bal.b)]);
       return { ...alloc, topic: topic.id };
     });
     const body = { section_ids: [ids.section_id], subject_id: ids.subject_id, topic_id: ids.topic, plan_date: nextWorkingDay(today), period_count: 1, period_minutes: 45, teaching_model: '5E', resources: [], class_profile: { ability_mix: 'mixed', medium: 'English' } };
@@ -359,8 +364,8 @@ describe('flow 8: credits exhausted -> blocked -> top-up -> unblocked', () => {
     expect(gen.credits).toBe(1);
     const p = await ok(email.email, 'GET', `/lesson-plans/${gen.id}`);
     expect(p.content.board_elements.assessment_objectives.length).toBeGreaterThan(0); // Cambridge elements
-    const totals = await asService((c) =>
-      one<{ ledger: number; gens: number }>(c, `select (select coalesce(-sum(credits), 0) from public.ai_credit_ledger where kind = 'usage') as ledger, (select coalesce(sum(credits), 0) from public.ai_generations where status = 'ok') as gens`),
+    const totals = await asOwner((c) =>
+      one<{ ledger: number; gens: number }>(c, `select (select coalesce(-sum(credits), 0) from billing.ai_credit_ledger where kind = 'usage') as ledger, (select coalesce(sum(credits), 0) from core.ai_generations where status = 'ok') as gens`),
     );
     expect(Number(totals.ledger)).toBeCloseTo(Number(totals.gens), 5);
   });
@@ -371,7 +376,7 @@ describe('phase acceptance checks (API level)', () => {
     const out = await call(TEACHER, 'POST', '/attendance/check', { kind: 'in', lat: 17.5, lng: 78.6 });
     expect(out.status).toBe(422);
     expect(out.json.error).toBe('outside_boundary');
-    await asService((c) => c.query(`delete from public.staff_attendance where staff_id = (select s.id from public.staff s join auth.users u on u.id = s.user_id where u.email = $1) and date = $2`, [TEACHER, today]));
+    await asOwner((c) => c.query(`delete from core.staff_attendance where staff_id = (select s.id from core.staff s join auth.users u on u.id = s.user_id where u.email = $1) and date = $2`, [TEACHER, today]));
     const inside = await ok(TEACHER, 'POST', '/attendance/check', { kind: 'in', lat: 17.4402, lng: 78.349 });
     expect(['present', 'late', 'half_day']).toContain(inside.status);
   });
@@ -460,7 +465,7 @@ describe('phase acceptance checks (API level)', () => {
     const failures: string[] = [];
     let asked = 0;
     // The help bot's per-user daily fair-use cap would stop this many questions; lift it for the test.
-    await asService((c) => c.query(`update public.ai_action_costs set daily_fair_use = null where action = 'help_bot'`));
+    await asOwner((c) => c.query(`update billing.ai_action_costs set daily_fair_use = null where org_id is null and action = 'help_bot'`));
     for (const lang of ['en', 'hi', 'te'] as const) {
       await ok(PRINCIPAL, 'PATCH', '/me', { language: lang });
       for (const f of readdirSync(join(__dirname, '..', '..', '..', 'kb', lang))) {

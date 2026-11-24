@@ -112,14 +112,9 @@ database only. Roles are cluster-wide and are never dropped.
 
 ## Known issues for the next streams
 
-* **Name clashes with the legacy OS migrations** when both are applied to one database: the OS files redefine
-  `app.my_org_id()` (staff-based) and `app.touch_updated_at()`. Platform policies use `app.current_org_id()`, so
-  they are unaffected, but `app.my_org_id()` returns the OS answer in a combined database. The OS also defines
-  `app.can(text, text, uuid, uuid, uuid, uuid, uuid)` and `app.apply_rls(text, text, text, text, text, text)`;
-  the platform versions have different signatures, but a 5-text-argument call to `app.apply_rls` becomes
-  ambiguous once the OS one exists. The OS rewrite onto the platform must drop the legacy versions.
-* The OS's `os_files_rw` storage policy (bucket `os-files`, org prefix only, no product check) coexists with
-  `platform_files_*` in a combined database; policies are OR-ed, so it must be dropped by the OS rewrite.
-* `app.can()` does not yet consult `os.module_flags`; the OS stream adds that after the product check.
+* Resolved by the OS move (`docs/adr/os-move.md`): the legacy OS migrations are gone, so `app.my_org_id()`,
+  `app.touch_updated_at()`, the 7-arg `app.can`, the 6-arg `app.apply_rls`, `app.drop_policies(text)` and the
+  `os_files_rw` storage policy no longer exist. OS module flags are enforced by restrictive `os_module_on` policies
+  on os tables (and in `os.can`), not inside `app.can()`.
 * Decision 42 (30 days read-only after non-payment) is not modelled: `cancelled` removes access immediately.
 * No enforcement that a platform admin account is not also an org user.

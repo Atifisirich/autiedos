@@ -20,7 +20,7 @@ export default function Library() {
   const tree = useApi<any[]>(cs ? `/curriculum/subjects/${cs}` : null);
   const [q, setQ] = useState('');
   const [results, setResults] = useState<any[] | null>(null);
-  const [f, setF] = useState({ title: '', kind: 'textbook', subject_id: '', class_id: '' });
+  const [f, setF] = useState({ title: '', kind: 'textbook', subject_id: '', programme_id: '' });
   const [file, setFile] = useState<File | null>(null);
   const a = useAction();
   return (
@@ -34,7 +34,7 @@ export default function Library() {
               <Field label={t('common.title')}><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
               <Field label={t('common.type')}><Select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} options={KINDS.map((k) => ({ value: k, label: t(`docKind.${k}`) }))} /></Field>
               <Field label={t('common.subject')}><Select value={f.subject_id} onChange={(e) => setF({ ...f, subject_id: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.subjects, (s) => s.name)} /></Field>
-              <Field label={t('common.class')}><Select value={f.class_id} onChange={(e) => setF({ ...f, class_id: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.classes, (c) => c.name)} /></Field>
+              <Field label={t('common.class')}><Select value={f.programme_id} onChange={(e) => setF({ ...f, programme_id: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.classes, (c) => c.name)} /></Field>
             </Grid>
             <input type="file" aria-label={t('library.file')} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <p className="mt-1 text-xs text-slate-500">{t('library.uploadHint')}</p>
@@ -43,7 +43,7 @@ export default function Library() {
               const r = await a.run(async () => {
                 const storage_path = await uploadFile(file!, 'document');
                 const text = /^text\//.test(file!.type) || /\.(md|txt|csv)$/i.test(file!.name) ? await file!.text() : undefined;
-                return post('/documents', { title: f.title, kind: f.kind, storage_path, mime: file!.type || 'application/octet-stream', size_bytes: file!.size, subject_id: f.subject_id || null, class_id: f.class_id || null, text });
+                return post('/documents', { title: f.title, kind: f.kind, storage_path, mime: file!.type || 'application/octet-stream', size_bytes: file!.size, subject_id: f.subject_id || null, programme_id: f.programme_id || null, text });
               });
               if (r) (setFile(null), setF({ ...f, title: '' }), docs.reload());
             }}>{t('library.upload')}</Button>

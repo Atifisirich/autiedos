@@ -2,10 +2,15 @@
  * AI generation pipeline and credit metering (PRD 8.5, rules 7 and 8).
  * Every call: credit check -> privacy guard -> provider -> schema validation (+ repair,
  * regenerate at most twice) -> ai_generations + ai_credit_ledger rows -> warnings at 80/95/100%.
+ *
+ * Platform layout (docs/adr/os-move.md): generations are core.ai_generations (product 'os'); the wallet is ONE
+ * org-level wallet per client (decision 40, OQ-11) in billing, which the OS server reaches only through the
+ * app.ai_* security definer functions (os_server has no grant on billing). Ledger rows keep branch and staff for
+ * reports and the per-teacher cap.
  */
 import { checkCredits, creditCost, containsContactData, crossedThresholds, monthKey, type AiAction, type CostRow } from '@autoed/shared';
 import type { ZodType, ZodTypeDef } from 'zod';
-import { PaymentRequiredError, ValidationError, asService, insert, maybe, one, q, type Tx } from '../db';
+import { PaymentRequiredError, ValidationError, asSystem, insert, maybe, one, q, type Tx } from '../db';
 import { getAiProvider, AiRefusalError, type AiModels, type ModelTier } from '../adapters/ai';
 import { notify } from '../notify';
 import { need, run, now, staffWithRole, type Ctx } from '../core';
@@ -15,50 +20,34 @@ import { need, run, now, staffWithRole, type Ctx } from '../core';
  * so these rows are written on their own connection and survive it.
  */
 async function recordFailed(row: Record<string, unknown>): Promise<void> {
-  await asService((cc) => insert(cc, 'ai_generations', row));
+  await asSystem(String(row.org_id), (cc) => insert(cc, 'core.ai_generations', row));
 }
 
 export async function costTable(c: Tx): Promise<CostRow[]> {
-  return (await q<{ action: string; credits: number; included: boolean; daily_fair_use: number | null }>(c, `select action, credits, included, daily_fair_use from public.ai_action_costs where deleted_at is null`)).map((r) => ({ action: r.action, credits: Number(r.credits), included: r.included, dailyFairUse: r.daily_fair_use }));
+  return (await q<{ action: string; credits: number; included: boolean; daily_fair_use: number | null }>(c, `select action, credits, included, daily_fair_use from app.ai_costs()`)).map((r) => ({ action: r.action, credits: Number(r.credits), included: r.included, dailyFairUse: r.daily_fair_use }));
 }
 
 /** Model IDs (and optional USD prices per 1M tokens) are platform_settings rows, never code. */
 const UNSET_MODELS: AiModels = { strong: 'PLACEHOLDER_GEMINI_STRONG_MODEL_ID', fast: 'PLACEHOLDER_GEMINI_FAST_MODEL_ID', prices: null };
 
 async function models(c: Tx): Promise<AiModels> {
-  const r = await maybe<{ value: AiModels }>(c, `select value from public.platform_settings where key = 'ai_models'`);
+  const r = await maybe<{ value: AiModels | null }>(c, `select app.platform_setting('ai_models') as value`);
   return r?.value ?? UNSET_MODELS;
 }
 
-/** Ensures this month's allowance exists (from the branch's plan; carry-forward if the plan allows). */
-export async function ensureAllowance(c: Tx, orgId: string, branchId: string, period: string): Promise<void> {
-  const has = await maybe(c, `select 1 from public.ai_credit_ledger where branch_id = $1 and period = $2 and kind = 'allowance'`, [branchId, period]);
-  if (has) return;
-  const sub = await maybe<{ monthly_credits: number; carry_forward: boolean; override: number | null }>(
-    c,
-    `select p.monthly_credits, p.carry_forward, bs.monthly_credits_override as override from public.branch_subscriptions bs join public.plans p on p.id = bs.plan_id
-     where bs.branch_id = $1 and bs.status = 'active' and bs.deleted_at is null order by bs.starts_on desc limit 1`,
-    [branchId],
-  );
-  if (!sub) return;
-  let carry = 0;
-  if (sub.carry_forward) {
-    const prev = await one<{ bal: number }>(c, `select coalesce(sum(credits), 0) as bal from public.ai_credit_ledger where branch_id = $1 and period < $2`, [branchId, period]);
-    carry = Math.max(0, Number(prev.bal));
-  }
-  await c.query(`insert into public.ai_credit_ledger (org_id, branch_id, kind, period, credits, note) values ($1,$2,'allowance',$3,$4,$5) on conflict do nothing`, [orgId, branchId, period, Number(sub.override ?? sub.monthly_credits) + carry, carry ? `Monthly allowance + ${carry} carried forward` : 'Monthly allowance']);
+/** Ensures this month's allowance row of the org's wallet (from billing.ai_allowances; carry-forward if allowed). */
+export async function ensureAllowance(c: Tx, period: string): Promise<void> {
+  await c.query(`select app.ai_ensure_allowance($1)`, [period]);
 }
 
+/** Org wallet for the period; teacher usage and cap for the per-teacher limit. */
 export async function creditState(c: Tx, branchId: string, period: string, staffId: string | null) {
-  const s = await one<{ granted: number; used: number; teacher_used: number }>(
+  const s = await one<{ granted: number; used: number; teacher_used: number; teacher_cap: number | null }>(
     c,
-    `select coalesce(sum(credits) filter (where credits > 0), 0) as granted, coalesce(-sum(credits) filter (where credits < 0), 0) as used,
-            coalesce(-sum(credits) filter (where credits < 0 and staff_id = $3), 0) as teacher_used
-     from public.ai_credit_ledger where branch_id = $1 and period = $2 and deleted_at is null`,
-    [branchId, period, staffId],
+    `select granted, used, teacher_used, teacher_cap from app.ai_credit_state($1, $2, $3)`,
+    [period, staffId, branchId],
   );
-  const cap = await maybe<{ teacher_monthly_cap: number | null }>(c, `select teacher_monthly_cap from public.branch_subscriptions where branch_id = $1 and status = 'active' and deleted_at is null order by starts_on desc limit 1`, [branchId]);
-  return { granted: Number(s.granted), used: Number(s.used), teacherUsed: Number(s.teacher_used), teacherCap: cap?.teacher_monthly_cap != null ? Number(cap.teacher_monthly_cap) : null };
+  return { granted: Number(s.granted), used: Number(s.used), teacherUsed: Number(s.teacher_used), teacherCap: s.teacher_cap != null ? Number(s.teacher_cap) : null };
 }
 
 export interface GenerateOptions<T> {
@@ -85,14 +74,14 @@ export interface GenerateOptions<T> {
 /** Must run with service rights (called inside `sys`). */
 export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ output: T; generationId: string; credits: number; attempts: number; issues: string[] }> {
   const period = monthKey(now());
-  await ensureAllowance(c, o.orgId, o.branchId, period);
+  await ensureAllowance(c, period);
   const costs = await costTable(c);
   const state = await creditState(c, o.branchId, period, o.staffId);
-  const usesToday = o.staffId ? (await one<{ n: number }>(c, `select count(*)::int as n from public.ai_generations where staff_id = $1 and action = $2 and created_at >= current_date`, [o.staffId, o.action])).n : 0;
+  const usesToday = o.staffId ? (await one<{ n: number }>(c, `select count(*)::int as n from core.ai_generations where staff_id = $1 and action = $2 and created_at >= current_date`, [o.staffId, o.action])).n : 0;
   const decision = checkCredits(o.action, { ...state, usesToday }, costs, o.units ?? 1);
   const model = await models(c);
   if (!decision.allowed) {
-    await recordFailed({ org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, action: o.action, model: o.tier === 'strong' ? model.strong : model.fast, provider: 'none', input: o.logInput, status: 'blocked', error: decision.reason, credits: 0 });
+    await recordFailed({ org_id: o.orgId, branch_id: o.branchId, product_key: 'os', staff_id: o.staffId, action: o.action, model: o.tier === 'strong' ? model.strong : model.fast, provider: 'none', input: o.logInput, status: 'blocked', error: decision.reason, credits: 0 });
     throw new PaymentRequiredError(decision.reason === 'fair_use' ? 'fair_use_limit' : decision.reason === 'teacher_cap' ? 'teacher_cap_reached' : 'credits_exhausted');
   }
   if (containsContactData(o.prompt) || containsContactData(o.system)) throw new ValidationError('personal_data_in_prompt');
@@ -112,7 +101,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
       res = await provider.generate({ action: o.action, tier: o.tier, system: o.system, prompt: attempts > 1 ? `${o.prompt}\n\nThe previous answer failed these checks: ${lastIssues.join(', ')}. Fix them.` : o.prompt, schema: o.jsonSchema, mockContext: o.mockContext }, model);
     } catch (e) {
       const refusal = e instanceof AiRefusalError;
-      await recordFailed({ org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, action: o.action, model: usedModel || model.strong, provider: provider.name, input: o.logInput, status: 'failed', attempts, error: refusal ? `refused:${(e as AiRefusalError).category}` : (e as Error).message.slice(0, 500), credits: 0 });
+      await recordFailed({ org_id: o.orgId, branch_id: o.branchId, product_key: 'os', staff_id: o.staffId, action: o.action, model: usedModel || model.strong, provider: provider.name, input: o.logInput, status: 'failed', attempts, error: refusal ? `refused:${(e as AiRefusalError).category}` : (e as Error).message.slice(0, 500), credits: 0 });
       throw refusal ? new ValidationError('ai_refused') : new ValidationError('ai_unavailable');
     }
     tokensIn += res.inputTokens;
@@ -134,6 +123,8 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
   const genRow = {
     org_id: o.orgId,
     branch_id: o.branchId,
+    product_key: 'os',
+    user_id: o.staffId ? (await maybe<{ user_id: string | null }>(c, `select user_id from core.staff where id = $1`, [o.staffId]))?.user_id ?? null : null,
     staff_id: o.staffId,
     action: o.action,
     model: usedModel,
@@ -154,9 +145,10 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
     await recordFailed(genRow);
     throw new ValidationError('ai_output_invalid', { issues: lastIssues });
   }
-  const gen = await insert<{ id: string }>(c, 'ai_generations', genRow);
+  const gen = await insert<{ id: string }>(c, 'core.ai_generations', genRow);
   if (credits > 0) {
-    await insert(c, 'ai_credit_ledger', { org_id: o.orgId, branch_id: o.branchId, staff_id: o.staffId, kind: 'usage', action: o.action, period, credits: -credits, generation_id: gen.id, tokens: tokensIn + tokensOut, provider_cost: cost });
+    // the wallet is charged from the generation row itself (app.ai_charge: once per generation)
+    await c.query(`select app.ai_charge($1, $2)`, [gen.id, period]);
     const beforePct = state.granted ? (state.used / state.granted) * 100 : 0;
     const afterPct = state.granted ? ((state.used + credits) / state.granted) * 100 : 100;
     const crossed = crossedThresholds(beforePct, afterPct);
@@ -174,7 +166,7 @@ export async function quote(ctx: Ctx, action: AiAction, units = 1) {
     const costs = await costTable(c);
     const period = monthKey(now());
     const st = await sys(async () => {
-      await ensureAllowance(c, ctx.orgId, ctx.branchId, period);
+      await ensureAllowance(c, period);
       return creditState(c, ctx.branchId, period, ctx.staffId);
     });
     return { action, credits: creditCost(action, costs, units), balance: Math.round((st.granted - st.used) * 100) / 100, granted: st.granted, used: st.used };
@@ -185,19 +177,19 @@ export async function creditsSummary(ctx: Ctx, period?: string) {
   need(ctx, 'ai', 'view');
   return run(ctx, async (c, sys) => {
     const p = period ?? monthKey(now());
-    const st = await sys(async () => {
-      await ensureAllowance(c, ctx.orgId, ctx.branchId, p);
-      return creditState(c, ctx.branchId, p, ctx.staffId);
+    // one wallet per org (decision 40): the report covers every branch; app.ai_usage needs ai.view (checked above)
+    const { st, usage } = await sys(async () => {
+      await ensureAllowance(c, p);
+      const st = await creditState(c, ctx.branchId, p, ctx.staffId);
+      const usage = (await one<{ u: { by_action: unknown[]; by_teacher: unknown[]; ledger: unknown[]; requests: unknown[] } }>(c, `select app.ai_usage($1) as u`, [p])).u;
+      return { st, usage };
     });
-    const byAction = await q(c, `select action, -sum(credits) as credits, count(*)::int as uses from public.ai_credit_ledger where branch_id = $1 and period = $2 and kind = 'usage' group by action order by credits desc`, [ctx.branchId, p]);
-    const byTeacher = await q(c, `select s.full_name, -sum(l.credits) as credits from public.ai_credit_ledger l join public.staff s on s.id = l.staff_id where l.branch_id = $1 and l.period = $2 and l.kind = 'usage' group by s.full_name order by credits desc limit 50`, [ctx.branchId, p]);
-    const ledger = await q(c, `select l.created_at, l.kind, l.action, l.credits, l.note, s.full_name from public.ai_credit_ledger l left join public.staff s on s.id = l.staff_id where l.branch_id = $1 and l.period = $2 order by l.created_at desc limit 200`, [ctx.branchId, p]);
-    const requests = await q(c, `select * from public.credit_topup_requests where branch_id = $1 order by created_at desc limit 20`, [ctx.branchId]);
+    const { by_action: byAction, by_teacher: byTeacher, ledger, requests } = usage;
     return { period: p, granted: st.granted, used: st.used, balance: Math.round((st.granted - st.used) * 100) / 100, pct: st.granted ? Math.round((st.used / st.granted) * 1000) / 10 : 0, teacher_cap: st.teacherCap, my_used: st.teacherUsed, by_action: byAction, by_teacher: byTeacher, ledger, requests };
   });
 }
 
 export async function requestTopup(ctx: Ctx, input: { credits: number; note?: string }) {
   need(ctx, 'ai', 'configure');
-  return run(ctx, async (c) => insert(c, 'credit_topup_requests', { org_id: ctx.orgId, branch_id: ctx.branchId, requested_by: ctx.staffId, credits: input.credits, note: input.note ?? null }));
+  return run(ctx, async (c) => one<{ id: string }>(c, `select app.ai_request_topup($1, $2, $3) as id`, [input.credits, input.note ?? null, ctx.branchId]));
 }

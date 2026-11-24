@@ -9,6 +9,8 @@ import { get, setApiContext, api } from './api';
 export interface Me {
   staff: { id: string; full_name: string; email: string | null; language: Lang; ui_prefs: Record<string, unknown>; is_teaching: boolean; department_id: string | null; wing_id: string | null; branch_id: string | null };
   org: { id: string; name: string; logo_url: string | null; branding: Record<string, string>; setup_step: number };
+  /** products the org has and this user was given (crm | os | erp): the navigation is built from these */
+  products: string[];
   branch_id: string;
   branches: { id: string; name: string; code: string; settings: Record<string, unknown> }[];
   roles: { key: string; name: string }[];
@@ -27,6 +29,7 @@ interface AppCtx {
   setBranch: (b: string) => void;
   can: (m: PermissionModule, a: Action, min?: number) => boolean;
   on: (m: ModuleKey | null) => boolean;
+  hasProduct: (p: 'crm' | 'os' | 'erp') => boolean;
   label: (v: Partial<Record<Lang, string>> | null | undefined, fallback?: string) => string;
   term: (key: string, fallback: string) => string;
   reload: () => Promise<void>;
@@ -111,6 +114,7 @@ export function AppProvider({ children, requireAuth = true }: { children: ReactN
       },
       can: (m, a, min = 1) => (me?.permissions[`${m}.${a}`] ?? 0) >= min,
       on: (m) => !m || me?.modules[m] !== false,
+      hasProduct: (p) => !!me?.products?.includes(p),
       label: (v, fallback = '') => pickLabel(lang, v, fallback),
       term: (key, fallback) => pickLabel(lang, me?.terminology[key], fallback),
       reload,

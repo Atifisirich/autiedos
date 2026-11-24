@@ -25,7 +25,7 @@ export default function Observations() {
         <div className="space-y-3">
           <Field label={t('observation.rubric')}><Select value={f.rubric_id} onChange={(e) => setF({ ...f, rubric_id: e.target.value })} placeholder={t('common.choose')} options={(rubrics.data ?? []).map((r) => ({ value: r.id, label: r.name }))} /></Field>
           <Field label={t('observation.teacher')}><Select value={f.teacher_id} onChange={(e) => setF({ ...f, teacher_id: e.target.value })} placeholder={t('common.choose')} options={opts(lk?.staff.filter((s) => s.is_teaching), (s) => s.full_name)} /></Field>
-          <Field label={t('common.section')}><Select value={f.section_id} onChange={(e) => setF({ ...f, section_id: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.sections, (s) => `${lk!.classes.find((c) => c.id === s.class_id)?.name} ${s.name}`)} /></Field>
+          <Field label={t('common.section')}><Select value={f.section_id} onChange={(e) => setF({ ...f, section_id: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.sections, (s) => `${lk!.classes.find((c) => c.id === s.programme_id)?.name} ${s.name}`)} /></Field>
           <Field label={t('common.subject')}><Select value={f.subject_id} onChange={(e) => setF({ ...f, subject_id: e.target.value })} placeholder={t('common.optional')} options={opts(lk?.subjects, (s) => s.name)} /></Field>
           <Field label={t('common.when')}><Input type="datetime-local" value={f.scheduled_at} onChange={(e) => setF({ ...f, scheduled_at: e.target.value })} /></Field>
           <Checkbox label={t('observation.announced')} checked={f.announced} onChange={(e) => setF({ ...f, announced: e.target.checked })} />

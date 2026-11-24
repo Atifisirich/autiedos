@@ -39,7 +39,7 @@ export default function Timetable() {
     if (check && !check.applied) setClashes(check.clashes.map((c) => ({ ...c, day, seq, entry: drag })));
     await grid.reload();
   };
-  const choices = by === 'section' ? opts(lk?.sections, (s) => lk!.classes.find((c) => c.id === s.class_id)?.name + ' ' + s.name) : by === 'teacher' ? opts(lk?.staff.filter((s) => s.is_teaching), (s) => s.full_name) : opts(lk?.rooms, (r) => r.name);
+  const choices = by === 'section' ? opts(lk?.sections, (s) => lk!.classes.find((c) => c.id === s.programme_id)?.name + ' ' + s.name) : by === 'teacher' ? opts(lk?.staff.filter((s) => s.is_teaching), (s) => s.full_name) : opts(lk?.rooms, (r) => r.name);
   return (
     <div>
       <PageHeader title={t('nav.timetable')} actions={v && <Button variant="secondary" onClick={() => download(`/timetable/export?by=${by}&id=${id}&version_id=${v.id}`)}>{t('common.exportExcel')}</Button>} />

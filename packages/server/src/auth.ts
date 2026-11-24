@@ -3,10 +3,13 @@
  * Supabase access token once to /api/auth/session and receives an AutoEd session token (cookie for
  * web, bearer for mobile). Sessions are tracked as devices so they can be signed out remotely.
  * AUTH_PROVIDER=dev enables email-only login for local development and tests.
+ * The session token carries the user id; the org, its products and the user's product access are read from the
+ * platform tables on every request (app.current_org_id, core.user_product_access), so a suspended subscription
+ * or a revoked grant applies to the next request.
  */
 import { randomUUID } from 'node:crypto';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
-import { asService, maybe } from './db';
+import { asAnonymousServer, asUser, maybe } from './db';
 import { UnauthorizedError } from './core';
 
 const SESSION_TTL_SECONDS = Number(process.env.SESSION_TTL_SECONDS ?? 60 * 60 * 24 * 14);
@@ -20,16 +23,25 @@ function secret(): Uint8Array {
 export interface Session {
   userId: string;
   sid: string;
+  /** Org and products at sign-in (informational; every request re-reads both from the database). */
+  orgId?: string | null;
+  products?: string[];
 }
 
 export async function issueSession(userId: string, device: { platform: 'web' | 'android' | 'ios'; name?: string | null }): Promise<{ token: string; expires_at: string }> {
   const sid = randomUUID();
   const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  await asService(async (c) => {
-    const staff = await maybe<{ id: string; org_id: string; branch_id: string | null }>(c, `select id, org_id, branch_id from public.staff where user_id = $1 and deleted_at is null and status in ('active','invited')`, [userId]);
-    if (staff) await c.query(`insert into public.device_tokens (org_id, branch_id, staff_id, token, platform, device_name) values ($1,$2,$3,$4,$5,$6)`, [staff.org_id, staff.branch_id, staff.id, `session:${sid}`, device.platform, device.name ?? null]);
+  // Runs as the user (core.device_tokens: own rows only). A platform admin without an org gets no device row.
+  const me = await asUser({ userId }, async (c) => {
+    const m = await maybe<{ org_id: string | null; staff_id: string | null; products: string[] }>(
+      c,
+      `select app.current_org_id() as org_id, app.my_core_staff_id() as staff_id,
+              coalesce((select array_agg(p.key order by p.key) from core.products p where app.user_has_product(app.current_org_id(), p.key)), '{}') as products`,
+    );
+    if (m?.org_id && m.products.length) await c.query(`insert into core.device_tokens (org_id, user_id, staff_id, token, platform, device_name, last_seen_at) values ($1,$2,$3,$4,$5,$6, now())`, [m.org_id, userId, m.staff_id, `session:${sid}`, device.platform, device.name ?? null]);
+    return m;
   });
-  const token = await new SignJWT({ sid }).setProtectedHeader({ alg: 'HS256' }).setSubject(userId).setIssuedAt().setExpirationTime(exp).setIssuer('autoed-os').sign(secret());
+  const token = await new SignJWT({ sid, org: me?.org_id ?? null, products: me?.products ?? [] }).setProtectedHeader({ alg: 'HS256' }).setSubject(userId).setIssuedAt().setExpirationTime(exp).setIssuer('autoed-os').sign(secret());
   return { token, expires_at: new Date(exp * 1000).toISOString() };
 }
 
@@ -43,14 +55,16 @@ export async function verifySession(token: string | null | undefined): Promise<S
   }
   const sid = String(payload.sid ?? '');
   const userId = String(payload.sub ?? '');
-  const revoked = await asService((c) => maybe<{ revoked_at: string | null }>(c, `select revoked_at from public.device_tokens where token = $1`, [`session:${sid}`]));
+  const orgId = typeof payload.org === 'string' ? payload.org : null;
+  const products = Array.isArray(payload.products) ? payload.products.map(String) : [];
+  const revoked = await asUser({ userId }, (c) => maybe<{ revoked_at: string | null }>(c, `select revoked_at from core.device_tokens where token = $1`, [`session:${sid}`]));
   if (revoked?.revoked_at) throw new UnauthorizedError('session_revoked');
-  if (revoked) void asService((c) => c.query(`update public.device_tokens set last_seen_at = now() where token = $1 and last_seen_at < now() - interval '5 minutes'`, [`session:${sid}`])).catch(() => undefined);
-  return { userId, sid };
+  if (revoked) void asUser({ userId }, (c) => c.query(`update core.device_tokens set last_seen_at = now() where token = $1 and (last_seen_at is null or last_seen_at < now() - interval '5 minutes')`, [`session:${sid}`])).catch(() => undefined);
+  return { userId, sid, orgId, products };
 }
 
-export async function endSession(sid: string) {
-  await asService((c) => c.query(`update public.device_tokens set revoked_at = now() where token = $1`, [`session:${sid}`]));
+export async function endSession(sid: string, userId: string) {
+  await asUser({ userId }, (c) => c.query(`update core.device_tokens set revoked_at = now() where token = $1`, [`session:${sid}`]));
 }
 
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
@@ -75,11 +89,11 @@ export async function verifySupabaseToken(accessToken: string): Promise<string> 
 /** Dev / test login by email (disabled unless AUTH_PROVIDER=dev). */
 export async function devLogin(email: string): Promise<string> {
   if (process.env.AUTH_PROVIDER !== 'dev') throw new UnauthorizedError('dev_login_disabled');
-  const u = await asService((c) => maybe<{ id: string }>(c, `select id from auth.users where lower(email) = lower($1)`, [email]));
-  if (!u) throw new UnauthorizedError('unknown_user');
+  // os.dev_login_user: an OS staff login or a platform admin (security definer; not granted to users).
+  const u = await asAnonymousServer((c) => maybe<{ id: string | null }>(c, `select os.dev_login_user($1) as id`, [email]));
+  if (!u?.id) throw new UnauthorizedError('unknown_user');
   return u.id;
 }
-
 // ---------------------------------------------------------------- rate limiting (login and AI)
 const buckets = new Map<string, { tokens: number; at: number }>();
 

@@ -118,7 +118,7 @@ export default function PlanDetail({ params }: { params: Promise<{ id: string }>
       <Modal open={reuse.open} onClose={() => setReuse({ ...reuse, open: false })} title={t('plans.reuse')}>
         <Field label={t('common.section')}>
           <select multiple className="h-32 w-full rounded-md border border-slate-300 p-1 text-sm" value={reuse.sections} onChange={(e) => setReuse({ ...reuse, sections: [...e.target.selectedOptions].map((o) => o.value) })}>
-            {(lk?.sections ?? []).map((s) => <option key={s.id} value={s.id}>{lk?.classes.find((c) => c.id === s.class_id)?.name} {s.name}</option>)}
+            {(lk?.sections ?? []).map((s) => <option key={s.id} value={s.id}>{lk?.classes.find((c) => c.id === s.programme_id)?.name} {s.name}</option>)}
           </select>
         </Field>
         <Field label={t('common.date')}><Input type="date" value={reuse.date} onChange={(e) => setReuse({ ...reuse, date: e.target.value })} /></Field>

@@ -4,7 +4,7 @@ import { get } from './api';
 
 export interface Lookups {
   staff: { id: string; full_name: string; department_id: string | null; wing_id: string | null; branch_id: string | null; is_teaching: boolean }[];
-  sections: { id: string; name: string; class_id: string; wing_id: string }[];
+  sections: { id: string; name: string; programme_id: string; wing_id: string }[];
   classes: { id: string; name: string; wing_id: string; grade_level: number }[];
   subjects: { id: string; name: string; code: string; content_language: string; department_id: string | null }[];
   wings: { id: string; name: string; board: string }[];

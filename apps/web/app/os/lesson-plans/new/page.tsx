@@ -20,7 +20,7 @@ export default function NewPlan() {
   const [f, setF] = useState({ section_ids: sp.get('section') ? [sp.get('section')!] : ([] as string[]), subject_id: sp.get('subject') ?? '', topic_id: '', plan_date: sp.get('date') ?? new Date().toISOString().slice(0, 10), period_count: 1, period_minutes: 40, teaching_model: '5E' as string, resources: [] as string[], ability_mix: 'mixed', notes: '', language: lang });
   const { chapters } = useCurriculum(lk, f.section_ids[0] ?? '', f.subject_id);
   const quote = useApi<{ credits: number; balance: number }>(`/lesson-plans/quote?action=daily_plan&units=${f.period_count}`);
-  const secName = (id: string) => { const s = lk?.sections.find((x) => x.id === id); return `${lk?.classes.find((c) => c.id === s?.class_id)?.name ?? ''} ${s?.name ?? ''}`; };
+  const secName = (id: string) => { const s = lk?.sections.find((x) => x.id === id); return `${lk?.classes.find((c) => c.id === s?.programme_id)?.name ?? ''} ${s?.name ?? ''}`; };
   const first = lk?.sections.find((s) => s.id === f.section_ids[0]);
   return (
     <div>
@@ -30,7 +30,7 @@ export default function NewPlan() {
           <Grid cols={3}>
             <Field label={t('common.section')} hint={t('plans.multiSectionHint')}>
               <select multiple className="h-28 w-full rounded-md border border-slate-300 p-1 text-sm" value={f.section_ids} onChange={(e) => setF({ ...f, section_ids: [...e.target.selectedOptions].map((o) => o.value), topic_id: '' })}>
-                {(lk?.sections ?? []).filter((s) => !first || s.class_id === first.class_id || f.section_ids.length === 0).map((s) => <option key={s.id} value={s.id}>{secName(s.id)}</option>)}
+                {(lk?.sections ?? []).filter((s) => !first || s.programme_id === first.programme_id || f.section_ids.length === 0).map((s) => <option key={s.id} value={s.id}>{secName(s.id)}</option>)}
               </select>
             </Field>
             <Field label={t('common.subject')}><Select value={f.subject_id} onChange={(e) => setF({ ...f, subject_id: e.target.value, topic_id: '' })} placeholder={t('common.choose')} options={(lk?.subjects ?? []).map((s) => ({ value: s.id, label: s.name }))} /></Field>

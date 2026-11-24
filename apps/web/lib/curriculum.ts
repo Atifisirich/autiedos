@@ -15,7 +15,7 @@ export function useCurriculum(lk: Lookups | null, sectionId: string, subjectId: 
     setCs(null);
     if (!lk || !sectionId || !subjectId) return;
     const section = lk.sections.find((s) => s.id === sectionId);
-    const cls = lk.classes.find((c) => c.id === section?.class_id);
+    const cls = lk.classes.find((c) => c.id === section?.programme_id);
     const wing = lk.wings.find((w) => w.id === cls?.wing_id);
     const subject = lk.subjects.find((s) => s.id === subjectId);
     if (!cls || !subject) return;

@@ -1,13 +1,19 @@
 /**
- * Background jobs (PRD 3): a `jobs` table processed by a scheduled function
- * (Vercel cron -> /api/cron/tick, or Supabase cron calling the same endpoint).
- * Jobs are retried with backoff and are idempotent via dedupe keys.
+ * Background jobs (PRD 3, plan 4.10) on the platform queue `private.jobs`:
+ *   enqueue  -> os.enqueue_job() for the caller's org (the user, or the org's OS system actor), product 'os';
+ *   claim    -> private.claim_jobs('os', ...) as the database role job_runner: jobs of orgs that lost the OS
+ *               product are skipped and logged in audit.log instead of running (harness T11);
+ *   run      -> the handler runs as the job's org OS system actor (os_server, RLS applies);
+ *   finish   -> private.finish_job() (retry with backoff up to max_attempts).
+ * Jobs are idempotent via dedupe keys (one escalation sweep per window, ...).
  */
-import { asService, q, type Tx } from './db';
+import pg from 'pg';
+import { getJobPool, q, type Tx } from './db';
 
 export interface JobRow {
   id: string;
-  org_id: string | null;
+  org_id: string;
+  /** payload.branch_id, for branch sweeps */
   branch_id: string | null;
   kind: string;
   payload: Record<string, unknown>;
@@ -22,19 +28,30 @@ export function registerJob(kind: string, fn: JobHandler) {
   handlers.set(kind, fn);
 }
 
+/** Enqueues a job for the org of the current claims. Returns null when the dedupe key already exists. */
 export async function enqueue(
   c: Tx,
   kind: string,
   payload: Record<string, unknown>,
-  opts: { runAt?: Date; dedupeKey?: string; orgId?: string | null; branchId?: string | null; maxAttempts?: number } = {},
+  opts: { runAt?: Date; dedupeKey?: string; branchId?: string | null; maxAttempts?: number } = {},
 ): Promise<string | null> {
-  const rows = await q<{ id: string }>(
-    c,
-    `insert into public.jobs (org_id, branch_id, kind, payload, run_at, dedupe_key, max_attempts) values ($1,$2,$3,$4,$5,$6,$7)
-     on conflict (dedupe_key) do nothing returning id`,
-    [opts.orgId ?? null, opts.branchId ?? null, kind, JSON.stringify(payload), (opts.runAt ?? new Date(0)).toISOString(), opts.dedupeKey ?? null, opts.maxAttempts ?? 5],
-  );
+  const rows = await q<{ id: string | null }>(c, `select os.enqueue_job($1, $2, $3, $4, $5) as id`, [
+    kind,
+    JSON.stringify({ ...payload, ...(opts.branchId ? { branch_id: opts.branchId } : {}) }),
+    (opts.runAt ?? new Date(0)).toISOString(),
+    opts.dedupeKey ?? null,
+    opts.maxAttempts ?? 5,
+  ]);
   return rows[0]?.id ?? null;
+}
+
+async function asJobRunner<T>(fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+  const c = await getJobPool().connect();
+  try {
+    return await fn(c);
+  } finally {
+    c.release();
+  }
 }
 
 /** Runs due jobs until none are left or `limit` is reached. Returns a summary. */
@@ -42,33 +59,29 @@ export async function runDueJobs(limit = 50, workerId = 'worker'): Promise<{ ran
   let ran = 0;
   let failed = 0;
   const kinds: Record<string, number> = {};
-  await asService((c) => c.query(`update public.jobs set status = 'queued', locked_at = null where status = 'running' and locked_at < now() - interval '10 minutes'`));
-  for (let i = 0; i < limit; i++) {
-    const job = await asService(async (c) => {
-      const rows = await q<JobRow>(
-        c,
-        `update public.jobs set status = 'running', locked_at = now(), attempts = attempts + 1
-         where id = (select id from public.jobs where status = 'queued' and run_at <= now() order by run_at, created_at limit 1 for update skip locked)
-         returning id, org_id, branch_id, kind, payload, attempts, max_attempts`,
-      );
-      return rows[0] ?? null;
-    });
-    if (!job) break;
-    kinds[job.kind] = (kinds[job.kind] ?? 0) + 1;
-    const handler = handlers.get(job.kind);
-    try {
-      if (!handler) throw new Error(`no handler for ${job.kind}`);
-      const result = await handler(job);
-      await asService((c) => c.query(`update public.jobs set status = 'done', finished_at = now(), result = $2, last_error = null where id = $1`, [job.id, JSON.stringify(result ?? null)]));
-      ran++;
-    } catch (e) {
-      failed++;
-      const msg = e instanceof Error ? `${e.message}` : String(e);
-      const dead = job.attempts >= job.max_attempts;
-      await asService((c) =>
-        c.query(`update public.jobs set status = $2, last_error = $3, run_at = now() + ($4 || ' minutes')::interval, locked_at = null where id = $1`, [job.id, dead ? 'dead' : 'queued', msg.slice(0, 2000), String(2 ** job.attempts)]),
-      );
-      if (process.env.NODE_ENV !== 'test') console.error(`[jobs] ${job.kind} ${job.id} failed (attempt ${job.attempts}): ${msg} [worker ${workerId}]`);
+  while (ran + failed < limit) {
+    const batch = await asJobRunner((c) =>
+      c.query<{ id: string; org_id: string; kind: string; payload: Record<string, unknown>; attempts: number; max_attempts: number }>(
+        `select id, org_id, kind, payload, attempts, max_attempts from private.claim_jobs('os', $1, $2)`,
+        [workerId, Math.min(10, limit - ran - failed)],
+      ),
+    );
+    if (!batch.rows.length) break;
+    for (const r of batch.rows) {
+      const job: JobRow = { ...r, branch_id: typeof r.payload.branch_id === 'string' ? r.payload.branch_id : null };
+      kinds[job.kind] = (kinds[job.kind] ?? 0) + 1;
+      const handler = handlers.get(job.kind);
+      try {
+        if (!handler) throw new Error(`no handler for ${job.kind}`);
+        await handler(job);
+        await asJobRunner((c) => c.query(`select private.finish_job($1, true, null)`, [job.id]));
+        ran++;
+      } catch (e) {
+        failed++;
+        const msg = e instanceof Error ? `${e.message}` : String(e);
+        await asJobRunner((c) => c.query(`select private.finish_job($1, false, $2)`, [job.id, msg.slice(0, 2000)]));
+        if (process.env.NODE_ENV !== 'test') console.error(`[jobs] ${job.kind} ${job.id} failed (attempt ${job.attempts}): ${msg} [worker ${workerId}]`);
+      }
     }
   }
   return { ran, failed, kinds };

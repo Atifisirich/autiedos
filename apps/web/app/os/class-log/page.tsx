@@ -20,7 +20,7 @@ export default function ClassLog() {
   const [n, setN] = useState({ section_id: '', subject_id: '', staff_id: '', kind: 'cycle', checked_on: today, neatness: 3, completion: 3, correction: 3, remarks: '' });
   const a = useAction();
   const [saved, setSaved] = useState<string | null>(null);
-  const secOpts = opts(lk?.sections, (s) => `${lk!.classes.find((c) => c.id === s.class_id)?.name} ${s.name}`);
+  const secOpts = opts(lk?.sections, (s) => `${lk!.classes.find((c) => c.id === s.programme_id)?.name} ${s.name}`);
   return (
     <div>
       <PageHeader title={t('nav.classLog')} />

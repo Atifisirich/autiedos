@@ -306,7 +306,7 @@ export const planWorkflowSchema = z.object({
   reflection: z.string().max(4000).optional(),
   rating: z.number().int().min(1).max(5).optional(),
 });
-export const annualPlanSchema = z.object({ class_id: uuid, subject_id: uuid, curriculum_subject_id: uuid, use_ai: z.boolean().default(false) });
+export const annualPlanSchema = z.object({ programme_id: uuid, subject_id: uuid, curriculum_subject_id: uuid, use_ai: z.boolean().default(false) });
 export const classLogSchema = z.object({
   section_id: uuid,
   subject_id: uuid,
@@ -323,15 +323,15 @@ export const classLogSchema = z.object({
 });
 export const notebookCheckSchema = z.object({ section_id: uuid, subject_id: uuid, staff_id: uuid, kind: z.enum(['cycle', 'spot_check']), checked_on: isoDate, rubric: z.record(z.string(), z.number()).default({}), notes: z.string().max(2000).optional() });
 export const curriculumCloneSchema = z.object({ board_id: uuid });
-export const documentUploadSchema = z.object({ title: z.string().min(1).max(200), kind: z.enum(['textbook', 'year_plan', 'lesson_plan', 'worksheet', 'sop', 'other']), storage_path: z.string().min(1), mime: z.string().max(120), size_bytes: z.number().int().min(1).max(26214400), subject_id: uuid.optional().nullable(), class_id: uuid.optional().nullable(), text: z.string().max(2_000_000).optional() });
+export const documentUploadSchema = z.object({ title: z.string().min(1).max(200), kind: z.enum(['textbook', 'year_plan', 'lesson_plan', 'worksheet', 'sop', 'other']), storage_path: z.string().min(1), mime: z.string().max(120), size_bytes: z.number().int().min(1).max(26214400), subject_id: uuid.optional().nullable(), programme_id: uuid.optional().nullable(), text: z.string().max(2_000_000).optional() });
 
 // ---------------------------------------------------------------- exams & papers
-export const examSchema = z.object({ name: z.string().min(2), exam_type_id: uuid.optional().nullable(), term_id: uuid.optional().nullable(), starts_on: isoDate, ends_on: isoDate, class_ids: z.array(uuid).min(1) });
-export const examScheduleSchema = z.object({ exam_id: uuid, class_id: uuid, subject_id: uuid, date: isoDate, starts_at: hhmm, ends_at: hhmm, room_ids: z.array(uuid).default([]) });
+export const examSchema = z.object({ name: z.string().min(2), exam_type_id: uuid.optional().nullable(), term_id: uuid.optional().nullable(), starts_on: isoDate, ends_on: isoDate, programme_ids: z.array(uuid).min(1) });
+export const examScheduleSchema = z.object({ exam_id: uuid, programme_id: uuid, subject_id: uuid, date: isoDate, starts_at: hhmm, ends_at: hhmm, room_ids: z.array(uuid).default([]) });
 export const blueprintSchema = z.object({
   name: z.string().min(2),
   board: z.enum(['CBSE', 'CAMBRIDGE']),
-  class_id: uuid.optional().nullable(),
+  programme_id: uuid.optional().nullable(),
   subject_id: uuid.optional().nullable(),
   total_marks: z.number().int().min(1).max(500),
   duration_minutes: z.number().int().min(10).max(600),

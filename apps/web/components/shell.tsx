@@ -14,12 +14,21 @@ const ICON: Record<string, string> = {
 };
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { me, t, on, can, setLang, lang, setBranch } = useApp();
+  const { me, t, on, can, setLang, lang, setBranch, hasProduct } = useApp();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const inbox = useApi<{ id: string }[]>(me ? '/inbox?unread=1' : null);
   useEffect(() => { setOpen(false); }, [pathname]);
   if (!me) return <Loading />;
+  // Layer 3 (plan 4.3): without the OS product for this org and user, show "not part of your plan", not the OS.
+  if (!hasProduct('os')) {
+    return (
+      <main className="mx-auto max-w-lg p-8 text-center">
+        <h1 className="text-xl font-semibold text-slate-800">{t('plan.osNotIncluded')}</h1>
+        <p className="mt-2 text-sm text-slate-600">{t('plan.osNotIncludedBody', { org: me.org.name })}</p>
+      </main>
+    );
+  }
   const items = NAV_ITEMS.filter((i) => on(i.module) && (!i.perm || can(i.perm.module, i.perm.action, i.key === 'setup' ? 5 : 1)));
   const isActive = (href: string) => (href === '/os' ? pathname === '/os' : pathname?.startsWith(href));
   const unread = inbox.data?.length ?? 0;

@@ -2,6 +2,10 @@
  * Seed: "Demo International School" — 2 branches, 40 staff, 20 sections, students, a published
  * timetable, sample tasks and data for every module, so every screen can be opened and tested
  * (build rule 11). Run with `pnpm db:seed` (or `pnpm db:reset` for a clean database).
+ *
+ * On the shared platform (docs/adr/os-move.md) the school is a core organisation with an active OS
+ * subscription; staff are core.org_users + core.staff with OS roles (os.staff_roles), which os.sync_access turns
+ * into user product access. The seed writes as the table owner (like a migration), never through the API.
  */
 import { randomUUID } from 'node:crypto';
 import {
@@ -15,7 +19,7 @@ import {
   planPaperSlots,
   type GenAllocation,
 } from '@autoed/shared';
-import { asService, insert, insertMany, maybe, one, q, type Tx } from '../db';
+import { asOwner, insert, insertMany, maybe, one, q, splitName, type Tx } from '../db';
 import { applyPreset } from '../presets';
 import { loadGlobalCurriculum } from '../curriculum';
 
@@ -63,11 +67,11 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
   const orgName = opts.name ?? 'Demo International School';
   const domain = opts.domain ?? 'demo.school';
   const phonePrefix = opts.phonePrefix ?? '+9190000';
-  return asService(async (c) => {
-    const exists = await maybe<{ id: string }>(c, `select id from public.organizations where slug = $1`, [slug]);
+  return asOwner(async (c) => {
+    const exists = await maybe<{ id: string }>(c, `select id from core.organizations where slug = $1`, [slug]);
     if (exists) {
       log('Demo school already seeded');
-      const b = await q<{ id: string }>(c, `select id from public.branches where org_id = $1 order by code`, [exists.id]);
+      const b = await q<{ id: string }>(c, `select id from core.branches where org_id = $1 order by code`, [exists.id]);
       return { orgId: exists.id, branchIds: b.map((x) => x.id) };
     }
 
@@ -76,47 +80,54 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
 
     // ---------------------------------------------------------------- platform
     const superUser = await authUser(c, 'admin@autoed.dev', '+919000000000');
-    await insert(c, 'platform_admins', { user_id: superUser, name: 'AutoEd Support (Digivate)' }, { onConflict: '(user_id) do nothing' });
+    await c.query(`insert into core.platform_admins (user_id, name) values ($1, 'AutoEd Support (Digivate)') on conflict (user_id) do nothing`, [superUser]);
 
     // ---------------------------------------------------------------- org & branches
     log('Organisation');
-    const org = await insert<{ id: string }>(c, 'organizations', {
+    const org = await insert<{ id: string }>(c, 'core.organizations', {
       name: orgName,
+      kind: 'school',
+      time_zone: 'Asia/Kolkata',
       slug,
       preset_key: 'dual',
       branding: { header: orgName, footer: 'Hyderabad · demo.school', color: '#1d4ed8' },
       settings: { plan_bank_group_sharing: true },
-      setup_step: 8,
+      setup_step: '8',
       setup_completed_at: new Date().toISOString(),
     });
     const orgId = org.id;
-    const b1 = await insert<{ id: string }>(c, 'branches', {
-      org_id: orgId, name: 'Gachibowli Campus (CBSE)', code: 'GACH', address: 'Gachibowli, Hyderabad', latitude: 17.4401, longitude: 78.3489, geofence_radius_m: 250,
+    const b1 = await insert<{ id: string }>(c, 'core.branches', {
+      org_id: orgId, name: 'Gachibowli Campus (CBSE)', code: 'GACH', state_code: '36', time_zone: 'Asia/Kolkata', address: 'Gachibowli, Hyderabad', latitude: 17.4401, longitude: 78.3489, geofence_radius_m: 250,
       settings: { quiet_hours: { start: '20:00', end: '06:30' }, day_close_time: '17:30', substitution_mode: 'confirm', digest_time: '07:30', coverage_at_risk: 3, coverage_critical: 8, bot_enabled: true },
     });
-    const b2 = await insert<{ id: string }>(c, 'branches', {
-      org_id: orgId, name: 'Kondapur Campus (Cambridge)', code: 'KOND', address: 'Kondapur, Hyderabad', latitude: 17.46, longitude: 78.357, geofence_radius_m: 200,
+    const b2 = await insert<{ id: string }>(c, 'core.branches', {
+      org_id: orgId, name: 'Kondapur Campus (Cambridge)', code: 'KOND', state_code: '36', time_zone: 'Asia/Kolkata', address: 'Kondapur, Hyderabad', latitude: 17.46, longitude: 78.357, geofence_radius_m: 200,
       settings: { quiet_hours: { start: '20:00', end: '06:30' }, day_close_time: '17:30', substitution_mode: 'auto', digest_time: '07:30', coverage_at_risk: 3, coverage_critical: 8, bot_enabled: true },
     });
     const branchIds = [b1.id, b2.id];
+
+    // The OS product: subscription (core) and the org's AI wallet (billing; decision 40 / OQ-11: one wallet per client).
+    await c.query(`insert into core.subscriptions (org_id, product_key, status, plan_key, starts_on) values ($1, 'os', 'active', 'os_growth', $2)`, [orgId, AY_START]);
+    await c.query(`insert into billing.ai_allowances (org_id, plan_key, monthly_credits, teacher_monthly_cap) values ($1, 'os_growth', 2000, 60)`, [orgId]);
+    await c.query(`insert into billing.ai_credit_ledger (org_id, kind, period, credits, note) values ($1, 'allowance', $2, 2000, 'Monthly allowance (Growth)')`, [orgId, today.slice(0, 7)]);
 
     log('Presets');
     await applyPreset(c, orgId, b1.id, 'cbse');
     await applyPreset(c, orgId, b2.id, 'cambridge');
     // Branch 2 uses "Stage" for classes
-    await insert(c, 'terminology', { org_id: orgId, branch_id: b2.id, term_key: 'class', value: { en: 'Stage', hi: 'स्टेज', te: 'స్టేజ్' } });
+    for (const [locale, singular] of [['en', 'Stage'], ['hi', 'स्टेज'], ['te', 'స్టేజ్']] as const) await insert(c, 'core.terminology', { org_id: orgId, branch_id: b2.id, key: 'class', locale, singular });
 
-    const roles = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from public.roles where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
-    const positions = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from public.positions where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
-    const depts = Object.fromEntries((await q<{ name: string; id: string }>(c, `select name, id from public.departments where org_id = $1`, [orgId])).map((r) => [r.name, r.id]));
+    const roles = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from os.roles where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
+    const positions = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from core.positions where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
+    const depts = Object.fromEntries((await q<{ name: string; id: string }>(c, `select name, id from core.departments where org_id = $1`, [orgId])).map((r) => [r.name, r.id]));
 
     // ---------------------------------------------------------------- years, terms, calendar
     const years: Record<string, string> = {};
     for (const b of branchIds) {
-      const ay = await insert<{ id: string }>(c, 'academic_years', { org_id: orgId, branch_id: b, name: `${yearStart}-${String(yearStart + 1).slice(2)}`, starts_on: AY_START, ends_on: AY_END, is_current: true });
+      const ay = await insert<{ id: string }>(c, 'core.academic_years', { org_id: orgId, branch_id: b, name: `${yearStart}-${String(yearStart + 1).slice(2)}`, starts_on: AY_START, ends_on: AY_END, is_current: true, status: 'active' });
       years[b] = ay.id;
-      await insert(c, 'terms', { org_id: orgId, branch_id: b, academic_year_id: ay.id, name: 'Term 1', seq: 1, starts_on: AY_START, ends_on: `${yearStart}-09-30` });
-      await insert(c, 'terms', { org_id: orgId, branch_id: b, academic_year_id: ay.id, name: 'Term 2', seq: 2, starts_on: `${yearStart}-10-01`, ends_on: AY_END });
+      await insert(c, 'core.terms', { org_id: orgId, academic_year_id: ay.id, name: 'Term 1', seq: 1, starts_on: AY_START, ends_on: `${yearStart}-09-30` });
+      await insert(c, 'core.terms', { org_id: orgId, academic_year_id: ay.id, name: 'Term 2', seq: 2, starts_on: `${yearStart}-10-01`, ends_on: AY_END });
     }
     const holidays: [string, string, string][] = [
       [`${yearStart}-08-15`, `${yearStart}-08-15`, 'Independence Day'],
@@ -126,35 +137,35 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
       [`${yearStart + 1}-01-14`, `${yearStart + 1}-01-16`, 'Sankranti'],
       [`${yearStart + 1}-01-26`, `${yearStart + 1}-01-26`, 'Republic Day'],
     ];
-    for (const [s, e, t] of holidays) await insert(c, 'calendar_events', { org_id: orgId, branch_id: null, layer: 'holiday', title: t, starts_on: s, ends_on: e, is_working_day: false });
-    await insert(c, 'calendar_events', { org_id: orgId, branch_id: b1.id, layer: 'exam', title: 'Term 2 exams', starts_on: `${yearStart + 1}-02-23`, ends_on: `${yearStart + 1}-03-06` });
-    await insert(c, 'calendar_events', { org_id: orgId, branch_id: b1.id, layer: 'ptm', title: 'Parent-teacher meeting', starts_on: addDays(today, 12), ends_on: addDays(today, 12) });
-    await insert(c, 'calendar_events', { org_id: orgId, branch_id: null, layer: 'training', title: 'Staff training: assessment for learning', starts_on: addDays(today, 5), ends_on: addDays(today, 5) });
-    await insert(c, 'calendar_events', { org_id: orgId, branch_id: b1.id, layer: 'deadline', title: 'Term 2 question papers due', starts_on: addDays(today, 20), ends_on: addDays(today, 20) });
+    for (const [s, e, t] of holidays) await insert(c, 'core.calendar_events', { org_id: orgId, branch_id: null, layer: 'holiday', title: t, starts_on: s, ends_on: e, is_working_day: false });
+    await insert(c, 'core.calendar_events', { org_id: orgId, branch_id: b1.id, layer: 'exam', title: 'Term 2 exams', starts_on: `${yearStart + 1}-02-23`, ends_on: `${yearStart + 1}-03-06` });
+    await insert(c, 'core.calendar_events', { org_id: orgId, branch_id: b1.id, layer: 'ptm', title: 'Parent-teacher meeting', starts_on: addDays(today, 12), ends_on: addDays(today, 12) });
+    await insert(c, 'core.calendar_events', { org_id: orgId, branch_id: null, layer: 'training', title: 'Staff training: assessment for learning', starts_on: addDays(today, 5), ends_on: addDays(today, 5) });
+    await insert(c, 'core.calendar_events', { org_id: orgId, branch_id: b1.id, layer: 'deadline', title: 'Term 2 question papers due', starts_on: addDays(today, 20), ends_on: addDays(today, 20) });
 
     // ---------------------------------------------------------------- structure
     log('Wings, classes, sections, rooms, subjects');
     const wingsB1 = {
-      Middle: await insert<{ id: string }>(c, 'wings', { org_id: orgId, branch_id: b1.id, name: 'Middle', board: 'CBSE', seq: 1, student_attendance_mode: 'daily_once', homework_limit_minutes: 90 }),
-      Secondary: await insert<{ id: string }>(c, 'wings', { org_id: orgId, branch_id: b1.id, name: 'Secondary', board: 'CBSE', seq: 2, student_attendance_mode: 'daily_once', homework_limit_minutes: 120 }),
+      Middle: await insert<{ id: string }>(c, 'core.wings', { org_id: orgId, branch_id: b1.id, name: 'Middle', board: 'CBSE', seq: 1, student_attendance_mode: 'day', homework_limit_minutes: 90 }),
+      Secondary: await insert<{ id: string }>(c, 'core.wings', { org_id: orgId, branch_id: b1.id, name: 'Secondary', board: 'CBSE', seq: 2, student_attendance_mode: 'day', homework_limit_minutes: 120 }),
     };
     const wingsB2 = {
-      'Lower Secondary': await insert<{ id: string }>(c, 'wings', { org_id: orgId, branch_id: b2.id, name: 'Lower Secondary', board: 'CAMBRIDGE', seq: 1, student_attendance_mode: 'daily_twice', homework_limit_minutes: 90 }),
-      IGCSE: await insert<{ id: string }>(c, 'wings', { org_id: orgId, branch_id: b2.id, name: 'IGCSE', board: 'CAMBRIDGE', seq: 2, student_attendance_mode: 'daily_once', homework_limit_minutes: 120 }),
+      'Lower Secondary': await insert<{ id: string }>(c, 'core.wings', { org_id: orgId, branch_id: b2.id, name: 'Lower Secondary', board: 'CAMBRIDGE', seq: 1, student_attendance_mode: 'am_pm', homework_limit_minutes: 90 }),
+      IGCSE: await insert<{ id: string }>(c, 'core.wings', { org_id: orgId, branch_id: b2.id, name: 'IGCSE', board: 'CAMBRIDGE', seq: 2, student_attendance_mode: 'day', homework_limit_minutes: 120 }),
     };
 
     const rooms: Record<string, { id: string; type: string; name: string }[]> = { [b1.id]: [], [b2.id]: [] };
     for (const b of branchIds) {
-      for (let i = 1; i <= 10; i++) rooms[b]!.push({ ...(await insert<{ id: string }>(c, 'rooms', { org_id: orgId, branch_id: b, name: `Room ${100 + i}`, room_type: 'classroom', capacity: 40 })), type: 'classroom', name: `Room ${100 + i}` });
-      for (const name of ['Science Lab 1', 'Science Lab 2']) rooms[b]!.push({ ...(await insert<{ id: string }>(c, 'rooms', { org_id: orgId, branch_id: b, name, room_type: 'lab', capacity: 30 })), type: 'lab', name });
+      for (let i = 1; i <= 10; i++) rooms[b]!.push({ ...(await insert<{ id: string }>(c, 'core.rooms', { org_id: orgId, branch_id: b, name: `Room ${100 + i}`, kind: 'classroom', capacity: 40 })), type: 'classroom', name: `Room ${100 + i}` });
+      for (const name of ['Science Lab 1', 'Science Lab 2']) rooms[b]!.push({ ...(await insert<{ id: string }>(c, 'core.rooms', { org_id: orgId, branch_id: b, name, kind: 'lab', capacity: 30 })), type: 'lab', name });
       for (const [name, type, cap] of [['Computer Lab', 'computer_lab', 30], ['Library', 'library', 60], ['Assembly Hall', 'hall', 400], ['Staff Room', 'other', 30]] as const)
-        rooms[b]!.push({ ...(await insert<{ id: string }>(c, 'rooms', { org_id: orgId, branch_id: b, name, room_type: type, capacity: cap })), type, name });
+        rooms[b]!.push({ ...(await insert<{ id: string }>(c, 'core.rooms', { org_id: orgId, branch_id: b, name, kind: type, capacity: cap })), type, name });
     }
 
     const subj: Record<string, Record<string, { id: string; periods: number; core: boolean; roomType?: string; doubles?: number }>> = { [b1.id]: {}, [b2.id]: {} };
     for (const [b, key] of [[b1.id, 'cbse'], [b2.id, 'cambridge']] as const) {
       for (const s of PRESET_SUBJECTS[key]) {
-        const row = await insert<{ id: string }>(c, 'subjects', { org_id: orgId, branch_id: b, name: s.name, code: s.code, department_id: depts[s.department], content_language: s.language, is_core: s.core });
+        const row = await insert<{ id: string }>(c, 'core.subjects', { org_id: orgId, branch_id: b, name: s.name, code: b === b1.id ? s.code : `C-${s.code}`, department_id: depts[s.department], content_language: s.language, is_core: s.core });
         subj[b]![s.code] = { id: row.id, periods: s.periods, core: s.core, roomType: s.roomType, doubles: s.doubles };
       }
     }
@@ -169,11 +180,11 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
     ];
     const classes: { id: string; b: string; wing: string; name: string; grade: number }[] = [];
     let seq = 1;
-    for (const cd of classDefs) classes.push({ ...cd, id: (await insert<{ id: string }>(c, 'classes', { org_id: orgId, branch_id: cd.b, wing_id: cd.wing, name: cd.name, grade_level: cd.grade, seq: seq++ })).id });
+    for (const cd of classDefs) classes.push({ ...cd, id: (await insert<{ id: string }>(c, 'core.programmes', { org_id: orgId, branch_id: cd.b, wing_id: cd.wing, name: cd.name, board: cd.b === b1.id ? 'CBSE' : 'CAMBRIDGE', level: cd.grade, seq: seq++ })).id });
     for (const cl of classes) {
       const map = cl.b === b1.id ? subj[b1.id]! : subj[b2.id]!;
       for (const [code, s] of Object.entries(map)) {
-        await insert(c, 'class_subjects', { org_id: orgId, branch_id: cl.b, class_id: cl.id, subject_id: s.id, periods_per_week: cl.b === b1.id ? s.periods : b2Periods[code] ?? s.periods, double_periods: s.doubles ?? 0, room_type: s.roomType ?? null });
+        await insert(c, 'core.programme_subjects', { org_id: orgId, programme_id: cl.id, subject_id: s.id, periods_per_week: cl.b === b1.id ? s.periods : b2Periods[code] ?? s.periods, double_periods: s.doubles ?? 0, room_type: s.roomType ?? null });
       }
     }
 
@@ -224,6 +235,7 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
       { name: STAFF_NAMES[39]!, position: 'support_staff', branch: 'B2', dept: 'Operations', reportsToIdx: 26 }, // 39
     ];
     const staffIds: string[] = [];
+    const staffUsers: string[] = [];
     const branchOf = (s: StaffSpec) => (s.branch === 'B1' ? b1.id : s.branch === 'B2' ? b2.id : null);
     const wingOf = (s: StaffSpec) => (s.wing ? ({ ...wingsB1, ...wingsB2 } as Record<string, { id: string }>)[s.wing]?.id ?? null : null);
     const emails: string[] = [];
@@ -233,12 +245,13 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
       emails.push(email);
       const userId = await authUser(c, email, `${phonePrefix}${String(10000 + i).slice(1)}`);
       const pos = positions[s.position]!;
-      const st = await insert<{ id: string }>(c, 'staff', {
+      await insert(c, 'core.org_users', { org_id: orgId, user_id: userId, kind: 'staff', display_name: s.name, home_branch_id: branchOf(s) });
+      const st = await insert<{ id: string }>(c, 'core.staff', {
         org_id: orgId,
         branch_id: branchOf(s),
         user_id: userId,
         employee_code: `E${String(i + 1).padStart(3, '0')}`,
-        full_name: s.name,
+        ...splitName(s.name),
         email,
         phone: `${phonePrefix}${String(10000 + i).slice(1)}`,
         position_id: pos,
@@ -247,30 +260,31 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
         language: i === 23 ? 'te' : i === 39 ? 'hi' : 'en',
         status: 'active',
         joined_on: '2022-06-01',
-        is_teaching: !!s.teaches,
+        staff_type: s.teaches ? 'teaching' : ['chairman', 'director', 'principal', 'vice_principal', 'admin_officer'].includes(s.position) ? 'admin' : 'non_teaching',
         max_periods_day: 7,
         max_periods_week: 36,
         ui_prefs: s.position === 'support_staff' ? { simplified_home: true, large_text: true } : {},
       });
       staffIds.push(st.id);
+      staffUsers.push(userId);
       const roleKeys = new Set([positionRole(s.position), ...(s.extraRoles ?? [])]);
       if (s.teaches && s.position !== 'subject_teacher' && s.position !== 'class_teacher') roleKeys.add('subject_teacher');
-      for (const rk of roleKeys) await insert(c, 'staff_roles', { org_id: orgId, branch_id: branchOf(s), staff_id: st.id, role_id: roles[rk] });
+      for (const rk of roleKeys) await insert(c, 'os.staff_roles', { org_id: orgId, branch_id: branchOf(s), staff_id: st.id, role_id: roles[rk] });
     }
     for (let i = 0; i < specs.length; i++) {
       const r = specs[i]!.reportsToIdx;
-      if (r !== undefined) await c.query(`update public.staff set reports_to = $1 where id = $2`, [staffIds[r], staffIds[i]]);
+      if (r !== undefined) await c.query(`update core.staff set reports_to = $1 where id = $2`, [staffIds[r], staffIds[i]]);
     }
     // Science HOD of branch 1 is also secondary manager of the Middle-school science teacher
-    await insert(c, 'reporting_lines', { org_id: orgId, branch_id: b1.id, staff_id: staffIds[20], manager_id: staffIds[4] });
+    await insert(c, 'os.reporting_lines', { org_id: orgId, branch_id: b1.id, staff_id: staffIds[20], manager_id: staffIds[4] });
     // Department heads
-    await c.query(`update public.departments set head_staff_id = $1 where id = $2`, [staffIds[6], depts['Science']]);
-    await c.query(`update public.departments set head_staff_id = $1 where id = $2`, [staffIds[8], depts['Mathematics']]);
-    await c.query(`update public.departments set head_staff_id = $1 where id = $2`, [staffIds[7], depts['Languages']]);
+    await c.query(`update core.departments set head_staff_id = $1 where id = $2`, [staffIds[6], depts['Science']]);
+    await c.query(`update core.departments set head_staff_id = $1 where id = $2`, [staffIds[8], depts['Mathematics']]);
+    await c.query(`update core.departments set head_staff_id = $1 where id = $2`, [staffIds[7], depts['Languages']]);
     // Director has access to both branches by being group-level; VP of B1 also covers B2 events
-    await insert(c, 'staff_branch_access', { org_id: orgId, branch_id: b2.id, staff_id: staffIds[3] });
+    await c.query(`insert into core.user_branch_access (org_id, user_id, branch_id) select $1, user_id, $2 from core.staff where id = $3`, [orgId, b2.id, staffIds[3]]);
     // Admin officer may assign to all teachers (override example from PRD 4.3)
-    for (const to of ['class_teacher', 'subject_teacher']) await insert(c, 'assignment_rules', { org_id: orgId, from_role_id: roles['admin_officer'], to_role_id: roles[to], rule: 'assign' });
+    for (const to of ['class_teacher', 'subject_teacher']) await insert(c, 'os.assignment_rules', { org_id: orgId, from_role_id: roles['admin_officer'], to_role_id: roles[to], rule: 'assign' });
 
     // ---------------------------------------------------------------- sections & students
     log('Sections and students');
@@ -286,29 +300,38 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
         let ct: string | null = null;
         if (cl.b === b1.id && letter === 'A' && ctI1 < classTeachersB1.length) ct = staffIds[classTeachersB1[ctI1++]!]!;
         if (cl.b === b2.id && letter === 'A' && ctI2 < classTeachersB2.length) ct = staffIds[classTeachersB2[ctI2++]!]!;
-        const sec = await insert<{ id: string }>(c, 'sections', { org_id: orgId, branch_id: cl.b, class_id: cl.id, academic_year_id: years[cl.b], name: letter, class_teacher_id: ct, room_id: room.id, strength: 20, profile: { ability_mix: 'mixed', medium: 'English' } });
+        const sec = await insert<{ id: string }>(c, 'core.sections', { org_id: orgId, programme_id: cl.id, academic_year_id: years[cl.b], name: letter, class_teacher_id: ct, room_id: room.id, strength: 20, profile: { ability_mix: 'mixed', medium: 'English' } });
         sections.push({ id: sec.id, b: cl.b, classId: cl.id, wing: cl.wing, name: `${cl.name} ${letter}`, grade: cl.grade });
       }
     }
     roomIdx = {};
+    // Learners (core.students) with one family each (core.households + core.guardians): the parent phone the OS
+    // uses for absence alerts comes from the primary guardian (MAP-TABLES A.1 #26).
     const students: Record<string, unknown>[] = [];
+    const households: Record<string, unknown>[] = [];
+    const guardians: Record<string, unknown>[] = [];
     let adm = 1000;
     sections.forEach((s, si) => {
       for (let r = 1; r <= 20; r++) {
         const fn = FIRST[(si * 7 + r * 3) % FIRST.length]!;
         const ln = LAST[(si + r * 5) % LAST.length]!;
-        students.push({ id: randomUUID(), org_id: orgId, branch_id: s.b, class_id: s.classId, section_id: s.id, full_name: `${fn} ${ln}`, admission_no: `A${adm++}`, roll_no: r, status: 'active', parent_phone: `+9198${slug === 'demo' ? '0' : '1'}00${String(adm).padStart(5, '0')}` });
+        const household = randomUUID();
+        households.push({ id: household, org_id: orgId, family_name: `${ln} family` });
+        guardians.push({ org_id: orgId, household_id: household, name: `Parent of ${fn} ${ln}`, relation: 'guardian', phone: `+9198${slug === 'demo' ? '0' : '1'}00${String(adm + 1).padStart(5, '0')}`, is_primary: true });
+        students.push({ id: randomUUID(), org_id: orgId, branch_id: s.b, household_id: household, programme_id: s.classId, section_id: s.id, first_name: fn, last_name: ln, admission_no: `A${adm++}`, roll_no: String(r), status: 'active' });
       }
     });
-    await insertMany(c, 'students', students);
+    await insertMany(c, 'core.households', households);
+    await insertMany(c, 'core.guardians', guardians);
+    await insertMany(c, 'core.students', students);
 
     // ---------------------------------------------------------------- bell schedules & timetable
     log('Bell schedules and timetable');
     const bell = async (b: string, name: string, slots: [string, 'period' | 'break' | 'assembly', string, string][]) => {
-      const bs = await insert<{ id: string }>(c, 'bell_schedules', { org_id: orgId, branch_id: b, name, days: [1, 2, 3, 4, 5, 6] });
+      const bs = await insert<{ id: string }>(c, 'core.bell_schedules', { org_id: orgId, branch_id: b, name, days: [1, 2, 3, 4, 5, 6] });
       let ti = 0;
       let sq = 1;
-      for (const [label, kind, s, e] of slots) await insert(c, 'periods', { org_id: orgId, branch_id: b, bell_schedule_id: bs.id, seq: sq++, label, kind, starts_at: s, ends_at: e, teaching_index: kind === 'period' ? ++ti : null });
+      for (const [label, kind, s, e] of slots) await insert(c, 'core.periods', { org_id: orgId, bell_schedule_id: bs.id, seq: sq++, label, kind, starts_at: s, ends_at: e, teaching_index: kind === 'period' ? ++ti : null });
     };
     await bell(b1.id, 'Main schedule', [
       ['Assembly', 'assembly', '08:10', '08:30'], ['Period 1', 'period', '08:30', '09:10'], ['Period 2', 'period', '09:10', '09:50'], ['Period 3', 'period', '09:50', '10:30'],
@@ -337,11 +360,11 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
         });
       }
     }
-    await insertMany(c, 'teacher_allocations', allocRows);
+    await insertMany(c, 'core.teacher_allocations', allocRows.map(({ branch_id: _b, ...r }) => r));
 
     for (const b of branchIds) {
       const bSections = sections.filter((s) => s.b === b);
-      const sectionRows = await q<{ id: string; class_teacher_id: string | null }>(c, `select id, class_teacher_id from public.sections where branch_id = $1`, [b]);
+      const sectionRows = await q<{ id: string; class_teacher_id: string | null }>(c, `select se.id, se.class_teacher_id from core.sections se join core.programmes p on p.id = se.programme_id where p.branch_id = $1`, [b]);
       const allocs = allocRows.filter((a) => a.branch_id === b);
       const subjCore = new Map(Object.values(subj[b]!).map((s) => [s.id, s.core]));
       const teachersInvolved = [...new Set(allocs.map((a) => a.staff_id as string))];
@@ -352,31 +375,28 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
         teachers: Object.fromEntries(teachersInvolved.map((t) => [t, { maxPerDay: 7, maxPerWeek: 36, unavailable: [] }])),
         rooms: rooms[b]!.filter((r) => r.type === 'lab').map((r) => ({ id: r.id, type: r.type })),
       });
-      const v = await insert<{ id: string }>(c, 'timetable_versions', { org_id: orgId, branch_id: b, academic_year_id: years[b], name: 'Main timetable', status: 'published', effective_from: AY_START, generated_at: new Date().toISOString(), unplaced: gen.unplaced, score: gen.score });
-      const homeRoom = new Map((await q<{ id: string; room_id: string }>(c, `select id, room_id from public.sections where branch_id = $1`, [b])).map((r) => [r.id, r.room_id]));
+      const v = await insert<{ id: string }>(c, 'core.timetable_versions', { org_id: orgId, branch_id: b, academic_year_id: years[b], name: 'Main timetable', status: 'published', effective_from: AY_START, generated_at: new Date().toISOString(), unplaced: gen.unplaced, score: gen.score });
+      const homeRoom = new Map((await q<{ id: string; room_id: string }>(c, `select se.id, se.room_id from core.sections se join core.programmes p on p.id = se.programme_id where p.branch_id = $1`, [b])).map((r) => [r.id, r.room_id]));
       await insertMany(
         c,
-        'timetable_entries',
-        gen.entries.map((e) => ({ org_id: orgId, branch_id: b, version_id: v.id, day: e.day, period_seq: e.periodSeq, section_id: e.sectionId, subject_id: e.subjectId, staff_id: e.staffId, room_id: e.roomId ?? homeRoom.get(e.sectionId) ?? null, group_key: e.groupKey, fixed_label: e.fixedLabel ?? null, locked: !!e.locked })),
+        'core.timetable_entries',
+        gen.entries.map((e) => ({ org_id: orgId, version_id: v.id, day: e.day, period_seq: e.periodSeq, section_id: e.sectionId, subject_id: e.subjectId, staff_id: e.staffId, room_id: e.roomId ?? homeRoom.get(e.sectionId) ?? null, group_key: e.groupKey, fixed_label: e.fixedLabel ?? null, locked: !!e.locked })),
       );
       log(`  timetable ${b === b1.id ? 'GACH' : 'KOND'}: ${gen.entries.length} entries, ${gen.unplaced.length} unplaced groups`);
     }
 
     // ---------------------------------------------------------------- AI plan & credits
-    const growth = await one<{ id: string }>(c, `select id from public.plans where key = 'growth'`);
-    for (const b of branchIds) {
-      await insert(c, 'branch_subscriptions', { org_id: orgId, branch_id: b, plan_id: growth.id, starts_on: AY_START, teacher_monthly_cap: 60 });
-      await insert(c, 'ai_credit_ledger', { org_id: orgId, branch_id: b, kind: 'allowance', period: today.slice(0, 7), credits: 1000, note: 'Monthly allowance (Growth)' });
-    }
+    // (the AI wallet was set up with the subscription above)
 
     // ---------------------------------------------------------------- sample operational data
     log('Sample tasks, attendance, leave, tickets, circulars, meetings, events');
     const S = (i: number) => staffIds[i]!;
-    const cat = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from public.task_categories where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
+    const U = (i: number) => staffUsers[i]!;
+    const cat = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from os.task_categories where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
     const at = (d: string, hhmm: string) => new Date(`${d}T${hhmm}:00+05:30`).toISOString();
     const task = async (t: Record<string, unknown>) => {
-      const row = await insert<{ id: string }>(c, 'tasks', { org_id: orgId, branch_id: b1.id, priority: 'normal', source: 'assigned', proof_required: 'none', verification_required: false, ...t });
-      await insert(c, 'task_events', { org_id: orgId, branch_id: b1.id, task_id: row.id, actor_id: t.assigner_id ?? t.owner_id, event: 'created', to_status: t.status ?? 'todo' });
+      const row = await insert<{ id: string }>(c, 'os.tasks', { org_id: orgId, branch_id: b1.id, priority: 'normal', source: 'assigned', proof_required: 'none', verification_required: false, ...t });
+      await insert(c, 'os.task_events', { org_id: orgId, branch_id: b1.id, task_id: row.id, actor_id: t.assigner_id ?? t.owner_id, event: 'created', to_status: t.status ?? 'todo' });
       return row.id;
     };
     await task({ title: 'Submit Class 10 Science unit test question paper', category_id: cat.academic, owner_id: S(9), assigner_id: S(6), due_at: at(addDays(today, 2), '16:00'), priority: 'high', proof_required: 'file', verification_required: true });
@@ -393,7 +413,7 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
     const parent = await task({ title: 'Share Term 2 syllabus with parents', category_id: cat.academic, owner_id: null, assigner_id: S(2), is_group_parent: true, group_mode: 'each', due_at: at(addDays(today, 4), '16:00') });
     for (const i of classTeachersB1) await task({ title: 'Share Term 2 syllabus with parents', category_id: cat.academic, owner_id: S(i), assigner_id: S(2), parent_task_id: parent, due_at: at(addDays(today, 4), '16:00') });
     // recurring
-    await insert(c, 'task_recurrences', { org_id: orgId, branch_id: b1.id, template: { title: 'Weekly lab safety walk-through', category_id: cat.academic, priority: 'normal' }, target: { staff_ids: [S(20)] }, frequency: 'weekly', weekdays: [1], due_time: '15:00', starts_on: AY_START, assigner_id: S(6) });
+    await insert(c, 'os.task_recurrences', { org_id: orgId, branch_id: b1.id, template: { title: 'Weekly lab safety walk-through', category_id: cat.academic, priority: 'normal' }, target: { staff_ids: [S(20)] }, frequency: 'weekly', weekdays: [1], due_time: '15:00', starts_on: AY_START, assigner_id: S(6) });
 
     // staff attendance for yesterday and today
     const attRows: Record<string, unknown>[] = [];
@@ -407,95 +427,96 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
         attRows.push({ org_id: orgId, branch_id: b, staff_id: sid, date: d, check_in_at: at(d, late ? '08:25' : '07:52'), check_out_at: d === today ? null : at(d, '15:40'), source: 'app', status: late ? 'late' : 'present', late_minutes: late ? 25 : 0, check_in_lat: 17.4401, check_in_lng: 78.3489, check_in_distance_m: 30 });
       });
     }
-    await insertMany(c, 'staff_attendance', attRows);
+    await insertMany(c, 'core.staff_attendance', attRows);
 
     // leave: an approved leave today for staff 14 (math, B1) -> substitutions; a pending one
-    const lt = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from public.leave_types where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
-    await insert(c, 'leave_requests', { org_id: orgId, branch_id: b1.id, staff_id: S(14), leave_type_id: lt.sick, start_date: today, end_date: today, days: 1, reason: 'Fever', status: 'approved', decided_at: new Date().toISOString() });
-    const pendingType = await one<{ id: string }>(c, `select id from public.approval_types where org_id = $1 and key = 'leave'`, [orgId]);
-    const lr = await insert<{ id: string }>(c, 'leave_requests', { org_id: orgId, branch_id: b1.id, staff_id: S(11), leave_type_id: lt.casual, start_date: addDays(today, 3), end_date: addDays(today, 3), days: 1, reason: 'Family function', handover_note: 'Worksheets are in the staff room', status: 'pending' });
-    const ar = await insert<{ id: string }>(c, 'approval_requests', { org_id: orgId, branch_id: b1.id, approval_type_id: pendingType.id, applicant_id: S(11), title: `Casual leave · ${addDays(today, 3)}`, data: { days: 1 }, status: 'pending', current_seq: 1, pending_approver_ids: [S(7)], linked_type: 'leave_request', linked_id: lr.id, step_due_at: at(addDays(today, 2), '16:00') });
-    await c.query(`update public.leave_requests set approval_request_id = $1 where id = $2`, [ar.id, lr.id]);
-    await insert(c, 'approval_actions', { org_id: orgId, branch_id: b1.id, request_id: ar.id, step_seq: 0, actor_id: S(11), action: 'submit' });
+    const lt = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from core.leave_types where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
+    await insert(c, 'core.leave_requests', { org_id: orgId, branch_id: b1.id, staff_id: S(14), leave_type_id: lt.sick, start_date: today, end_date: today, days: 1, reason: 'Fever', status: 'approved', decided_at: new Date().toISOString() });
+    const pendingType = await one<{ id: string }>(c, `select id from core.approval_types where org_id = $1 and key = 'leave'`, [orgId]);
+    const lr = await insert<{ id: string }>(c, 'core.leave_requests', { org_id: orgId, branch_id: b1.id, staff_id: S(11), leave_type_id: lt.casual, start_date: addDays(today, 3), end_date: addDays(today, 3), days: 1, reason: 'Family function', handover_note: 'Worksheets are in the staff room', status: 'pending' });
+    const ar = await insert<{ id: string }>(c, 'core.approval_requests', { org_id: orgId, branch_id: b1.id, approval_type_id: pendingType.id, product_key: 'os', applicant_staff_id: S(11), applicant_user_id: U(11), title: `Casual leave · ${addDays(today, 3)}`, data: { days: 1 }, status: 'pending', current_seq: 1, pending_approver_ids: [S(7)], linked_type: 'leave_request', linked_id: lr.id, step_due_at: at(addDays(today, 2), '16:00') });
+    await c.query(`update core.leave_requests set approval_request_id = $1 where id = $2`, [ar.id, lr.id]);
+    await insert(c, 'core.approval_actions', { org_id: orgId, request_id: ar.id, step_seq: 0, actor_staff_id: S(11), actor_user_id: U(11), action: 'submit' });
     // purchase request pending with principal
-    const purchase = await one<{ id: string }>(c, `select id from public.approval_types where org_id = $1 and key = 'purchase'`, [orgId]);
-    await insert(c, 'approval_requests', { org_id: orgId, branch_id: b1.id, approval_type_id: purchase.id, applicant_id: S(6), title: 'Lab glassware restock', data: { item: 'Beakers and test tubes', amount: 8500, vendor: 'Hyderabad Scientific' }, status: 'pending', current_seq: 2, pending_approver_ids: [S(2)] });
+    const purchase = await one<{ id: string }>(c, `select id from core.approval_types where org_id = $1 and key = 'purchase'`, [orgId]);
+    await insert(c, 'core.approval_requests', { org_id: orgId, branch_id: b1.id, approval_type_id: purchase.id, product_key: 'os', applicant_staff_id: S(6), applicant_user_id: U(6), amount: 8500, title: 'Lab glassware restock', data: { item: 'Beakers and test tubes', amount: 8500, vendor: 'Hyderabad Scientific' }, status: 'pending', current_seq: 2, pending_approver_ids: [S(2)] });
 
     // leave balances for everyone
-    const ltRows = await q<{ id: string; key: string }>(c, `select id, key from public.leave_types where org_id = $1 and key in ('casual','sick','earned')`, [orgId]);
+    const ltRows = await q<{ id: string; key: string }>(c, `select id, key from core.leave_types where org_id = $1 and key in ('casual','sick','earned')`, [orgId]);
     const balRows: Record<string, unknown>[] = [];
     staffIds.forEach((sid, i) => {
       const b = branchOf(specs[i]!);
-      for (const t of ltRows) balRows.push({ org_id: orgId, branch_id: b, staff_id: sid, leave_type_id: t.id, academic_year_id: years[b ?? b1.id], opening: t.key === 'earned' ? 6 : t.key === 'sick' ? 4 : 0 });
+      for (const t of ltRows) balRows.push({ org_id: orgId, staff_id: sid, leave_type_id: t.id, academic_year_id: years[b ?? b1.id], opening: t.key === 'earned' ? 6 : t.key === 'sick' ? 4 : 0 });
     });
-    await insertMany(c, 'leave_balances', balRows);
+    await insertMany(c, 'core.leave_balances', balRows);
 
     // tickets
-    const tcat = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from public.ticket_categories where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
-    await insert(c, 'tickets', { org_id: orgId, branch_id: b1.id, category_id: tcat.electrical, room_id: rooms[b1.id]![3]!.id, title: 'Fan not working', priority: 'high', status: 'assigned', raised_by: S(11), owner_id: S(21), due_at: at(addDays(today, 1), '12:00') });
-    await insert(c, 'tickets', { org_id: orgId, branch_id: b1.id, category_id: tcat.it, room_id: rooms[b1.id]![12]!.id, title: 'Two computers not booting', priority: 'normal', status: 'open', raised_by: S(18), owner_id: null, due_at: at(addDays(today, 2), '12:00') });
-    await insert(c, 'tickets', { org_id: orgId, branch_id: b1.id, category_id: tcat.plumbing, room_id: rooms[b1.id]![0]!.id, title: 'Leaking tap near Room 101', priority: 'low', status: 'resolved', raised_by: S(21), owner_id: S(21), resolved_at: at(addDays(today, -1), '13:00'), cost: 450, vendor: 'Local plumber' });
+    const tcat = Object.fromEntries((await q<{ key: string; id: string }>(c, `select key, id from core.ticket_categories where org_id = $1`, [orgId])).map((r) => [r.key, r.id]));
+    await insert(c, 'core.tickets', { org_id: orgId, branch_id: b1.id, category_id: tcat.electrical, room_id: rooms[b1.id]![3]!.id, title: 'Fan not working', product_key: 'os', priority: 'high', status: 'assigned', raised_by_staff_id: S(11), raised_by_user_id: U(11), owner_staff_id: S(21), due_at: at(addDays(today, 1), '12:00') });
+    await insert(c, 'core.tickets', { org_id: orgId, branch_id: b1.id, category_id: tcat.it, room_id: rooms[b1.id]![12]!.id, title: 'Two computers not booting', product_key: 'os', priority: 'normal', status: 'open', raised_by_staff_id: S(18), raised_by_user_id: U(18), owner_staff_id: null, due_at: at(addDays(today, 2), '12:00') });
+    await insert(c, 'core.tickets', { org_id: orgId, branch_id: b1.id, category_id: tcat.plumbing, room_id: rooms[b1.id]![0]!.id, title: 'Leaking tap near Room 101', product_key: 'os', priority: 'low', status: 'resolved', raised_by_staff_id: S(21), raised_by_user_id: U(21), owner_staff_id: S(21), resolved_at: at(addDays(today, -1), '13:00'), cost: 450, vendor: 'Local plumber' });
 
     // circular
-    const circ = await insert<{ id: string }>(c, 'circulars', { org_id: orgId, branch_id: b1.id, author_id: S(2), title: 'PTM schedule and dress code', body: 'Dear colleagues, the parent-teacher meeting is scheduled for the coming Saturday from 9 am to 1 pm. Please wear formal attire and keep student progress notes ready.', target: { branch_ids: [b1.id] }, response_mode: 'acknowledge', important: true, tags: ['ptm'], status: 'sent', sent_at: new Date().toISOString() });
+    const circ = await insert<{ id: string }>(c, 'os.circulars', { org_id: orgId, branch_id: b1.id, author_id: S(2), title: 'PTM schedule and dress code', body: 'Dear colleagues, the parent-teacher meeting is scheduled for the coming Saturday from 9 am to 1 pm. Please wear formal attire and keep student progress notes ready.', target: { branch_ids: [b1.id] }, response_mode: 'acknowledge', important: true, tags: ['ptm'], status: 'sent', sent_at: new Date().toISOString() });
     const recRows = staffIds.filter((_, i) => branchOf(specs[i]!) === b1.id).map((sid, k) => ({ org_id: orgId, branch_id: b1.id, circular_id: circ.id, staff_id: sid, read_at: k % 3 === 0 ? new Date().toISOString() : null, acknowledged_at: k % 6 === 0 ? new Date().toISOString() : null }));
-    await insertMany(c, 'circular_receipts', recRows);
+    await insertMany(c, 'os.circular_receipts', recRows);
 
     // meetings
-    const m1 = await insert<{ id: string }>(c, 'meetings', { org_id: orgId, branch_id: b1.id, series_id: randomUUID(), title: 'Weekly staff meeting', agenda: '1. PTM preparation\n2. Term 2 exam timeline\n3. Any other business', starts_at: at(addDays(today, -7), '15:45'), ends_at: at(addDays(today, -7), '16:30'), room_id: rooms[b1.id]![15]!.id, organizer_id: S(2), attendee_ids: staffIds.slice(2, 21), status: 'held', minutes: 'Discussed PTM preparation and exam timeline.', attendance: Object.fromEntries(staffIds.slice(2, 21).map((s, k) => [s, k % 7 !== 0])) });
+    const m1 = await insert<{ id: string }>(c, 'os.meetings', { org_id: orgId, branch_id: b1.id, series_id: randomUUID(), title: 'Weekly staff meeting', agenda: '1. PTM preparation\n2. Term 2 exam timeline\n3. Any other business', starts_at: at(addDays(today, -7), '15:45'), ends_at: at(addDays(today, -7), '16:30'), room_id: rooms[b1.id]![15]!.id, organizer_id: S(2), attendee_ids: staffIds.slice(2, 21), status: 'held', minutes: 'Discussed PTM preparation and exam timeline.', attendance: Object.fromEntries(staffIds.slice(2, 21).map((s, k) => [s, k % 7 !== 0])) });
     const mt = await task({ title: 'Circulate exam timeline draft', category_id: cat.admin, owner_id: S(4), assigner_id: S(2), due_at: at(addDays(today, 1), '16:00'), linked_type: 'meeting', linked_id: m1.id });
-    await insert(c, 'meeting_actions', { org_id: orgId, branch_id: b1.id, meeting_id: m1.id, description: 'Circulate exam timeline draft', owner_id: S(4), due_on: addDays(today, 1), task_id: mt });
-    await insert(c, 'meetings', { org_id: orgId, branch_id: b1.id, series_id: (await one<{ series_id: string }>(c, 'select series_id from public.meetings where id = $1', [m1.id])).series_id, previous_meeting_id: m1.id, title: 'Weekly staff meeting', agenda: '1. Review of action items\n2. Annual Day planning', starts_at: at(addDays(today, isoWeekday(today) <= 5 ? 5 - isoWeekday(today) : 6), '15:45'), ends_at: at(addDays(today, isoWeekday(today) <= 5 ? 5 - isoWeekday(today) : 6), '16:30'), room_id: rooms[b1.id]![15]!.id, organizer_id: S(2), attendee_ids: staffIds.slice(2, 21), status: 'scheduled' });
+    await insert(c, 'os.meeting_actions', { org_id: orgId, branch_id: b1.id, meeting_id: m1.id, description: 'Circulate exam timeline draft', owner_id: S(4), due_on: addDays(today, 1), task_id: mt });
+    await insert(c, 'os.meetings', { org_id: orgId, branch_id: b1.id, series_id: (await one<{ series_id: string }>(c, 'select series_id from os.meetings where id = $1', [m1.id])).series_id, previous_meeting_id: m1.id, title: 'Weekly staff meeting', agenda: '1. Review of action items\n2. Annual Day planning', starts_at: at(addDays(today, isoWeekday(today) <= 5 ? 5 - isoWeekday(today) : 6), '15:45'), ends_at: at(addDays(today, isoWeekday(today) <= 5 ? 5 - isoWeekday(today) : 6), '16:30'), room_id: rooms[b1.id]![15]!.id, organizer_id: S(2), attendee_ids: staffIds.slice(2, 21), status: 'scheduled' });
 
     // event from template
-    const annual = await one<{ id: string; task_pack: { title: string; role_key: string; days_before: number; priority: string }[] }>(c, `select id, task_pack from public.event_templates where org_id = $1 and key = 'annual_day'`, [orgId]);
+    const annual = await one<{ id: string; task_pack: { title: string; role_key: string; days_before: number; priority: string }[] }>(c, `select id, task_pack from os.event_templates where org_id = $1 and key = 'annual_day'`, [orgId]);
     const evDate = addDays(today, 40);
-    const ev = await insert<{ id: string }>(c, 'events', { org_id: orgId, branch_id: b1.id, template_id: annual.id, name: 'Annual Day', event_date: evDate, owner_id: S(3), budget: [{ line: 'Stage and sound', amount: 80000, approved: false }, { line: 'Costumes', amount: 40000, approved: false }], committees: [{ name: 'Stage', members: [S(19)] }] });
+    const ev = await insert<{ id: string }>(c, 'core.events', { org_id: orgId, branch_id: b1.id, name: 'Annual Day', event_date: evDate, owner_staff_id: S(3) });
+    await insert(c, 'os.event_plans', { org_id: orgId, branch_id: b1.id, event_id: ev.id, template_id: annual.id, budget: [{ line: 'Stage and sound', amount: 80000, approved: false }, { line: 'Costumes', amount: 40000, approved: false }], committees: [{ name: 'Stage', members: [S(19)] }] });
     const roleHolder: Record<string, string> = { academic_coordinator: S(4), admin_officer: S(5), vice_principal: S(3) };
     for (const tp of annual.task_pack) await task({ title: tp.title, category_id: cat.event, owner_id: roleHolder[tp.role_key] ?? S(3), assigner_id: S(3), priority: tp.priority, due_at: at(addDays(evDate, -tp.days_before), '16:00'), linked_type: 'event', linked_id: ev.id });
 
     // duty assignments this week
-    const duty = await q<{ id: string; key: string }>(c, `select id, key from public.duty_types where org_id = $1 and key in ('gate','lunch')`, [orgId]);
+    const duty = await q<{ id: string; key: string }>(c, `select id, key from os.duty_types where org_id = $1 and key in ('gate','lunch')`, [orgId]);
     const dutyRows: Record<string, unknown>[] = [];
     for (let d = 0; d < 5; d++) {
       const date = addDays(today, d);
       if (isoWeekday(date) === 7) continue;
       duty.forEach((dt, k) => dutyRows.push({ org_id: orgId, branch_id: b1.id, duty_type_id: dt.id, staff_id: S(9 + ((d + k * 3) % 10)), date }));
     }
-    await insertMany(c, 'duty_assignments', dutyRows);
+    await insertMany(c, 'os.duty_assignments', dutyRows);
 
     // incidents & compliance
     const someStudents = students.filter((s) => s.branch_id === b1.id).slice(0, 2).map((s) => s.id as string);
-    await insert(c, 'incidents', { org_id: orgId, branch_id: b1.id, type: 'injury', student_ids: [someStudents[0]], occurred_at: at(addDays(today, -1), '11:10'), location_text: 'Playground', description: 'Student scraped knee during games period.', action_taken: 'First aid given; parent informed.', severity: 'low', owner_id: S(19), reported_by: S(19), status: 'closed' });
-    await insert(c, 'incidents', { org_id: orgId, branch_id: b1.id, type: 'discipline', student_ids: someStudents, occurred_at: at(today, '10:00'), location_text: 'Corridor', description: 'Argument between two students.', action_taken: 'Counselled; follow-up with class teacher.', severity: 'medium', confidential: true, owner_id: S(3), reported_by: S(12), status: 'follow_up' });
-    const comp = await q<{ id: string; name: string }>(c, `select id, name from public.compliance_items where org_id = $1`, [orgId]);
+    await insert(c, 'core.incidents', { org_id: orgId, branch_id: b1.id, type: 'injury', student_ids: [someStudents[0]], occurred_at: at(addDays(today, -1), '11:10'), location_text: 'Playground', description: 'Student scraped knee during games period.', action_taken: 'First aid given; parent informed.', severity: 'low', owner_staff_id: S(19), reported_by_staff_id: S(19), reported_by_user_id: U(19), status: 'closed' });
+    await insert(c, 'core.incidents', { org_id: orgId, branch_id: b1.id, type: 'discipline', student_ids: someStudents, occurred_at: at(today, '10:00'), location_text: 'Corridor', description: 'Argument between two students.', action_taken: 'Counselled; follow-up with class teacher.', severity: 'medium', confidential: true, owner_staff_id: S(3), reported_by_staff_id: S(12), reported_by_user_id: U(12), status: 'follow_up' });
+    const comp = await q<{ id: string; name: string }>(c, `select id, name from os.compliance_items where org_id = $1`, [orgId]);
     for (const [k, item] of comp.entries()) {
       const exp = k % 5 === 0 ? addDays(today, 25) : k % 7 === 0 ? addDays(today, -5) : addDays(today, 200 + k * 10);
-      await c.query(`update public.compliance_items set owner_id = $2, issued_on = $3, expires_on = $4, status = case when $4::date < $5::date then 'overdue' when $4::date <= ($5::date + 60) then 'expiring' else 'valid' end where id = $1`, [item.id, S(5), addDays(today, -300), exp, today]);
+      await c.query(`update os.compliance_items set owner_id = $2, issued_on = $3, expires_on = $4, status = case when $4::date < $5::date then 'overdue' when $4::date <= ($5::date + 60) then 'expiring' else 'valid' end where id = $1`, [item.id, S(5), addDays(today, -300), exp, today]);
     }
 
     // checklist runs today
-    const tpls = await q<{ id: string; branch_id: string; owner_role_id: string; schedule: { time: string; frequency: string } }>(c, `select id, branch_id, owner_role_id, schedule from public.checklist_templates where org_id = $1 and deleted_at is null`, [orgId]);
+    const tpls = await q<{ id: string; branch_id: string; owner_role_id: string; schedule: { time: string; frequency: string } }>(c, `select id, branch_id, owner_role_id, schedule from os.checklist_templates where org_id = $1 and deleted_at is null`, [orgId]);
     for (const t of tpls) {
       if (t.schedule.frequency !== 'daily') continue;
-      const owner = await maybe<{ staff_id: string }>(c, `select sr.staff_id from public.staff_roles sr join public.staff s on s.id = sr.staff_id where sr.role_id = $1 and s.branch_id = $2 limit 1`, [t.owner_role_id, t.branch_id]);
+      const owner = await maybe<{ staff_id: string }>(c, `select sr.staff_id from os.staff_roles sr join core.staff s on s.id = sr.staff_id where sr.role_id = $1 and s.branch_id = $2 limit 1`, [t.owner_role_id, t.branch_id]);
       const fallback = t.branch_id === b1.id ? S(21) : S(39);
-      await insert(c, 'checklist_runs', { org_id: orgId, branch_id: t.branch_id, template_id: t.id, owner_id: owner?.staff_id ?? fallback, run_date: today, due_at: at(today, t.schedule.time), status: 'pending' });
+      await insert(c, 'os.checklist_runs', { org_id: orgId, branch_id: t.branch_id, template_id: t.id, owner_id: owner?.staff_id ?? fallback, run_date: today, due_at: at(today, t.schedule.time), status: 'pending' });
     }
 
     // ---------------------------------------------------------------- academics
     log('Academics: annual plan, lesson plans, class log, exams, observation');
-    const cbse10sci = await one<{ id: string }>(c, `select cs.id from public.curriculum_subjects cs join public.curriculum_boards b on b.id = cs.board_id where b.org_id is null and b.key = 'CBSE' and cs.grade_level = 10 and cs.name = 'Science'`);
-    const chapters = await q<{ id: string; name: string; est_periods: number }>(c, `select t.id, t.name, t.est_periods from public.curriculum_topics t join public.curriculum_units u on u.id = t.unit_id where u.subject_id = $1 and t.kind = 'chapter' order by u.seq, t.seq`, [cbse10sci.id]);
+    const cbse10sci = await one<{ id: string }>(c, `select cs.id from os.curriculum_subjects cs join os.curriculum_boards b on b.id = cs.board_id where b.org_id is null and b.key = 'CBSE' and cs.grade_level = 10 and cs.name = 'Science'`);
+    const chapters = await q<{ id: string; name: string; est_periods: number }>(c, `select t.id, t.name, t.est_periods from os.curriculum_topics t join os.curriculum_units u on u.id = t.unit_id where u.subject_id = $1 and t.kind = 'chapter' order by u.seq, t.seq`, [cbse10sci.id]);
     const class10 = classes.find((x) => x.b === b1.id && x.grade === 10)!;
-    const ap = await insert<{ id: string }>(c, 'annual_plans', { org_id: orgId, branch_id: b1.id, academic_year_id: years[b1.id], class_id: class10.id, subject_id: subj[b1.id]!.SCI!.id, curriculum_subject_id: cbse10sci.id, staff_id: S(9), status: 'published' });
+    const ap = await insert<{ id: string }>(c, 'os.annual_plans', { org_id: orgId, branch_id: b1.id, academic_year_id: years[b1.id], programme_id: class10.id, subject_id: subj[b1.id]!.SCI!.id, curriculum_subject_id: cbse10sci.id, staff_id: S(9), status: 'published' });
     let cursor = AY_START;
     for (const [k, chp] of chapters.entries()) {
       const end = addDays(cursor, Math.round(chp.est_periods * 1.0));
-      await insert(c, 'annual_plan_items', { org_id: orgId, branch_id: b1.id, annual_plan_id: ap.id, topic_id: chp.id, seq: k + 1, planned_start: cursor, planned_end: end, planned_periods: chp.est_periods });
+      await insert(c, 'os.annual_plan_items', { org_id: orgId, branch_id: b1.id, annual_plan_id: ap.id, topic_id: chp.id, seq: k + 1, planned_start: cursor, planned_end: end, planned_periods: chp.est_periods });
       cursor = addDays(end, 1);
     }
-    const topic = await one<{ id: string }>(c, `select t.id from public.curriculum_topics t where t.parent_topic_id = $1 order by seq limit 1`, [chapters[0]!.id]);
+    const topic = await one<{ id: string }>(c, `select t.id from os.curriculum_topics t where t.parent_topic_id = $1 order by seq limit 1`, [chapters[0]!.id]);
     const sec10A = sections.find((s) => s.b === b1.id && s.name === 'Class 10 A')!;
     const sampleContent = {
       objectives: [{ text: 'Write balanced chemical equations from word descriptions', bloom: 'apply', outcome_codes: ['CB.SCI.10.1.1.1.1'] }],
@@ -516,9 +537,9 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
       board_work: 'Steps to balance an equation',
       reflection: '',
     };
-    const lp = await insert<{ id: string }>(c, 'lesson_plans', { org_id: orgId, branch_id: b1.id, level: 'daily', staff_id: S(9), section_id: sec10A.id, section_ids: [sec10A.id], subject_id: subj[b1.id]!.SCI!.id, topic_id: topic.id, plan_date: today, period_count: 1, period_minutes: 40, teaching_model: '5E', content: sampleContent, status: 'approved', confirmed_by_teacher: true, submitted_at: at(addDays(today, -1), '15:00'), approved_at: at(addDays(today, -1), '17:00'), in_bank: true, rating_sum: 9, rating_count: 2, usage_count: 3 });
-    await insert(c, 'lesson_plan_versions', { org_id: orgId, branch_id: b1.id, plan_id: lp.id, version: 1, content: sampleContent, note: 'Initial' });
-    await insert(c, 'lesson_plans', { org_id: orgId, branch_id: b1.id, level: 'daily', staff_id: S(9), section_id: sec10A.id, section_ids: [sec10A.id], subject_id: subj[b1.id]!.SCI!.id, topic_id: topic.id, plan_date: addDays(today, 1), period_count: 1, period_minutes: 40, teaching_model: '5E', content: sampleContent, status: 'submitted', confirmed_by_teacher: true, submitted_at: new Date().toISOString(), due_at: at(today, '16:00') });
+    const lp = await insert<{ id: string }>(c, 'os.lesson_plans', { org_id: orgId, branch_id: b1.id, level: 'daily', staff_id: S(9), section_id: sec10A.id, section_ids: [sec10A.id], subject_id: subj[b1.id]!.SCI!.id, topic_id: topic.id, plan_date: today, period_count: 1, period_minutes: 40, teaching_model: '5E', content: sampleContent, status: 'approved', confirmed_by_teacher: true, submitted_at: at(addDays(today, -1), '15:00'), approved_at: at(addDays(today, -1), '17:00'), in_bank: true, rating_sum: 9, rating_count: 2, usage_count: 3 });
+    await insert(c, 'os.lesson_plan_versions', { org_id: orgId, branch_id: b1.id, plan_id: lp.id, version: 1, content: sampleContent, note: 'Initial' });
+    await insert(c, 'os.lesson_plans', { org_id: orgId, branch_id: b1.id, level: 'daily', staff_id: S(9), section_id: sec10A.id, section_ids: [sec10A.id], subject_id: subj[b1.id]!.SCI!.id, topic_id: topic.id, plan_date: addDays(today, 1), period_count: 1, period_minutes: 40, teaching_model: '5E', content: sampleContent, status: 'submitted', confirmed_by_teacher: true, submitted_at: new Date().toISOString(), due_at: at(today, '16:00') });
     // class logs for past days -> coverage
     const logRows: Record<string, unknown>[] = [];
     for (let d = 1; d <= 30; d++) {
@@ -526,107 +547,120 @@ export async function seedDemo(opts: SeedOptions = {}): Promise<{ orgId: string;
       if (isoWeekday(date) === 7) continue;
       logRows.push({ org_id: orgId, branch_id: b1.id, section_id: sec10A.id, subject_id: subj[b1.id]!.SCI!.id, staff_id: S(9), date, period_seq: 2, topic_id: chapters[Math.min(chapters.length - 1, Math.floor(d / 8))]!.id, taught_as_planned: d % 5 !== 0, topic_text: 'Lesson taught', classwork: 'Notebook exercise' });
     }
-    await insertMany(c, 'class_logs', logRows);
-    await insert(c, 'homework', { org_id: orgId, branch_id: b1.id, section_id: sec10A.id, subject_id: subj[b1.id]!.SCI!.id, staff_id: S(9), assigned_on: today, due_on: addDays(today, 1), description: 'Balance 5 equations', est_minutes: 20 });
-    await insert(c, 'homework', { org_id: orgId, branch_id: b1.id, section_id: sec10A.id, subject_id: subj[b1.id]!.MAT!.id, staff_id: S(8), assigned_on: today, due_on: addDays(today, 1), description: 'Exercise 4.2 Q1–10', est_minutes: 45 });
-    await insert(c, 'homework', { org_id: orgId, branch_id: b1.id, section_id: sec10A.id, subject_id: subj[b1.id]!.SST!.id, staff_id: S(12), assigned_on: today, due_on: addDays(today, 1), description: 'Map work: rivers of India', est_minutes: 60 });
+    await insertMany(c, 'os.class_logs', logRows);
+    // homework -> core.class_posts (type homework, MAP-TABLES A.1 #79)
+    const hw = (subject: string, staff: string, text: string, minutes: number) =>
+      insert(c, 'core.class_posts', { org_id: orgId, type: 'homework', section_id: sec10A.id, subject_id: subject, staff_id: staff, title: text.slice(0, 120), body: text, due_date: addDays(today, 1), est_minutes: minutes, status: 'published', published_at: at(today, '09:00') });
+    await hw(subj[b1.id]!.SCI!.id, S(9), 'Balance 5 equations', 20);
+    await hw(subj[b1.id]!.MAT!.id, S(8), 'Exercise 4.2 Q1–10', 45);
+    await hw(subj[b1.id]!.SST!.id, S(12), 'Map work: rivers of India', 60);
 
     // exams
-    const term = await one<{ id: string }>(c, `select id from public.terms where branch_id = $1 and seq = 2`, [b1.id]);
-    const et = await one<{ id: string }>(c, `select id from public.exam_types where org_id = $1 and key = 'term_exam'`, [orgId]);
-    const exam = await insert<{ id: string }>(c, 'exams', { org_id: orgId, branch_id: b1.id, academic_year_id: years[b1.id], term_id: term.id, exam_type_id: et.id, name: 'Term 2 examination', starts_on: `${yearStart + 1}-02-23`, ends_on: `${yearStart + 1}-03-06`, class_ids: classes.filter((x) => x.b === b1.id).map((x) => x.id), status: 'planning' });
-    await insert(c, 'exam_schedules', { org_id: orgId, branch_id: b1.id, exam_id: exam.id, class_id: class10.id, subject_id: subj[b1.id]!.SCI!.id, date: `${yearStart + 1}-02-23`, starts_at: '09:00', ends_at: '12:00', room_ids: rooms[b1.id]!.slice(0, 2).map((r) => r.id) });
+    const term = await one<{ id: string }>(c, `select t.id from core.terms t join core.academic_years y on y.id = t.academic_year_id where y.branch_id = $1 and t.seq = 2`, [b1.id]);
+    const et = await one<{ id: string }>(c, `select id from core.exam_types where org_id = $1 and key = 'term_exam'`, [orgId]);
+    const exam = await insert<{ id: string }>(c, 'core.exams', { org_id: orgId, branch_id: b1.id, academic_year_id: years[b1.id], term_id: term.id, exam_type_id: et.id, name: 'Term 2 examination', starts_on: `${yearStart + 1}-02-23`, ends_on: `${yearStart + 1}-03-06`, programme_ids: classes.filter((x) => x.b === b1.id).map((x) => x.id), status: 'planning' });
+    const firstPaper = await insert<{ id: string }>(c, 'core.exam_schedules', { org_id: orgId, exam_id: exam.id, programme_id: class10.id, subject_id: subj[b1.id]!.SCI!.id, exam_date: `${yearStart + 1}-02-23`, starts_at: '09:00', ends_at: '12:00', max_marks: 80 });
+    await insert(c, 'os.exam_plans', { org_id: orgId, branch_id: b1.id, exam_id: exam.id, schedule_rooms: { [firstPaper.id]: rooms[b1.id]!.slice(0, 2).map((r) => r.id) } });
     const ch3 = chapters.slice(0, 3);
     const weight: Record<string, number> = { [ch3[0]!.id]: 15, [ch3[1]!.id]: 15, [ch3[2]!.id]: 10 };
-    const bp = await insert<{ id: string }>(c, 'paper_blueprints', { org_id: orgId, branch_id: b1.id, name: 'Class 10 Science unit test (40 marks)', board: 'CBSE', class_id: class10.id, subject_id: subj[b1.id]!.SCI!.id, total_marks: 40, duration_minutes: 90, sections: [{ name: 'A', question_type: 'mcq', count: 10, marks_each: 1 }, { name: 'B', question_type: 'short', count: 5, marks_each: 2 }, { name: 'C', question_type: 'long', count: 4, marks_each: 5 }], chapter_weightage: weight, difficulty: { easy: 30, medium: 50, hard: 20 }, competency_pct: 20, is_template: true, instructions: 'All questions are compulsory. Internal choice is given where indicated.' });
+    const bp = await insert<{ id: string }>(c, 'os.paper_blueprints', { org_id: orgId, branch_id: b1.id, name: 'Class 10 Science unit test (40 marks)', board: 'CBSE', programme_id: class10.id, subject_id: subj[b1.id]!.SCI!.id, total_marks: 40, duration_minutes: 90, sections: [{ name: 'A', question_type: 'mcq', count: 10, marks_each: 1 }, { name: 'B', question_type: 'short', count: 5, marks_each: 2 }, { name: 'C', question_type: 'long', count: 4, marks_each: 5 }], chapter_weightage: weight, difficulty: { easy: 30, medium: 50, hard: 20 }, competency_pct: 20, is_template: true, instructions: 'All questions are compulsory. Internal choice is given where indicated.' });
     // question bank: enough approved questions for a bank-only paper
     const slots = planPaperSlots({ totalMarks: 40, sections: [{ name: 'A', questionType: 'mcq', count: 10, marksEach: 1 }, { name: 'B', questionType: 'short', count: 5, marksEach: 2 }, { name: 'C', questionType: 'long', count: 4, marksEach: 5 }], chapterWeightage: weight, difficulty: { easy: 30, medium: 50, hard: 20 } }).slots;
     const qb: Record<string, unknown>[] = [];
     for (const s of slots) {
       for (let v = 0; v < 2; v++) {
         const chName = chapters.find((x) => x.id === s.topicId)!.name;
-        qb.push({ org_id: orgId, branch_id: b1.id, subject_id: subj[b1.id]!.SCI!.id, class_id: class10.id, topic_id: s.topicId, question_type: s.questionType, difficulty: s.difficulty, marks: s.marks, bloom: s.difficulty === 'hard' ? 'analyse' : 'understand', competency: s.marks >= 5, content: { text: `[${chName}] ${s.questionType === 'mcq' ? 'Choose the correct option' : 'Answer'} (bank Q${s.no}${v ? 'b' : 'a'})`, options: s.questionType === 'mcq' ? ['A', 'B', 'C', 'D'] : undefined, answer: 'See marking scheme', marking: [{ step: 'Correct answer', marks: s.marks }] }, status: 'approved', source: 'manual' });
+        // core.question_bank keeps the OS-only fields (topic, question type, competency) inside content (MAP-TABLES B.20)
+        qb.push({ org_id: orgId, subject_id: subj[b1.id]!.SCI!.id, programme_id: class10.id, difficulty: s.difficulty, marks: s.marks, bloom: s.difficulty === 'hard' ? 'analyse' : 'understand', content: { topic_id: s.topicId, question_type: s.questionType, competency: s.marks >= 5, tags: [], text: `[${chName}] ${s.questionType === 'mcq' ? 'Choose the correct option' : 'Answer'} (bank Q${s.no}${v ? 'b' : 'a'})`, options: s.questionType === 'mcq' ? ['A', 'B', 'C', 'D'] : undefined, answer: 'See marking scheme', marking: [{ step: 'Correct answer', marks: s.marks }] }, status: 'approved', source: 'manual' });
       }
     }
-    await insertMany(c, 'question_bank', qb);
+    await insertMany(c, 'core.question_bank', qb);
     void bp;
 
     // observation, appraisal, trainings
-    const rubric = await one<{ id: string }>(c, `select id from public.observation_rubrics where org_id = $1 and is_preset`, [orgId]);
+    const rubric = await one<{ id: string }>(c, `select id from os.observation_rubrics where org_id = $1 and is_preset`, [orgId]);
     const scores: Record<string, number> = {};
     for (const d of PRESET_RUBRIC.domains) for (const i of d.indicators) scores[`${d.key}.${i.key}`] = 3;
-    await insert(c, 'observations', { org_id: orgId, branch_id: b1.id, rubric_id: rubric.id, observer_id: S(4), teacher_id: S(9), section_id: sec10A.id, subject_id: subj[b1.id]!.SCI!.id, scheduled_at: at(addDays(today, -6), '09:10'), status: 'shared', scores, overall: 66.7, feedback: 'Good use of demonstration; increase pair talk.' });
-    await insert(c, 'observations', { org_id: orgId, branch_id: b1.id, rubric_id: rubric.id, observer_id: S(4), teacher_id: S(10), scheduled_at: at(addDays(today, 2), '10:45'), announced: false, status: 'scheduled' });
-    await insert(c, 'appraisal_cycles', { org_id: orgId, branch_id: b1.id, name: `${yearStart}-${String(yearStart + 1).slice(2)} annual appraisal`, starts_on: AY_START, ends_on: AY_END, weights: PRESET_APPRAISAL_WEIGHTS });
-    await insert(c, 'trainings', { org_id: orgId, branch_id: b1.id, staff_id: S(9), title: 'CBSE capacity building: competency-based assessment', provider: 'CBSE COE', attended_on: addDays(today, -40), hours: 6 });
+    await insert(c, 'os.observations', { org_id: orgId, branch_id: b1.id, rubric_id: rubric.id, observer_id: S(4), teacher_id: S(9), section_id: sec10A.id, subject_id: subj[b1.id]!.SCI!.id, scheduled_at: at(addDays(today, -6), '09:10'), status: 'shared', scores, overall: 66.7, feedback: 'Good use of demonstration; increase pair talk.' });
+    await insert(c, 'os.observations', { org_id: orgId, branch_id: b1.id, rubric_id: rubric.id, observer_id: S(4), teacher_id: S(10), scheduled_at: at(addDays(today, 2), '10:45'), announced: false, status: 'scheduled' });
+    await insert(c, 'os.appraisal_cycles', { org_id: orgId, branch_id: b1.id, name: `${yearStart}-${String(yearStart + 1).slice(2)} annual appraisal`, starts_on: AY_START, ends_on: AY_END, weights: PRESET_APPRAISAL_WEIGHTS });
+    await insert(c, 'os.trainings', { org_id: orgId, branch_id: b1.id, staff_id: S(9), title: 'CBSE capacity building: competency-based assessment', provider: 'CBSE COE', attended_on: addDays(today, -40), hours: 6 });
 
     // ---------------------------------------------------------------- every remaining table gets sample rows
     log('Sample rows for remaining modules');
-    const cf = await insert<{ id: string }>(c, 'custom_fields', { org_id: orgId, entity: 'task', key: 'parent_informed', label: { en: 'Parent informed?', hi: 'अभिभावक को सूचित किया?', te: 'తల్లిదండ్రులకు తెలియజేశారా?' }, field_type: 'yesno' });
-    const anyTask = await one<{ id: string }>(c, `select id from public.tasks where org_id = $1 and title like 'Collect fee%'`, [orgId]);
-    await insert(c, 'custom_field_values', { org_id: orgId, branch_id: b1.id, field_id: cf.id, entity: 'task', entity_id: anyTask.id, value: true });
-    await insert(c, 'task_assignees', { org_id: orgId, branch_id: b1.id, task_id: anyTask.id, staff_id: S(4), kind: 'watcher' });
-    await insert(c, 'task_comments', { org_id: orgId, branch_id: b1.id, task_id: anyTask.id, author_id: S(11), body: '12 of 20 collected so far.', kind: 'comment' });
-    await insert(c, 'task_attachments', { org_id: orgId, branch_id: b1.id, task_id: anyTask.id, kind: 'attachment', storage_path: `${orgId}/tasks/${anyTask.id}/list.pdf`, mime: 'application/pdf', size_bytes: 20480 });
-    await insert(c, 'delegations', { org_id: orgId, branch_id: b1.id, staff_id: S(2), delegate_id: S(3), starts_on: addDays(today, 20), ends_on: addDays(today, 24), reason: 'Principal at conference' });
-    await insert(c, 'timetable_constraints', { org_id: orgId, branch_id: b1.id, kind: 'teacher_unavailable', data: { staff_id: S(19), day: 6, period_seq: 7 } });
-    await insert(c, 'attendance_imports', { org_id: orgId, branch_id: b1.id, device_type: 'eSSL', mapping: { employeeCode: 'EmpCode', date: 'Date', checkIn: 'In', checkOut: 'Out', dateFormat: 'DD/MM/YYYY' }, file_name: 'essl-export.csv', rows_total: 0, rows_merged: 0 });
+    await insert(c, 'core.custom_fields', { org_id: orgId, product_key: 'os', entity: 'task', key: 'parent_informed', label: 'Parent informed?', label_i18n: { en: 'Parent informed?', hi: 'अभिभावक को सूचित किया?', te: 'తల్లిదండ్రులకు తెలియజేశారా?' }, field_type: 'boolean' });
+    const anyTask = await one<{ id: string }>(c, `select id from os.tasks where org_id = $1 and title like 'Collect fee%'`, [orgId]);
+    // custom field values live in the row's custom jsonb (OQ-12)
+    await c.query(`update os.tasks set custom = custom || '{"parent_informed": true}'::jsonb where id = $1`, [anyTask.id]);
+    await insert(c, 'os.task_assignees', { org_id: orgId, branch_id: b1.id, task_id: anyTask.id, staff_id: S(4), kind: 'watcher' });
+    await insert(c, 'os.task_comments', { org_id: orgId, branch_id: b1.id, task_id: anyTask.id, author_id: S(11), body: '12 of 20 collected so far.', kind: 'comment' });
+    await insert(c, 'os.task_attachments', { org_id: orgId, branch_id: b1.id, task_id: anyTask.id, kind: 'attachment', storage_path: `${orgId}/tasks/${anyTask.id}/list.pdf`, mime: 'application/pdf', size_bytes: 20480 });
+    await insert(c, 'core.delegations', { org_id: orgId, staff_id: S(2), delegate_id: S(3), starts_on: addDays(today, 20), ends_on: addDays(today, 24), reason: 'Principal at conference' });
+    await insert(c, 'os.timetable_constraints', { org_id: orgId, branch_id: b1.id, kind: 'teacher_unavailable', data: { staff_id: S(19), day: 6, period_seq: 7 } });
+    await insert(c, 'core.attendance_imports', { org_id: orgId, branch_id: b1.id, kind: 'staff', source: 'eSSL', status: 'done', row_count: 0, error_count: 0, summary: { mapping: { employeeCode: 'EmpCode', date: 'Date', checkIn: 'In', checkOut: 'Out', dateFormat: 'DD/MM/YYYY' }, file_name: 'essl-export.csv', rows_merged: 0, conflicts: [], errors: [] } });
 
     // student attendance yesterday for every section
     const yday = isoWeekday(addDays(today, -1)) === 7 ? addDays(today, -2) : addDays(today, -1);
     for (const s of sections) {
-      const sess = await insert<{ id: string }>(c, 'student_attendance_sessions', { org_id: orgId, branch_id: s.b, section_id: s.id, date: yday, session_key: s.wing === wingsB2['Lower Secondary'].id ? 'am' : 'day', marked_by: null, status: 'submitted', submitted_at: at(yday, '09:05') });
+      const sessionKey = s.wing === wingsB2['Lower Secondary'].id ? 'am' : 'day';
+      const sess = await insert<{ id: string }>(c, 'core.student_attendance_sessions', { org_id: orgId, section_id: s.id, date: yday, session_key: sessionKey, marked_by_staff_id: null, status: 'submitted', submitted_at: at(yday, '09:05') });
       const roster = students.filter((x) => x.section_id === s.id);
-      await insertMany(c, 'student_attendance_marks', roster.map((st, k) => ({ org_id: orgId, branch_id: s.b, session_id: sess.id, student_id: st.id, status: k === 3 ? 'absent' : k === 7 ? 'late' : 'present' })));
+      await insertMany(c, 'core.student_attendance_marks', roster.map((st, k) => ({ org_id: orgId, session_id: sess.id, student_id: st.id, date: yday, session_key: sessionKey, source: 'teacher', status: k === 3 ? 'absent' : k === 7 ? 'late' : 'present' })));
     }
 
     // checklist responses for one completed run
-    const run = await one<{ id: string; template_id: string; branch_id: string }>(c, `select r.id, r.template_id, r.branch_id from public.checklist_runs r join public.checklist_templates t on t.id = r.template_id where r.org_id = $1 and t.key = 'closing' and r.branch_id = $2`, [orgId, b1.id]);
-    const items = await q<{ id: string; item_type: string }>(c, `select id, item_type from public.checklist_items where template_id = $1`, [run.template_id]);
-    for (const it of items) await insert(c, 'checklist_responses', { org_id: orgId, branch_id: run.branch_id, run_id: run.id, item_id: it.id, value: true, passed: true });
+    const run = await one<{ id: string; template_id: string; branch_id: string }>(c, `select r.id, r.template_id, r.branch_id from os.checklist_runs r join os.checklist_templates t on t.id = r.template_id where r.org_id = $1 and t.key = 'closing' and r.branch_id = $2`, [orgId, b1.id]);
+    const items = await q<{ id: string; item_type: string }>(c, `select id, item_type from os.checklist_items where template_id = $1`, [run.template_id]);
+    for (const it of items) await insert(c, 'os.checklist_responses', { org_id: orgId, branch_id: run.branch_id, run_id: run.id, item_id: it.id, value: true, passed: true });
 
-    const tk = await one<{ id: string }>(c, `select id from public.tickets where org_id = $1 and title = 'Fan not working'`, [orgId]);
-    await insert(c, 'ticket_events', { org_id: orgId, branch_id: b1.id, ticket_id: tk.id, actor_id: S(5), event: 'assigned', from_status: 'open', to_status: 'assigned' });
-    const submittedPlan = await one<{ id: string }>(c, `select id from public.lesson_plans where org_id = $1 and status = 'submitted'`, [orgId]);
-    await insert(c, 'lesson_plan_reviews', { org_id: orgId, branch_id: b1.id, plan_id: submittedPlan.id, step_seq: 1, reviewer_id: S(6), action: 'comment', section_key: 'flow', comment: 'Add a safety note for the demo.' });
-    await insert(c, 'notebook_checks', { org_id: orgId, branch_id: b1.id, section_id: sec10A.id, subject_id: subj[b1.id]!.SCI!.id, staff_id: S(9), kind: 'spot_check', checked_on: addDays(today, -2), checked_by: S(4), rubric: { neatness: 3, corrections: 4 }, score: 3.5 });
+    const tk = await one<{ id: string }>(c, `select id from core.tickets where org_id = $1 and title = 'Fan not working'`, [orgId]);
+    await insert(c, 'core.ticket_events', { org_id: orgId, ticket_id: tk.id, actor_staff_id: S(5), actor_user_id: U(5), event: 'assigned', from_status: 'open', to_status: 'assigned' });
+    const submittedPlan = await one<{ id: string }>(c, `select id from os.lesson_plans where org_id = $1 and status = 'submitted'`, [orgId]);
+    await insert(c, 'os.lesson_plan_reviews', { org_id: orgId, branch_id: b1.id, plan_id: submittedPlan.id, step_seq: 1, reviewer_id: S(6), action: 'comment', section_key: 'flow', comment: 'Add a safety note for the demo.' });
+    await insert(c, 'os.notebook_checks', { org_id: orgId, branch_id: b1.id, section_id: sec10A.id, subject_id: subj[b1.id]!.SCI!.id, staff_id: S(9), kind: 'spot_check', checked_on: addDays(today, -2), checked_by: S(4), rubric: { neatness: 3, corrections: 4 }, score: 3.5 });
 
-    const sched = await one<{ id: string }>(c, `select id from public.exam_schedules where exam_id = $1`, [exam.id]);
-    await insert(c, 'invigilation_duties', { org_id: orgId, branch_id: b1.id, exam_schedule_id: sched.id, room_id: rooms[b1.id]![0]!.id, staff_id: S(13) });
-    await insert(c, 'seating_plans', { org_id: orgId, branch_id: b1.id, exam_id: exam.id, date: `${yearStart + 1}-02-23`, room_id: rooms[b1.id]![0]!.id, layout: students.filter((x) => x.section_id === sec10A.id).slice(0, 5).map((x, k) => ({ seat: k + 1, student_id: x.id, class_id: class10.id })) });
+    const sched = await one<{ id: string }>(c, `select id from core.exam_schedules where exam_id = $1`, [exam.id]);
+    await insert(c, 'os.invigilation_duties', { org_id: orgId, branch_id: b1.id, exam_schedule_id: sched.id, room_id: rooms[b1.id]![0]!.id, staff_id: S(13) });
+    // seating: one core.exam_seating row per seat (MAP-TABLES B.20)
+    for (const [k, x] of students.filter((st) => st.section_id === sec10A.id).slice(0, 5).entries())
+      await insert(c, 'core.exam_seating', { org_id: orgId, exam_schedule_id: sched.id, student_id: x.id, room_id: rooms[b1.id]![0]!.id, seat_no: String(k + 1) });
     const paperQs = slots.map((s) => ({ ...s, text: `Question ${s.no}`, answer: 'See scheme', marking: [{ step: 'Answer', marks: s.marks }] }));
-    const paper = await insert<{ id: string }>(c, 'question_papers', { org_id: orgId, branch_id: b1.id, exam_id: exam.id, exam_schedule_id: sched.id, blueprint_id: bp.id, subject_id: subj[b1.id]!.SCI!.id, class_id: class10.id, set_no: 1, setter_id: S(9), reviewer_ids: [S(6), S(4)], exam_date: `${yearStart + 1}-02-23`, status: 'hod_review', questions: paperQs, blueprint_table: [] });
-    await insert(c, 'paper_access_log', { org_id: orgId, branch_id: b1.id, paper_id: paper.id, staff_id: S(9), action: 'view' });
+    const paper = await insert<{ id: string }>(c, 'os.question_papers', { org_id: orgId, branch_id: b1.id, exam_id: exam.id, exam_schedule_id: sched.id, blueprint_id: bp.id, subject_id: subj[b1.id]!.SCI!.id, programme_id: class10.id, set_no: 1, setter_id: S(9), reviewer_ids: [S(6), S(4)], exam_date: `${yearStart + 1}-02-23`, status: 'hod_review', questions: paperQs, blueprint_table: [] });
+    await insert(c, 'os.paper_access_log', { org_id: orgId, branch_id: b1.id, paper_id: paper.id, staff_id: S(9), action: 'view' });
 
-    const cycle = await one<{ id: string }>(c, `select id from public.appraisal_cycles where org_id = $1`, [orgId]);
-    await insert(c, 'appraisal_scores', { org_id: orgId, branch_id: b1.id, cycle_id: cycle.id, staff_id: S(9), components: { observation: 66.7, task_on_time: 80 }, total: 72.4, computed_at: new Date().toISOString() });
+    const cycle = await one<{ id: string }>(c, `select id from os.appraisal_cycles where org_id = $1`, [orgId]);
+    await insert(c, 'os.appraisal_scores', { org_id: orgId, branch_id: b1.id, cycle_id: cycle.id, staff_id: S(9), components: { observation: 66.7, task_on_time: 80 }, total: 72.4, computed_at: new Date().toISOString() });
 
-    const doc = await insert<{ id: string }>(c, 'school_documents', { org_id: orgId, branch_id: b1.id, title: 'Class 10 Science year plan', kind: 'year_plan', storage_path: `${orgId}/documents/year-plan.txt`, mime: 'text/plain', size_bytes: 512, subject_id: subj[b1.id]!.SCI!.id, class_id: class10.id, status: 'embedded' });
-    await insert(c, 'document_chunks', { org_id: orgId, branch_id: b1.id, document_id: doc.id, seq: 1, content: 'Term 1 covers chemical reactions, acids, bases and salts with two lab activities per chapter. Use local examples like curd setting and antacids.' });
+    const doc = await insert<{ id: string }>(c, 'os.reference_documents', { org_id: orgId, branch_id: b1.id, title: 'Class 10 Science year plan', kind: 'year_plan', storage_path: `${orgId}/documents/year-plan.txt`, mime: 'text/plain', size_bytes: 512, subject_id: subj[b1.id]!.SCI!.id, programme_id: class10.id, status: 'embedded' });
+    await insert(c, 'os.document_chunks', { org_id: orgId, branch_id: b1.id, document_id: doc.id, seq: 1, content: 'Term 1 covers chemical reactions, acids, bases and salts with two lab activities per chapter. Use local examples like curd setting and antacids.' });
 
-    const gen = await insert<{ id: string }>(c, 'ai_generations', { org_id: orgId, branch_id: b1.id, staff_id: S(9), action: 'daily_plan', model: 'mock', provider: 'mock', input: { subject: 'Science', topic: 'Writing and balancing chemical equations' }, output: { ok: true }, status: 'ok', input_tokens: 1200, output_tokens: 1800, credits: 1, linked_type: 'lesson_plan', linked_id: lp.id });
-    await insert(c, 'ai_credit_ledger', { org_id: orgId, branch_id: b1.id, staff_id: S(9), kind: 'usage', action: 'daily_plan', period: today.slice(0, 7), credits: -1, generation_id: gen.id, tokens: 3000 });
-    await insert(c, 'credit_topup_requests', { org_id: orgId, branch_id: b2.id, requested_by: S(26), credits: 200, note: 'Exam season', status: 'pending' });
+    const gen = await insert<{ id: string }>(c, 'core.ai_generations', { org_id: orgId, branch_id: b1.id, product_key: 'os', user_id: U(9), staff_id: S(9), action: 'daily_plan', model: 'mock', provider: 'mock', input: { subject: 'Science', topic: 'Writing and balancing chemical equations' }, output: { ok: true }, status: 'ok', input_tokens: 1200, output_tokens: 1800, credits: 1, linked_type: 'lesson_plan', linked_id: lp.id });
+    await c.query(`insert into billing.ai_credit_ledger (org_id, branch_id, staff_id, kind, action, period, credits, generation_id, tokens) values ($1,$2,$3,'usage','daily_plan',$4,-1,$5,3000)`, [orgId, b1.id, S(9), today.slice(0, 7), gen.id]);
+    await c.query(`insert into billing.credit_topup_requests (org_id, branch_id, requested_by_user_id, requested_by_staff_id, credits, note, status) values ($1,$2,$3,$4,200,'Exam season','pending')`, [orgId, b2.id, U(26), S(26)]);
 
-    const notif = await insert<{ id: string }>(c, 'notifications', { org_id: orgId, branch_id: b1.id, staff_id: S(9), event_key: 'task.assigned', title: 'New task: Submit Class 10 Science unit test question paper', body: 'Due in 2 days', link: '/os/tasks', channels: ['inapp', 'push'] });
-    await insert(c, 'notification_prefs', { org_id: orgId, branch_id: b1.id, staff_id: S(9), event_key: 'task.comment', muted: true });
-    await insert(c, 'device_tokens', { org_id: orgId, branch_id: b1.id, staff_id: S(9), token: `ExponentPushToken[demo-${orgId.slice(0, 8)}]`, platform: 'android', device_name: 'Redmi Note' });
-    await insert(c, 'message_usage', { org_id: orgId, branch_id: b1.id, channel: 'whatsapp', template_key: 'os_substitution', notification_id: notif.id, status: 'sent', units: 1, provider_ref: 'mock-1' });
-    const sr = await insert<{ id: string }>(c, 'saved_reports', { org_id: orgId, branch_id: b1.id, owner_id: S(2), name: 'Overdue tasks by department', dataset: 'tasks', config: { columns: ['department', 'count'], filters: [{ column: 'overdue', op: '=', value: true }], group_by: 'department', chart: 'bar' } });
-    await insert(c, 'report_schedules', { org_id: orgId, branch_id: b1.id, report_key: 'daily_digest', frequency: 'daily', send_time: '07:30', recipient_ids: [S(2), S(1)], channel: 'inapp' });
+    const notif = await insert<{ id: string }>(c, 'core.notifications', { org_id: orgId, user_id: U(9), staff_id: S(9), product_key: 'os', event_key: 'task.assigned', title: 'New task: Submit Class 10 Science unit test question paper', body: 'Due in 2 days', link: '/os/tasks', channels: ['inapp', 'push'] });
+    await insert(c, 'core.notification_prefs', { org_id: orgId, user_id: U(9), event_key: 'task.comment', muted: true });
+    await insert(c, 'core.device_tokens', { org_id: orgId, user_id: U(9), staff_id: S(9), token: `ExponentPushToken[demo-${orgId.slice(0, 8)}]`, platform: 'android', device_name: 'Redmi Note' });
+    await insert(c, 'core.outbox', { org_id: orgId, branch_id: b1.id, product_key: 'os', channel: 'whatsapp', to_address: `${phonePrefix}0010`, event_key: 'substitution.assigned', provider: 'os_substitution', notification_id: notif.id, status: 'sent', units: 1, provider_ref: 'mock-1', sent_at: new Date().toISOString() });
+    const sr = await insert<{ id: string }>(c, 'os.saved_reports', { org_id: orgId, branch_id: b1.id, owner_id: S(2), name: 'Overdue tasks by department', dataset: 'tasks', config: { columns: ['department', 'count'], filters: [{ column: 'overdue', op: '=', value: true }], group_by: 'department', chart: 'bar' } });
+    await insert(c, 'os.report_schedules', { org_id: orgId, branch_id: b1.id, report_key: 'daily_digest', frequency: 'daily', send_time: '07:30', recipient_ids: [S(2), S(1)], channel: 'inapp' });
     void sr;
-    const sop = await insert<{ id: string }>(c, 'kb_articles', { org_id: orgId, branch_id: null, slug: 'sop-bus-delay', language: 'en', title: 'SOP: bus running late', body: 'If a bus is more than 15 minutes late, inform the transport in-charge, message parents through the school app, and log a ticket under Transport.', role_keys: [], tags: ['sop', 'transport'], module_key: 'helpdesk' });
-    await insert(c, 'kb_chunks', { org_id: orgId, article_id: sop.id, language: 'en', seq: 1, content: 'If a bus is more than 15 minutes late, inform the transport in-charge and log a ticket under Transport.' });
-    const conv = await insert<{ id: string }>(c, 'bot_conversations', { org_id: orgId, branch_id: b1.id, staff_id: S(9), language: 'en', screen_path: '/os/tasks', messages: [{ role: 'user', content: 'How do I assign a task to all class teachers?' }, { role: 'assistant', content: '1. Open Tasks → New task. 2. Under Assign to, choose the Class Teacher role. 3. Pick "each person completes it". 4. Save.', link: '/os/tasks/new' }], status: 'answered' });
-    await insert(c, 'bot_feedback', { org_id: orgId, branch_id: b1.id, conversation_id: conv.id, staff_id: S(9), message_index: 1, rating: 1, question: 'How do I assign a task to all class teachers?' });
-    await insert(c, 'support_tickets', { org_id: orgId, branch_id: b1.id, staff_id: S(5), subject: 'Need help importing biometric file', body: 'Our device exports .dat files.', status: 'open' });
-    await insert(c, 'view_as_sessions', { org_id: orgId, admin_user_id: superUser, reason: 'Onboarding call: checking setup wizard', starts_at: at(addDays(today, -10), '11:00'), expires_at: at(addDays(today, -10), '11:30') });
-    await insert(c, 'presets', { org_id: orgId, key: 'demo_school_config', area: 'all', name: 'Demo school configuration snapshot', payload: { note: 'Saved by school' } });
-    await insert(c, 'substitutions', { org_id: orgId, branch_id: b1.id, date: addDays(today, -7), day: isoWeekday(addDays(today, -7)), period_seq: 3, section_id: sections[0]!.id, subject_id: subj[b1.id]!.MAT!.id, absent_staff_id: S(10), substitute_staff_id: S(14), status: 'assigned', resolution: 'substitute', source: 'manual' });
+    const sop = await insert<{ id: string }>(c, 'os.kb_articles', { org_id: orgId, branch_id: null, slug: 'sop-bus-delay', language: 'en', title: 'SOP: bus running late', body: 'If a bus is more than 15 minutes late, inform the transport in-charge, message parents through the school app, and log a ticket under Transport.', role_keys: [], tags: ['sop', 'transport'], module_key: 'helpdesk' });
+    await insert(c, 'os.kb_chunks', { org_id: orgId, article_id: sop.id, language: 'en', seq: 1, content: 'If a bus is more than 15 minutes late, inform the transport in-charge and log a ticket under Transport.' });
+    const conv = await insert<{ id: string }>(c, 'os.bot_conversations', { org_id: orgId, branch_id: b1.id, staff_id: S(9), language: 'en', screen_path: '/os/tasks', messages: [{ role: 'user', content: 'How do I assign a task to all class teachers?' }, { role: 'assistant', content: '1. Open Tasks → New task. 2. Under Assign to, choose the Class Teacher role. 3. Pick "each person completes it". 4. Save.', link: '/os/tasks/new' }], status: 'answered' });
+    await insert(c, 'os.bot_feedback', { org_id: orgId, branch_id: b1.id, conversation_id: conv.id, staff_id: S(9), message_index: 1, rating: 1, question: 'How do I assign a task to all class teachers?' });
+    await insert(c, 'core.support_tickets', { org_id: orgId, product_key: 'os', user_id: U(5), staff_id: S(5), subject: 'Need help importing biometric file', body: 'Our device exports .dat files.', status: 'open' });
+    // an earlier "view as" support session (core.support_sessions; the school sees it in its support log)
+    await c.query(`insert into core.support_sessions (org_id, platform_user_id, reason, started_at, expires_at, ended_at) values ($1,$2,'Onboarding call: checking setup wizard',$3,$4,$4)`, [orgId, superUser, at(addDays(today, -10), '11:00'), at(addDays(today, -10), '11:30')]);
+    await insert(c, 'os.substitutions', { org_id: orgId, branch_id: b1.id, date: addDays(today, -7), day: isoWeekday(addDays(today, -7)), period_seq: 3, section_id: sections[0]!.id, subject_id: subj[b1.id]!.MAT!.id, absent_staff_id: S(10), substitute_staff_id: S(14), status: 'assigned', resolution: 'substitute', source: 'manual' });
     // a school copy of the CBSE map
     const { cloneBoard } = await import('../curriculum');
-    const gBoard = await one<{ id: string }>(c, `select id from public.curriculum_boards where org_id is null and key = 'CBSE' and is_latest`);
+    const gBoard = await one<{ id: string }>(c, `select id from os.curriculum_boards where org_id is null and key = 'CBSE' and is_latest`);
     await cloneBoard(c, orgId, gBoard.id);
+
+    // OS access for every staff login (derived platform roles) and the org's OS system actor
+    await c.query(`select os.sync_access($1)`, [orgId]);
+    await c.query(`select os.system_user_id($1)`, [orgId]);
 
     log('Done');
     log(`Logins (dev): principal ${emails[2]}, teacher ${emails[9]}, coordinator ${emails[4]}, admin ${emails[5]}, chairman ${emails[0]}, super admin admin@autoed.dev`);
