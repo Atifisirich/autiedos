@@ -201,6 +201,10 @@ function rlsSql(t) {
   }
   if (t.fnOnly) out.push(`create trigger trg_fn_only before insert or update on ${T} for each row execute function erp.fn_only_columns(${lit(t.fnOnly.join(','))});`);
   if (t.markLock) out.push(`create trigger trg_marks_lock before insert or update or delete on ${T} for each row execute function erp.guard_marks();`);
+  if (t.redact) {
+    out.push(`drop trigger trg_platform_audit on ${T};`);
+    out.push(`create trigger trg_platform_audit after insert or update or delete on ${T} for each row execute function erp.audit_row_redacted(${lit(t.redact.join(','))});`);
+  }
   if (t.audit === false) out.push(`drop trigger trg_platform_audit on ${T}; -- telemetry table, listed in the harness catalogue exemptions`);
   return out;
 }

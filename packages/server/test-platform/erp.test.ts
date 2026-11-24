@@ -373,6 +373,17 @@ describe('staff access follows the ERP role (core.role_permissions)', () => {
     expect(await ec('authenticated', hr, `select erp.log_view('no_such_table', null)`)).toBe('22023');
   });
 
+  it('audit.log (readable with audit.view) carries no payroll amounts, health notes or safeguarding text', async () => {
+    for (const [t, c] of [['salary_structures', 'basic'], ['payslips', 'net'], ['staff_loans', 'balance'], ['safeguarding_incidents', 'description'], ['counselling_referrals', 'reason'],
+      ['growth_records', 'note'], ['health_checks', 'notes'], ['student_sensitive', 'doctor_name'], ['staff_payroll', 'bank_account']]) {
+      const r = await asOwner(`select count(*)::int as n, count(*) filter (where coalesce(after->>'${c}', before->>'${c}') is distinct from '[redacted]')::int as leaked from audit.log where org_id = $1 and schema_name = 'erp' and table_name = $2 and action in ('insert','update','delete')`, [w.A.id, t]);
+      expect(r[0]!.n, t).toBeGreaterThan(0);
+      expect(r[0]!.leaked, `${t}.${c}`).toBe(0);
+    }
+    // columns that are not secret stay readable, so the log is still useful
+    expect((await asOwner(`select after->>'staff_id' as s from audit.log where org_id = $1 and table_name = 'salary_structures' limit 1`, [w.A.id]))[0]!.s).toBeTruthy();
+  });
+
   it('the driver sees and works only the assigned route', async () => {
     const d = w.erpA.users.driver!;
     expect(await col(d, `select name from erp.driver_routes()`)).toEqual(['Route 1']);
