@@ -98,3 +98,6 @@ export async function allTables(schemas: readonly string[]): Promise<{ schema: s
     [schemas],
   );
 }
+
+/** ERP tables with no direct access (select policy closed, no DML): read and saved through logged erp.* functions. */
+export const RPC_ONLY_TABLES = ['erp.staff_payroll', 'erp.student_sensitive'];

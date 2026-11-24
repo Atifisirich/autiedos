@@ -9,7 +9,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  count, errorCode, loginAs, orgTables, owner, ownerQuery, PRODUCT_SCHEMAS, qi, ROLE_SCHEMAS, tx,
+  count, errorCode, loginAs, orgTables, owner, ownerQuery, PRODUCT_SCHEMAS, qi, ROLE_SCHEMAS, RPC_ONLY_TABLES, tx,
   type RequestRole,
 } from './helpers';
 import { buildWorld, type World } from './fixture';
@@ -64,6 +64,7 @@ describe('T1 org A never sees org B, on every table of every schema', () => {
   it('as authenticated: admin of A does see its own rows in every table (policies are not deny-all)', async () => {
     const blind: string[] = [];
     for (const t of tables) {
+      if (RPC_ONLY_TABLES.includes(`${t.schema}.${t.table}`)) continue; // closed on purpose, covered in erp.test.ts
       if (!(await count('authenticated', w.u.aAdmin, sel(t, 'select * from %T where org_id = $1'), [w.A.id]))) blind.push(`${t.schema}.${t.table}`);
     }
     expect(blind).toEqual([]);
