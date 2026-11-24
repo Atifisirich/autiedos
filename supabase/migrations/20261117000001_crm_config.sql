@@ -26,13 +26,61 @@ insert into core.product_modules (product_key, module_key, name) values
   ('crm', 'secrets',      'Provider secrets')
 on conflict do nothing;
 
--- ---------------------------------------------------------------- RLS helper for tables without owner/branch
--- Child rows (activities, visits, documents ...) are visible exactly when their parent enquiry (or household)
--- is visible to the caller, so the lead scope (own / team / branch / org) and the per-branch product switch
--- decided on crm.enquiries carry over to everything hanging off it. The caller still needs the module
--- permission at ANY scope (app.can with owner = the caller passes the "own" level; row visibility is the
--- predicate). p_visible is the row predicate, p_insert the insert predicate (defaults to p_visible).
--- Migration-only helper: not executable by request roles.
+-- ---------------------------------------------------------------- per-statement permission helpers
+-- The generator's policies call app.user_has_product + app.can for every row (about a millisecond each: ADR 002
+-- "Performance"), which made a list of a few hundred enquiries slow and tens of thousands impossible within the
+-- 15 s statement timeout. The CRM policies below ask the same questions ONCE per statement instead: a scalar
+-- subquery without outer references is an InitPlan, so crm.scope_of(), app.user_branch_ids() and
+-- crm.disabled_branches() are evaluated a single time and the per-row work is a comparison.
+-- crm.scope_of(module, action) is app.can() without the row arguments: the widest scope ('org' | 'branch' | 'own') the
+-- caller holds for module.action in the CRM, NULL when they have none or the org has no usable CRM subscription.
+-- test/platform.test.ts proves the two agree for every default role.
+create or replace function crm.scope_of(p_module text, p_action text) returns text
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_org uuid := app.current_org_id();
+  v_rank integer;
+begin
+  if auth.uid() is null or v_org is null or not app.user_has_product(v_org, 'crm') then return null; end if;
+  if not exists (select 1 from core.org_users u where u.user_id = auth.uid() and u.status = 'active') then
+    -- only a support session reaches here (user_has_product passed)
+    return case when p_action = 'view' or exists (select 1 from core.support_sessions s where s.id = app.support_session_id() and not s.read_only) then 'org' end;
+  end if;
+  select max(case rp.scope when 'own' then 1 when 'branch' then 2 when 'org' then 3 end) into v_rank
+  from core.org_users u
+  join core.user_product_access a on a.user_id = u.user_id and a.org_id = u.org_id and a.product_key = 'crm' and a.revoked_at is null
+  join core.roles r on r.org_id = a.org_id and r.product_key = a.product_key and r.key = a.role_key
+  join core.role_permissions rp on rp.role_id = r.id
+  where u.user_id = auth.uid() and u.org_id = v_org and u.kind = 'staff' and u.status = 'active'
+    and rp.module_key in (p_module, '*') and rp.action in (p_action, '*');
+  return case v_rank when 3 then 'org' when 2 then 'branch' when 1 then 'own' end;
+end $$;
+
+-- Branches of the caller's org where the CRM is switched off (decision 34).
+create or replace function crm.disabled_branches() returns uuid[]
+language sql stable security definer set search_path = '' as $$
+  select coalesce(array_agg(b.branch_id), '{}') from core.org_branch_products b
+   where b.org_id = app.current_org_id() and b.product_key = 'crm' and not b.enabled
+$$;
+
+-- Reporting line (RB-02): is the signed-in user, directly or further up, the manager of this owner?
+create or replace function crm.in_my_team(p_org uuid, p_owner uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  with recursive up as (
+    select s.id, s.reports_to, s.user_id from core.staff s
+     where s.org_id = p_org and s.user_id = p_owner and s.deleted_at is null
+    union
+    select m.id, m.reports_to, m.user_id from core.staff m join up on m.id = up.reports_to
+     where m.org_id = p_org and m.deleted_at is null)
+  select p_owner is not null and exists (select 1 from up where up.user_id = auth.uid() and up.user_id is distinct from p_owner)
+$$;
+
+-- ---------------------------------------------------------------- RLS helpers (migration-only)
+-- crm.apply_rls_scoped: for tables without owner/branch. Child rows (activities, visits, documents ...) are visible
+-- exactly when their parent enquiry (or household) is visible to the caller, so the lead scope (own / team / branch /
+-- org) and the per-branch product switch decided on crm.enquiries carry over to everything hanging off it. The caller
+-- still needs the module permission at ANY scope (crm.scope_of is not null); row visibility is the predicate.
+-- p_visible is the row predicate, p_insert the insert predicate (defaults to p_visible).
 create or replace function crm.apply_rls_scoped(p_table text, p_module text, p_visible text, p_insert text default null)
 returns void language plpgsql set search_path = '' as $$
 declare
@@ -40,13 +88,40 @@ declare
   m text := quote_literal(p_module);
   v text := p_visible;
   i text := coalesce(p_insert, p_visible);
+  org text := 'org_id = (select app.current_org_id()) and (select app.user_has_product((select app.current_org_id()), ''crm''))';
 begin
-  perform app.apply_rls('crm', p_table, 'product', 'crm', p_module);  -- RLS on, audit trigger, base policies
+  perform app.apply_rls('crm', p_table, 'product', 'crm', p_module);  -- RLS on, audit trigger, grants
   perform app.drop_policies('crm', p_table);
-  execute format('create policy sel on %s for select using (app.user_has_product(org_id, ''crm'') and app.can(''crm'', %s, ''view'', org_id, null, app.uid()) and (%s))', t, m, v);
-  execute format('create policy ins on %s for insert with check (app.user_has_product(org_id, ''crm'') and app.can(''crm'', %s, ''create'', org_id, null, app.uid()) and (%s))', t, m, i);
-  execute format('create policy upd on %s for update using (app.user_has_product(org_id, ''crm'') and app.can(''crm'', %s, ''edit'', org_id, null, app.uid()) and (%s)) with check (app.user_has_product(org_id, ''crm'') and app.can(''crm'', %s, ''edit'', org_id, null, app.uid()) and (%s))', t, m, v, m, v);
-  execute format('create policy del on %s for delete using (app.user_has_product(org_id, ''crm'') and app.can(''crm'', %s, ''delete'', org_id, null, app.uid()) and (%s))', t, m, v);
+  execute format('create policy sel on %s for select using (%s and (select crm.scope_of(%s, ''view'')) is not null and (%s))', t, org, m, v);
+  execute format('create policy ins on %s for insert with check (%s and (select crm.scope_of(%s, ''create'')) is not null and (%s))', t, org, m, i);
+  execute format('create policy upd on %s for update using (%s and (select crm.scope_of(%s, ''edit'')) is not null and (%s)) with check (%s and (select crm.scope_of(%s, ''edit'')) is not null and (%s))', t, org, m, v, org, m, v);
+  execute format('create policy del on %s for delete using (%s and (select crm.scope_of(%s, ''delete'')) is not null and (%s))', t, org, m, v);
+end $$;
+
+-- crm.apply_rls_enquiries: the policies of crm.enquiries (module leads) with the lead scope of the PRD:
+--   org    every enquiry of the org;  branch  those of the user's branches;
+--   own    their own enquiries and those of everyone who reports to them (RB-02), inside their branches
+-- and never in a branch where the CRM is switched off. Insert needs create (own scope: only as owner); edit and delete
+-- follow the same scope rules as view.
+create or replace function crm.apply_rls_enquiries() returns void language plpgsql set search_path = '' as $$
+declare
+  org text := 'org_id = (select app.current_org_id()) and (select app.user_has_product((select app.current_org_id()), ''crm'')) and not (branch_id = any (((select crm.disabled_branches())::uuid[])))';
+  a text;
+  sc text;
+  rule text;
+begin
+  perform app.apply_rls('crm', 'enquiries', 'product', 'crm', 'leads');
+  perform app.drop_policies('crm', 'enquiries');
+  foreach a in array array['view', 'create', 'edit', 'delete'] loop
+    sc := format('(select crm.scope_of(''leads'', %L))', a);
+    rule := format('%s and (%s = ''org'' or (%s in (''branch'', ''own'') and branch_id = any (((select app.user_branch_ids())::uuid[])) and (%s = ''branch'' or owner_id = (select app.uid())%s)))',
+                   org, sc, sc, sc, case when a = 'create' then '' else ' or crm.in_my_team(org_id, owner_id)' end);
+    if a = 'view' then execute format('create policy sel on crm.enquiries for select using (%s)', rule);
+    elsif a = 'create' then execute format('create policy ins on crm.enquiries for insert with check (%s)', rule);
+    elsif a = 'edit' then execute format('create policy upd on crm.enquiries for update using (%s) with check (%s)', rule, rule);
+    else execute format('create policy del on crm.enquiries for delete using (%s)', rule);
+    end if;
+  end loop;
 end $$;
 
 -- ---------------------------------------------------------------- settings (tenants.settings/flags/webhook_key/wallet)

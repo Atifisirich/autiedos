@@ -4,7 +4,7 @@
 revoke execute on all functions in schema crm, core, private from public;
 
 -- Called while RLS policies are evaluated (so by every role that can read crm tables) and by triggers.
-grant execute on function crm.in_my_team(uuid, uuid), crm.mask(), crm.role_rows(jsonb)
+grant execute on function crm.in_my_team(uuid, uuid), crm.scope_of(text, text), crm.disabled_branches(), crm.mask(), crm.role_rows(jsonb)
   to authenticated, crm_server, service_role;
 
 -- CRM server (and users of the Data API with the CRM) - each function re-checks org, product and permission itself.
@@ -38,6 +38,6 @@ grant execute on function core.upsert_staff(uuid, text, text, text, text, uuid, 
 grant execute on function private.enqueue_tick_jobs(text, text) to job_runner, service_role;
 
 -- Migration-only helper and trigger functions: no request role.
-revoke execute on function crm.apply_rls_scoped(text, text, text, text) from authenticated, crm_server, os_server, erp_server, platform_admin_server, job_runner;
+revoke execute on function crm.apply_rls_scoped(text, text, text, text), crm.apply_rls_enquiries() from authenticated, crm_server, os_server, erp_server, platform_admin_server, job_runner;
 
 grant select on crm.enquiries_full, crm.staff_v to authenticated, crm_server, service_role;

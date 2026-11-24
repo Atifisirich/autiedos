@@ -6,26 +6,6 @@
 -- ---------------------------------------------------------------- small helpers
 create or replace function crm.mask() returns text language sql immutable set search_path = '' as $$ select '••••••'::text $$;
 
--- Reporting line (RB-02): is the signed-in user, directly or further up, the manager of this owner?
--- Used by the team policies on crm.enquiries ("own" scope also covers everyone who reports to you).
-create or replace function crm.in_my_team(p_org uuid, p_owner uuid) returns boolean
-language sql stable security definer set search_path = '' as $$
-  with recursive up as (
-    select s.id, s.reports_to, s.user_id from core.staff s
-     where s.org_id = p_org and s.user_id = p_owner and s.deleted_at is null
-    union
-    select m.id, m.reports_to, m.user_id from core.staff m join up on m.id = up.reports_to
-     where m.org_id = p_org and m.deleted_at is null)
-  select p_owner is not null and exists (select 1 from up where up.user_id = auth.uid() and up.user_id is distinct from p_owner)
-$$;
-
-create policy sel_team on crm.enquiries for select using (
-  app.user_has_product(org_id, 'crm') and crm.in_my_team(org_id, owner_id)
-  and app.can('crm', 'leads', 'view', org_id, branch_id, app.uid()));
-create policy upd_team on crm.enquiries for update
-  using (app.user_has_product(org_id, 'crm') and crm.in_my_team(org_id, owner_id) and app.can('crm', 'leads', 'edit', org_id, branch_id, app.uid()))
-  with check (app.user_has_product(org_id, 'crm') and crm.in_my_team(org_id, owner_id) and app.can('crm', 'leads', 'edit', org_id, branch_id, app.uid()));
-
 -- ---------------------------------------------------------------- the permission matrix -> core.role_permissions
 -- crm.roles.permissions holds one level per capability (lib/perm.ts CAPS). The database enforces it through the
 -- platform's role tables, so every capability is translated into (module, action, scope) rows. Where several

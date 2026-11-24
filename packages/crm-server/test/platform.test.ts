@@ -189,6 +189,50 @@ describe('sensitive custom fields are masked in SQL, not only in the app', () =>
   });
 });
 
+describe('the CRM row policies agree with the platform\'s app.can() for every default role', () => {
+  it('visible and editable enquiries are exactly those app.can() allows (own / team / branch / org scope)', async () => {
+    const second = org.branches['Second campus']!;
+    const users: Record<string, string> = {
+      'Group Admin': admin, Counsellor: counsellor, Principal: principal, 'Branch Admin': org.users['Branch Boss']!,
+      'Front Office': await addStaff(org, 'Front Fiona', 'Front Office', { branchIds: [org.branchId] }),
+      Marketing: await addStaff(org, 'Market Mo', 'Marketing'),
+      'Second Counsellor': await addStaff(org, 'Second Sam', 'Counsellor', { branchIds: [second] }),
+    };
+    // enquiries spread over both branches and several owners; the counsellor manages the second counsellor
+    await ownerQ('update core.staff set reports_to = (select id from core.staff where user_id = $2) where user_id = $1', [users['Second Counsellor'], users.Counsellor]);
+    const owners = [users.Counsellor!, users['Second Counsellor']!, users['Branch Admin']!, admin];
+    for (let i = 0; i < 8; i++) {
+      const e = await lead(org, { studentName: `Matrix ${i}`, mobile: mobile() });
+      await ownerQ('update crm.enquiries set owner_id = $2, branch_id = $3 where id = $1', [e.enquiryId, owners[i % 4], i % 2 ? second : org.branchId]);
+    }
+    for (const [role, uid] of Object.entries(users)) {
+      for (const action of ['view', 'edit']) {
+        const c = await owner.connect();
+        let expected: string[];
+        try {
+          await c.query('begin');
+          await c.query(`select set_config('request.jwt.claim.sub', $1, true), set_config('request.jwt.claims', $2, true)`, [uid, JSON.stringify({ sub: uid })]);
+          expected = (
+            await c.query(
+              `select e.id from crm.enquiries e where e.org_id = $1 and (app.can('crm', 'leads', $2, e.org_id, e.branch_id, e.owner_id)
+                 or (crm.in_my_team(e.org_id, e.owner_id) and app.can('crm', 'leads', $2, e.org_id, e.branch_id, app.uid()))) order by 1`,
+              [org.orgId, action],
+            )
+          ).rows.map((r) => r.id);
+        } finally {
+          await c.query('rollback');
+          c.release();
+        }
+        const actual = await asUser(uid, org.orgId, async (db) => {
+          if (action === 'view') return (await db.q('select id from crm.enquiries order by 1')).map((r) => r.id);
+          return (await db.q('update crm.enquiries set tags = tags where org_id = $1 returning id', [org.orgId])).map((r) => r.id).sort();
+        });
+        expect(actual, `${role} ${action}`).toEqual(expected);
+      }
+    }
+  });
+});
+
 describe('wallet, roles and secrets', () => {
   it('the wallet balance and ledger change only through crm.wallet_post', async () => {
     expect(await code(() => asUser(admin, org.orgId, (db) => db.q('update crm.settings set wallet_balance = 99999')))).toBe('42501');

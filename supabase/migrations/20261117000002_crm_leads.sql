@@ -290,11 +290,8 @@ create unique index payments_receipt on crm.payments(org_id, receipt_no) where r
 create trigger trg_touch before update on crm.payments for each row execute function app.touch_updated_at();
 
 -- ---------------------------------------------------------------- RLS
--- enquiries: platform generator ('product': branch_id + owner_id used) plus the reporting-line extension.
--- "Own" scope in the CRM also covers everyone who reports to the user (RB-02), directly or further down; the
--- generator only knows owner_id = app.uid(), so two extra permissive policies add the team rows. They keep the
--- product check and the branch / per-branch product switch of app.can().
-select app.apply_rls('crm', 'enquiries', 'product', 'crm', 'leads');
+-- enquiries: the lead-scope policies (own / team / branch / org, per-branch switch), see crm.apply_rls_enquiries.
+select crm.apply_rls_enquiries();
 
 -- household visible: some visible enquiry belongs to it (RLS of crm.enquiries applies inside the subquery), or the
 -- caller created the row (a family is inserted before its first enquiry, and INSERT ... RETURNING needs the row visible).
