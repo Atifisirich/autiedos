@@ -6,4 +6,6 @@ const config = getDefaultConfig(__dirname);
 config.watchFolders = [root];
 config.resolver.nodeModulesPaths = [path.resolve(__dirname, 'node_modules'), path.resolve(root, 'node_modules')];
 config.resolver.unstable_enablePackageExports = true;
+// Prefer React Native and browser builds (supabase realtime would otherwise pull the Node 'ws' package).
+config.resolver.unstable_conditionNames = ['react-native', 'browser', 'require', 'import', 'default'];
 module.exports = config;
