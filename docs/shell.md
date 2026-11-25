@@ -15,6 +15,7 @@ Decision 35: one web app, three products. The shell lives in `apps/web/component
 | `<ProductSwitcher current="crm" />` | Header control listing the person's products; links to each product home and to `/`. |
 | `<ProductGate product="crm">` | Signed out -> `/login?next=...`; must change password -> `/account/password`; no product -> "not part of your plan"; else renders children. |
 | `<SchoolBrand session={...} />`, `brandColor(branding)` | School name / initials in `branding.primary_color` (or `branding.color`). |
+| `/records` | Custom registers (docs/custom-records.md), linked from the landing page and the switcher's menu ("Custom registers"). |
 | `usePlatformSession()`, `useShellLang()`, `signOut()` | The session (fetched once per page and shared), the `os_lang` language choice, sign-out everywhere. |
 
 Everything is exported from `@/components/shell` (the old OS header moved to `components/os-shell.tsx` so that
