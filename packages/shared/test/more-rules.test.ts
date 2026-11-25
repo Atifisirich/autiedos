@@ -250,6 +250,19 @@ describe('privacy', () => {
     expect(containsContactData({ a: '9876543210' })).toBe(true);
     expect(containsContactData({ a: 'Class 8 Science' })).toBe(false);
   });
+
+  it('catches Indian mobile numbers in every common spelling, +91 without a separator included', () => {
+    for (const n of ['+919876543210', '919876543210', '+91 9876543210', '+91-98765-43210', '+91 98765 43210', '0091 9876543210', '09876543210', '9876543210', '98765-43210', '98765 43210']) {
+      expect(redact(`call ${n} today`).text, n).toBe('call [phone] today');
+      expect(containsContactData({ note: `parent: ${n}` }), n).toBe(true);
+    }
+    // the whole number goes, not just its last ten digits
+    expect(redact('ring +919876543210.').text).toBe('ring [phone].');
+    // not phone numbers: amounts, dates, ids, landline-length or 11+ digit runs that are not a prefixed mobile
+    for (const s of ['Rs 25,000 above 10%', '2026-11-25', 'Class 10 Section B', 'order 123456', '5123456789', '98765432101234']) {
+      expect(containsContactData({ s }), s).toBe(false);
+    }
+  });
 });
 
 describe('checklists & compliance', () => {
