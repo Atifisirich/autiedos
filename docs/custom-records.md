@@ -145,8 +145,9 @@ that lost the product, like `claim_jobs`); `app.custom_records_deliver_reminder(
 
 ## Designer adapter
 
-`packages/server/src/custom-records/designer-adapter.ts` exports `customObjectBlock` for the designer's block
-catalogue (built separately in `packages/*/src/designer`). Block type `'custom_object'`; its settings are a custom
+`packages/server/src/custom-records/designer-adapter.ts` exports `customObjectBlock`; the AI designer uses it for its
+`core.custom_object` block (`packages/server/src/designer/blocks/core/custom-object.ts`, docs/designer.md "Custom
+registers"), running the adapter's database calls in savepoints of the designer's transaction. Block type `'custom_object'`; its settings are a custom
 object definition (`RecordObjectInput` from `@autoed/shared`, the JSON above plus `key`, `product_key`, labels).
 
 ```ts

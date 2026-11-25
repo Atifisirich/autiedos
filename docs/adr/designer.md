@@ -36,7 +36,15 @@ the school's configuration, never personal data; Gemini only (mock in developmen
 6. **Privacy filter** before the AI: roster names (staff, students, guardians; full and first names) become tokens,
    phones and e-mails are removed; the summary contains configuration keys and names only.
 7. **Mock planner** (`mockDesignerPlan`) covers the standard requests deterministically so the feature is demoable and
-   testable without Gemini; ERP and CRM requests return "not supported yet" until their blocks exist.
+   testable without Gemini, for the OS, CRM, ERP and custom registers; a request for a product the school does not have
+   returns a "not part of your plan" note.
+9. **CRM and ERP blocks run as their own product's login** (2026-11-25, second stream): one transaction per product
+   login with the actor's claims (`ApplyCtx.tx(product)`), committed together at the end; CRM blocks through the CRM
+   server's `Db` and audit trail, ERP blocks on the rows the ERP's Data API screens use, the custom records engine
+   through its designer adapter. A school without the OS books its planner call through `app.designer_log_generation`.
+   ERP approval chains became data (`erp.approval_rules`, read by `erp.submit_approval`); CRM workflows got explicit stop
+   rules and a "notify a role" step. `app.can` / `crm.scope_of` now recognise an AutoEd relationship manager's support
+   session even though AutoEd staff are members of the AutoEd org.
 8. **Explain my school** is deterministic (no AI, no credits) from the same configuration summary.
 
 ## Consequences

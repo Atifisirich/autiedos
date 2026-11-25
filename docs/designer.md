@@ -221,8 +221,8 @@ date-times) and an approval step by the school's warden role (`erp:warden`), or 
    export const CRM_BLOCKS = [leadStageBlock] as unknown as BlockDef[];
    ```
    and `registerBlocks(CRM_BLOCKS)` in `packages/shared/src/designer/index.ts`. Never rename a key once published
-   (changesets store it). To replace the stub, register a block with the key `core.custom_object` (a later registration
-   wins) and drop `stub`.
+   (changesets store it). A later registration of a key replaces the earlier one; `stub: true` lists a block the planner
+   may not use yet.
 2. **Apply it** in `packages/server/src/designer/blocks/<product>/<area>.ts` with a `ServerBlock`:
    `read(x, key)` (current settings or null), `list(x)` (key + name of every instance: what the AI sees), `write(x, key,
    settings)` (create or update so that `read` returns them), `remove(x, key)`; add `capture` / `restore` only if `read`
