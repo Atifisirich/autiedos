@@ -46,7 +46,7 @@ create table core.design_changesets (
   status text not null default 'draft' check (status in ('draft', 'validated', 'published', 'reverted', 'rejected')),
   author_user_id uuid not null default app.uid(),
   author_kind text not null check (author_kind in ('org_admin', 'relationship_manager')),
-  support_session_id uuid references core.support_sessions(id) on delete set null,
+  support_session_id uuid,                              -- core.support_sessions.id of the RM's session (checked by RLS below)
   approved_by_user_id uuid,                             -- who published it
   ai_generation_id uuid,                                -- core.ai_generations row of the planner call (credits)
   credits numeric(10,2) not null default 0,
@@ -87,6 +87,7 @@ create table core.design_changeset_items (
   created_at timestamptz not null default now(),
   created_by uuid default app.uid(),
   updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
   unique (org_id, id),
   unique (changeset_id, seq),
   foreign key (org_id, changeset_id) references core.design_changesets(org_id, id) on delete cascade
@@ -114,8 +115,12 @@ begin
     execute format('create policy upd on core.%I for update using (org_id = app.current_org_id() and app.user_has_any_product(org_id) and app.designer_allowed(org_id, true)) with check (org_id = app.current_org_id() and app.user_has_any_product(org_id) and app.designer_allowed(org_id, true))', t);
   end loop;
 end $$;
--- The author of a new changeset is the signed-in person (no planting a plan in someone else's name).
-create policy ins_author on core.design_changesets as restrictive for insert with check (author_user_id = app.uid());
+-- A new changeset is written in the signed-in person's own name, and a relationship manager's carries THEIR open
+-- support session (no planting a plan in someone else's name, no made-up session id).
+create policy ins_author on core.design_changesets as restrictive for insert with check (
+  author_user_id = app.uid()
+  and support_session_id is not distinct from app.support_session_id()
+  and (author_kind = 'relationship_manager') = (app.support_session_id() is not null));
 
 -- ---------------------------------------------------------------- AI price (one designer plan = 1 credit, AutoEd default)
 insert into billing.ai_action_costs (org_id, action, credits, included, daily_fair_use, model_tier)

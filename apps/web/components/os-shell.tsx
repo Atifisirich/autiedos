@@ -59,6 +59,14 @@ export function Shell({ children }: { children: ReactNode }) {
               </div>
             );
           })}
+          {can('setup', 'configure', 5) && (
+            <Link href="/designer" className="flex min-h-[40px] items-center gap-2 rounded-md px-2 text-sm text-brand-700 hover:bg-brand-50" data-testid="nav-designer">
+              <span aria-hidden className="w-5 text-center">
+                ✨
+              </span>
+              {t('designer.nav')}
+            </Link>
+          )}
           {me.is_super_admin && (
             <Link href="/os/admin" className="flex min-h-[40px] items-center gap-2 rounded-md px-2 text-sm text-purple-700 hover:bg-purple-50">
               <span aria-hidden className="w-5 text-center">

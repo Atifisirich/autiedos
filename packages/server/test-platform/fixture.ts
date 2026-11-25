@@ -128,6 +128,14 @@ async function build(c: pg.PoolClient) {
   // OS product rows (20261116000001..5): one row per os table (and OS wallet tables) for A and B
   await seedOs(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, core: coreA });
   await seedOs(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, core: coreB });
+  // AI school designer (20261127100001): one published changeset with one item per org
+  for (const [o, admin] of [[A.id, u.aAdmin], [B.id, u.bAdmin]] as const) {
+    const cs = id();
+    await q(`insert into core.design_changesets (id, org_id, prompt, plan, status, author_user_id, author_kind, approved_by_user_id, version, published_at, product_scope)
+             values ($1, $2, 'fixture: daily opening checklist', '{"summary":"fixture","ops":[]}', 'published', $3, 'org_admin', $3, 1, now(), '{os}')`, [cs, o, admin]);
+    await q(`insert into core.design_changeset_items (org_id, changeset_id, seq, product_key, block_key, op, instance_key, settings, inverse)
+             values ($1, $2, 1, 'os', 'os.checklist', 'create', 'daily_opening', '{}', '{"op":"delete","block":"os.checklist","key":"daily_opening"}')`, [o, cs]);
+  }
   const learnerA = coreA.learner;
   const learnerB = coreB.learner;
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'mother'), ($4, $5, $6, 'father')`, [A.id, u.aGuardian, learnerA, B.id, u.bGuardian, learnerB]);

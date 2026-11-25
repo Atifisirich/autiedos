@@ -4,6 +4,7 @@
  * products the school bought AND this person was given (GET /session). Platform admins without a school get a
  * link to the console.
  */
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LANGUAGES, LANGUAGE_NAMES, type Lang } from '@autoed/shared';
 import { SchoolBrand, brandColor, signOut, usePlatformSession, useShellLang } from '@/components/shell';
@@ -14,6 +15,15 @@ export default function ProductLanding() {
   const { session, error } = usePlatformSession();
   const { t, lang, setLang } = useShellLang(null, session?.lang ?? null);
   const color = brandColor(session?.org?.branding) ?? '#1d4ed8';
+  // AI school designer (decision 57): offered to the school's management and to AutoEd staff; the server decides.
+  const [designer, setDesigner] = useState(false);
+  useEffect(() => {
+    if (!session) return;
+    fetch('/api/os/designer/whoami', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((w: { kind?: string } | null) => setDesigner(!!w && w.kind !== 'none'))
+      .catch(() => setDesigner(false));
+  }, [session]);
 
   if (!session) {
     return (
@@ -64,6 +74,15 @@ export default function ProductLanding() {
           </li>
         ))}
       </ul>
+
+      {designer && (
+        <p className="mt-8">
+          <Link href="/designer" prefetch={false} data-testid="designer-link" className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-800 hover:border-brand-400">
+            <span aria-hidden>✨</span>
+            {t('designer.landing.link')}
+          </Link>
+        </p>
+      )}
 
       {session.is_platform_admin && (
         <p className="mt-8 text-sm">
