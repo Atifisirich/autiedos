@@ -206,7 +206,6 @@ async function store(x: ApplyCtx, input: { source: 'prompt' | 'template'; prompt
 export async function plan(a: DesignerActor, input: { prompt: string }) {
   needWrite(a);
   return withActor(a, async (x) => {
-    const c = x.c;
     const known = await knownConfig(x);
     const out = await planWithAi(x, input.prompt, known);
     return store(x, { source: 'prompt', prompt: input.prompt, cs: out.changeset, known, generationId: out.generationId, credits: out.credits });
@@ -225,7 +224,6 @@ export async function planTemplate(a: DesignerActor, key: string, params: Record
     throw new ValidationError('invalid_params', { message: (e as Error).message.slice(0, 300) });
   }
   return withActor(a, async (x) => {
-    const c = x.c;
     return store(x, { source: 'template', prompt: t.title, cs: changesetSchema.parse(cs), known: await knownConfig(x), templateKey: key });
   });
 }
@@ -429,7 +427,6 @@ export async function dryRun(a: DesignerActor, id: string) {
   needWrite(a);
   try {
     await withActor(a, async (x) => {
-      const c = x.c;
       const r = await row(x, id);
       if (!['draft', 'validated'].includes(r.status)) throw new ConflictError(`changeset_${r.status}`);
       const applied = await applyAll(x, r);
