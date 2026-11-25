@@ -63,6 +63,7 @@ export async function seedErp(q: Q, o: ErpOrgInput) {
   await ins('import_jobs', { entity: 'students', filename: 'students.csv' });
   const auto = await ins('automations', { name: 'Absentee notice', trigger: 'attendance.submitted' });
   await ins('automation_runs', { automation_id: auto, status: 'ok' });
+  await ins('approval_rules', { key: 'concession_above_10', name: 'Concessions above 10%', approval_type: 'concession', min_percent: 10, steps: JSON.stringify(['group_admin']) });
   await ins('saved_reports', { name: 'Defaulters', family: 'fees', created_by: o.admin });
   await ins('adoption_checklists', { name: 'Marks entered', role: 'teacher', check_key: 'marks_entered' });
   await ins('briefings', { title: "What's new", published: true });

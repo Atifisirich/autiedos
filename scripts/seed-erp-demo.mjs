@@ -27,6 +27,8 @@ await q(`insert into core.subscriptions (org_id, product_key, status, plan_key) 
 const main = id(), east = id();
 await q(`insert into core.branches (id, org_id, name, code, city, state_code, working_days, gst_no, boards) values ($1, $3, 'Main campus', 'MAIN', 'Hyderabad', '36', '{1,2,3,4,5,6}', '36AABCD1234E1Z5', '{CBSE}'), ($2, $3, 'East campus', 'EAST', 'Secunderabad', '36', '{1,2,3,4,5}', null, '{CBSE}')`, [main, east, org]);
 await q(`select erp.seed_roles($1)`, [org]);
+// the school's AI wallet (the AI school designer books its plans here: 1 credit each)
+await q(`insert into billing.ai_allowances (org_id, monthly_credits) values ($1, 500)`, [org]);
 await q(`insert into erp.accounts (org_id, code, name, type, is_system) values
   ($1, '1000', 'Cash in hand', 'asset', true), ($1, '1010', 'Bank', 'asset', true), ($1, '1100', 'Fee receivable', 'asset', true),
   ($1, '2000', 'Caution deposits and advances', 'liability', true), ($1, '2100', 'Payroll payable', 'liability', true),

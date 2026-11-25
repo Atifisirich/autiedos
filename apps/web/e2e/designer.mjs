@@ -9,8 +9,17 @@
  *  3. "Explain my school" and the template gallery render; the ERP example comes back as "not possible yet";
  *  4. Hindi and Telugu screens show no raw i18n keys; at phone width (375 px) nothing scrolls sideways;
  *  5. a teacher is refused politely;
- *  6. no page errors, console errors or HTTP 5xx anywhere.
- * Usage: BASE_URL=http://localhost:3921 CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome node apps/web/e2e/designer.mjs
+ *  6. CRM school (admin@demo.test, CRM only): only CRM / register examples; "new enquiry follow-up within 24h else escalate
+ *     to admission head" is previewed, published (CRM settings and the escalation workflow change, CRM Admin > Workflows
+ *     shows it) and undone;
+ *  7. ERP school (admin@erp.demo.school): "fee concession above 10% needs director approval" becomes an ERP approval rule,
+ *     undone; a custom register ("make a hostel visitor log ... approved by warden") is published, appears in /records,
+ *     and undo removes it;
+ *  8. no page errors, console errors or HTTP 5xx anywhere.
+ * Needs the OS demo (pnpm db:reset) plus the CRM and ERP demo schools in the same database (docs/staging.md):
+ *   ERP_DEMO_DOMAIN=erp.demo.school node scripts/seed-erp-demo.mjs; (cd apps/web && CRM_DATABASE_URL=... npx tsx e2e/crm-seed.mts)
+ * Runs against `next dev` (a production build refuses the mock AI). With DATABASE_URL set it also checks the tables.
+ * Usage: BASE_URL=http://localhost:4321 CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome [DATABASE_URL=...] node apps/web/e2e/designer.mjs
  */
 import { createRequire } from 'node:module';
 
@@ -123,10 +132,118 @@ async function noSideScroll(page, label) {
   await page.fill('textarea[name=prompt]', 'Fee concession above 10% needs director approval');
   await page.click('[data-testid=designer-send]');
   await page.waitForSelector('[data-testid=plan-unsupported]');
-  check(true, 'ERP request answered as "not possible yet"');
+  check(true, 'an ERP request of an OS-only school is answered as "not part of your plan"');
   await untranslated(page, 'chairman /designer en');
   await ctx.close();
 }
+
+// ---------------------------------------------------------------- 6-7. CRM and ERP schools, a custom register
+const pool = process.env.DATABASE_URL ? new (require('pg').Pool)({ connectionString: process.env.DATABASE_URL, max: 2 }) : null;
+const sql = async (text, params = []) => (pool ? (await pool.query(text, params)).rows : null);
+/** Types a request, waits for a validated plan and returns its card. */
+async function planIt(page, prompt) {
+  await page.fill('textarea[name=prompt]', prompt);
+  await page.click('[data-testid=designer-send]');
+  await page.waitForSelector('[data-testid=plan-card][data-status=validated]', { timeout: 30000 });
+  return page.locator('[data-testid=plan-card]').last();
+}
+async function publishAndUndo(page, card, between) {
+  await card.getByRole('button', { name: 'Publish' }).click();
+  await page.waitForSelector('[data-testid=plan-card][data-status=published]');
+  await between();
+}
+{
+  const { ctx, page, go, state } = await context('crm-admin');
+  await signIn(page, go, 'admin@demo.test');
+  await page.waitForSelector('[data-testid=designer-link]');
+  check(true, 'CRM-only management sees the designer link');
+  await go('/designer');
+  await page.waitForSelector('textarea[name=prompt]');
+  const chips = await page.locator('form button[type=button]').allInnerTexts();
+  check(chips.some((c) => /follow-up within 24h/i.test(c)) && chips.some((c) => /hostel visitor log/i.test(c)) && !chips.some((c) => /concession|absent more than/i.test(c)), 'a CRM school is offered CRM and register examples only');
+  const before = (await sql(`select s.settings->>'first_response_mins' as m from crm.settings s join core.organizations o on o.id = s.org_id where o.slug = 'greenfield-demo'`))?.[0]?.m;
+  await page.click('form button[type=button]:has-text("follow-up within 24h")');
+  await page.click('[data-testid=designer-send]');
+  await page.waitForSelector('[data-testid=plan-card][data-status=validated]', { timeout: 30000 });
+  const card = page.locator('[data-testid=plan-card]').last();
+  const text = await card.innerText();
+  check(/first response within 24 h/.test(text), 'CRM preview: every new enquiry needs a first response within 24 hours');
+  check(/Alert admission_head/.test(text), 'CRM preview: the admission head is alerted when it is missed');
+  check(/Stops when the parent replies/.test(text), 'CRM preview: stop rules in plain words');
+  await page.screenshot({ path: `${SHOTS}/designer-crm-preview.png`, fullPage: true });
+  await card.getByRole('button', { name: 'Try on sample data' }).click();
+  await card.locator('[data-testid=dry-run]').waitFor();
+  await publishAndUndo(page, card, async () => {
+    if (pool) check((await sql(`select s.settings->>'first_response_mins' as m from crm.settings s join core.organizations o on o.id = s.org_id where o.slug = 'greenfield-demo'`))[0].m === '1440', 'CRM settings changed: first response within 1440 minutes');
+    if (pool) check((await sql(`select w.steps::text as s from crm.workflows w join core.organizations o on o.id = w.org_id where o.slug = 'greenfield-demo' and w.recipe_key = 'untouched'`))[0].s.includes('admission_head'), 'the CRM escalation workflow names the admission head');
+    await go('/crm/admin/workflows');
+    await page.waitForSelector('text=Untouched escalation');
+    check(true, 'the workflow is listed in CRM Admin > Workflows');
+    await page.screenshot({ path: `${SHOTS}/designer-crm-admin.png`, fullPage: true });
+  });
+  await go('/designer');
+  await page.getByRole('tab', { name: 'History' }).click();
+  const row = page.locator('[data-testid=history-row][data-status=published]').first();
+  await row.waitFor();
+  await row.getByRole('button', { name: 'Open' }).click();
+  await page.locator('[data-testid=plan-card]').getByRole('button', { name: 'Undo' }).click();
+  await page.waitForSelector('[data-testid=plan-card][data-status=reverted]');
+  if (pool) check((await sql(`select s.settings->>'first_response_mins' as m from crm.settings s join core.organizations o on o.id = s.org_id where o.slug = 'greenfield-demo'`))[0].m === before, 'after undo the CRM response time is back');
+  check(true, 'CRM change undone from history');
+  await page.getByRole('tab', { name: 'My school' }).click();
+  await page.waitForSelector('[data-testid=explain] li');
+  check(/CRM: \d+ pipeline stages/.test(await page.locator('[data-testid=explain]').innerText()), 'explain my school covers the CRM');
+  await untranslated(page, 'crm /designer en');
+  state.where = '';
+  await ctx.close();
+}
+{
+  const { ctx, page, go } = await context('erp-admin');
+  await signIn(page, go, 'admin@erp.demo.school');
+  await go('/designer');
+  await page.waitForSelector('textarea[name=prompt]');
+  const card = await planIt(page, 'Fee concession above 10% needs director approval');
+  const text = await card.innerText();
+  check(/concession requests are approved by: group_admin/.test(text), 'ERP preview: concessions above 10% go to the group admin (director)');
+  check(/above 10%/.test(text), 'ERP preview names the 10% threshold');
+  await page.screenshot({ path: `${SHOTS}/designer-erp-preview.png`, fullPage: true });
+  await publishAndUndo(page, card, async () => {
+    if (pool) check((await sql(`select r.min_percent::text as p from erp.approval_rules r join core.organizations o on o.id = r.org_id where o.slug = 'demo-school' and r.key = 'concession_above_10' and r.deleted_at is null`))[0]?.p === '10.00', 'the ERP approval rule is live');
+  });
+  await card.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForSelector('[data-testid=plan-card][data-status=reverted]');
+  if (pool) check((await sql(`select 1 from erp.approval_rules r join core.organizations o on o.id = r.org_id where o.slug = 'demo-school' and r.key = 'concession_above_10' and r.deleted_at is null`)).length === 0, 'after undo the ERP approval rule is gone');
+  check(true, 'ERP change undone');
+
+  // a custom register through the designer (the custom records engine)
+  const reg = await planIt(page, 'Make a hostel visitor log with visitor name, student, time in/out, approved by warden');
+  const rtext = await reg.innerText();
+  check(/Visitor name \(text, required\)/.test(rtext) && /needs approval by erp:warden/.test(rtext), 'register preview: fields and the warden approval');
+  await page.screenshot({ path: `${SHOTS}/designer-register-preview.png`, fullPage: true });
+  await publishAndUndo(page, reg, async () => {
+    await go('/records');
+    await page.waitForSelector('text=Hostel visitor log');
+    check(true, 'the new register is listed in /records');
+    await page.screenshot({ path: `${SHOTS}/designer-register-records.png`, fullPage: true });
+  });
+  await go('/designer');
+  await page.getByRole('tab', { name: 'History' }).click();
+  const row = page.locator('[data-testid=history-row][data-status=published]').first();
+  await row.waitFor();
+  await row.getByRole('button', { name: 'Open' }).click();
+  await page.locator('[data-testid=plan-card]').getByRole('button', { name: 'Undo' }).click();
+  await page.waitForSelector('[data-testid=plan-card][data-status=reverted]');
+  await go('/records');
+  await page.waitForLoadState('networkidle');
+  check((await page.locator('text=Hostel visitor log').count()) === 0, 'after undo the register is gone from /records');
+  await go('/designer');
+  await page.getByRole('tab', { name: 'My school' }).click();
+  await page.waitForSelector('[data-testid=explain] li');
+  check(/ERP: \d+ fee heads/.test(await page.locator('[data-testid=explain]').innerText()), 'explain my school covers the ERP');
+  await untranslated(page, 'erp /designer en');
+  await ctx.close();
+}
+await pool?.end();
 
 // ---------------------------------------------------------------- 4. Hindi, Telugu, phone width
 for (const lang of ['hi', 'te']) {
