@@ -20,7 +20,11 @@ import { need, run, now, staffWithRole, type Ctx } from '../core';
  * so these rows are written on their own connection and survive it.
  */
 async function recordFailed(row: Record<string, unknown>): Promise<void> {
-  await asSystem(String(row.org_id), (cc) => insert(cc, 'core.ai_generations', row));
+  // recorded outside the request transaction (which rolls back) as the org's OS system actor; an org without the OS
+  // (a CRM- or ERP-only designer call) has no such actor, so the failed call is not logged rather than masking the error
+  await asSystem(String(row.org_id), (cc) => insert(cc, 'core.ai_generations', row)).catch((e: { status?: number }) => {
+    if (e?.status !== 403) throw e;
+  });
 }
 
 export async function costTable(c: Tx): Promise<CostRow[]> {
@@ -67,6 +71,10 @@ export interface GenerateOptions<T> {
   /** Deterministic fixes applied before validation (e.g. exact timings). */
   repair?: (out: T) => T;
   linked?: { type: string; id?: string | null };
+  /** Product the generation is booked to (default os; the designer of a CRM- or ERP-only school uses its own product). */
+  productKey?: 'os' | 'crm' | 'erp';
+  /** Books the successful generation row instead of a plain insert (the designer of a school without the OS). */
+  insertGeneration?: (c: Tx, row: Record<string, unknown>) => Promise<{ id: string }>;
   /** Logged input (never includes personal data). */
   logInput: Record<string, unknown>;
 }
@@ -81,7 +89,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
   const decision = checkCredits(o.action, { ...state, usesToday }, costs, o.units ?? 1);
   const model = await models(c);
   if (!decision.allowed) {
-    await recordFailed({ org_id: o.orgId, branch_id: o.branchId, product_key: 'os', staff_id: o.staffId, action: o.action, model: o.tier === 'strong' ? model.strong : model.fast, provider: 'none', input: o.logInput, status: 'blocked', error: decision.reason, credits: 0 });
+    await recordFailed({ org_id: o.orgId, branch_id: o.branchId, product_key: o.productKey ?? 'os', staff_id: o.staffId, action: o.action, model: o.tier === 'strong' ? model.strong : model.fast, provider: 'none', input: o.logInput, status: 'blocked', error: decision.reason, credits: 0 });
     throw new PaymentRequiredError(decision.reason === 'fair_use' ? 'fair_use_limit' : decision.reason === 'teacher_cap' ? 'teacher_cap_reached' : 'credits_exhausted');
   }
   if (containsContactData(o.prompt) || containsContactData(o.system)) throw new ValidationError('personal_data_in_prompt');
@@ -101,7 +109,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
       res = await provider.generate({ action: o.action, tier: o.tier, system: o.system, prompt: attempts > 1 ? `${o.prompt}\n\nThe previous answer failed these checks: ${lastIssues.join(', ')}. Fix them.` : o.prompt, schema: o.jsonSchema, mockContext: o.mockContext }, model);
     } catch (e) {
       const refusal = e instanceof AiRefusalError;
-      await recordFailed({ org_id: o.orgId, branch_id: o.branchId, product_key: 'os', staff_id: o.staffId, action: o.action, model: usedModel || model.strong, provider: provider.name, input: o.logInput, status: 'failed', attempts, error: refusal ? `refused:${(e as AiRefusalError).category}` : (e as Error).message.slice(0, 500), credits: 0 });
+      await recordFailed({ org_id: o.orgId, branch_id: o.branchId, product_key: o.productKey ?? 'os', staff_id: o.staffId, action: o.action, model: usedModel || model.strong, provider: provider.name, input: o.logInput, status: 'failed', attempts, error: refusal ? `refused:${(e as AiRefusalError).category}` : (e as Error).message.slice(0, 500), credits: 0 });
       throw refusal ? new ValidationError('ai_refused') : new ValidationError('ai_unavailable');
     }
     tokensIn += res.inputTokens;
@@ -123,7 +131,7 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
   const genRow = {
     org_id: o.orgId,
     branch_id: o.branchId,
-    product_key: 'os',
+    product_key: o.productKey ?? 'os',
     user_id: o.staffId ? (await maybe<{ user_id: string | null }>(c, `select user_id from core.staff where id = $1`, [o.staffId]))?.user_id ?? null : null,
     staff_id: o.staffId,
     action: o.action,
@@ -145,14 +153,14 @@ export async function generate<T>(c: Tx, o: GenerateOptions<T>): Promise<{ outpu
     await recordFailed(genRow);
     throw new ValidationError('ai_output_invalid', { issues: lastIssues });
   }
-  const gen = await insert<{ id: string }>(c, 'core.ai_generations', genRow);
+  const gen = o.insertGeneration ? await o.insertGeneration(c, genRow) : await insert<{ id: string }>(c, 'core.ai_generations', genRow);
   if (credits > 0) {
     // the wallet is charged from the generation row itself (app.ai_charge: once per generation)
     await c.query(`select app.ai_charge($1, $2)`, [gen.id, period]);
     const beforePct = state.granted ? (state.used / state.granted) * 100 : 0;
     const afterPct = state.granted ? ((state.used + credits) / state.granted) * 100 : 100;
     const crossed = crossedThresholds(beforePct, afterPct);
-    if (crossed.length) {
+    if (crossed.length && (o.productKey ?? 'os') === 'os') {
       const admins = [...(await staffWithRole(c, o.orgId, 'principal', o.branchId)), ...(await staffWithRole(c, o.orgId, 'admin_officer', o.branchId))];
       await notify(c, { orgId: o.orgId, branchId: o.branchId, staffIds: admins, event: 'credits.warning', titleKey: crossed.includes(100) ? 'notif.credits.exhausted' : 'notif.credits.warning', vars: { pct: Math.max(...crossed) }, link: '/os/ai-credits', dedupeKey: `credits:${period}:${Math.max(...crossed)}` });
     }

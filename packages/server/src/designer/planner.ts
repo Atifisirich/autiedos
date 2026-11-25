@@ -22,10 +22,10 @@ import {
   type KnownConfig,
   type TemplateDef,
 } from '@autoed/shared';
-import { withSystem } from '../db';
+import { one, withSystem, type Tx } from '../db';
 import { generate } from '../services/ai';
 import type { ApplyCtx } from './blocks';
-import { aiSummary, privacyFilter, usableBlocks } from './config';
+import { aiSummary, privacyFilter, recordRoles, usableBlocks } from './config';
 
 export function systemPrompt(blocks: BlockDef[], templates: TemplateDef[], summary: string): string {
   const catalogue = blocks.map((b) => ({ key: b.key, product: b.product, title: b.title, description: b.description, settings: zodToJsonSchema(b.settings), example: b.examples[0] ?? null }));
@@ -68,8 +68,12 @@ export async function planWithAi(x: ApplyCtx, prompt: string, known: KnownConfig
   const summary = await aiSummary(x);
   const request = await privacyFilter(x.c, a.orgId, prompt);
   const system = systemPrompt(blocks, templates, summary);
+  const recordRoleKeys = await recordRoles(x);
   const fix = (cs: Changeset) => repairChangeset(expandTemplate(cs), known);
-  const out = await withSystem(x.c, a.orgId, () =>
+  // The AI pipeline charges the org's wallet and records the generation: as the OS system actor when the school has the
+  // OS (as every OS AI feature), otherwise as the signed-in manager under their own product's rules.
+  const run = <T>(fn: () => Promise<T>) => (a.products.includes('os') ? withSystem(x.c, a.orgId, fn) : fn());
+  const out = await run(() =>
     generate(x.c, {
       orgId: a.orgId,
       branchId: a.branchId,
@@ -81,7 +85,10 @@ export async function planWithAi(x: ApplyCtx, prompt: string, known: KnownConfig
       jsonSchema: changesetJsonSchema(blocks),
       zod: changesetSchema,
       // the mock provider plans from the same redacted request and role keys the real model gets
-      mockContext: { prompt: request, roles: known.roles.os ?? [], branch_code: a.branchCode },
+      mockContext: { prompt: request, roles: known.roles.os ?? [], branch_code: a.branchCode, products: a.products, product_roles: known.roles, record_roles: recordRoleKeys },
+      productKey: a.homeProduct,
+      // without the OS there is no OS system actor: the row is booked through app.designer_log_generation (designer only)
+      ...(a.products.includes('os') ? {} : { insertGeneration: (c: Tx, row: Record<string, unknown>) => one<{ id: string }>(c, `select app.designer_log_generation($1::jsonb) as id`, [JSON.stringify(row)]) }),
       repair: fix,
       validate: (cs) =>
         validateChangeset(cs, known)

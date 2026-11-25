@@ -21,6 +21,7 @@
     "test:platform": "vitest run -c vitest.platform.config.ts"
   },
   "dependencies": {
+    "@autoed/crm-server": "workspace:*",
     "@autoed/shared": "workspace:*",
     "docx": "9.1.0",
     "exceljs": "4.4.0",

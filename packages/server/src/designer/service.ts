@@ -27,9 +27,9 @@ import {
   type KnownConfig,
   type PreviewLine,
 } from '@autoed/shared';
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError, asPlatformAdmin, asUser, insert, maybe, one, q } from '../db';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError, asPlatformAdmin, asUser, insert, maybe, one, openUserTx, q } from '../db';
 import { localToday, now } from '../core';
-import { asActor, designerActor, needWrite, type DesignerActor } from './actor';
+import { asActor, designerActor, needWrite, ROLE_OF, type DesignerActor } from './actor';
 import { captureOf, restoreTo, serverBlock, type ApplyCtx, type Settings } from './blocks';
 import { explain as explainSchool, familyCount, knownConfig, roleHolders, usableBlocks } from './config';
 import { planWithAi } from './planner';
@@ -78,7 +78,39 @@ class Conflict extends Error {
 }
 
 const en = (l: PreviewLine) => translate('en', l.messageKey, l.vars);
-const ctxOf = (c: ApplyCtx['c'], actor: DesignerActor): ApplyCtx => ({ c, actor });
+/**
+ * One designer transaction: the actor's home product login (designer tables, and that product's blocks) plus, opened
+ * on first use, one transaction per other product the org has (CRM blocks run as crm_server, ERP blocks as
+ * erp_server, OS blocks as os_server, always with the actor's claims). They are committed together after fn
+ * succeeds and all rolled back when it fails (the dry run relies on that).
+ */
+async function withActor<T>(a: DesignerActor, fn: (x: ApplyCtx) => Promise<T>): Promise<T> {
+  return asActor(a, async (c) => {
+    const extra = new Map<string, Awaited<ReturnType<typeof openUserTx>>>();
+    const x: ApplyCtx = {
+      c,
+      actor: a,
+      async tx(product) {
+        if (product === a.homeProduct) return c;
+        if (!a.products.includes(product)) throw new ForbiddenError('product_not_available');
+        let t = extra.get(product);
+        if (!t) {
+          t = await openUserTx(ROLE_OF[product], { userId: a.userId, staffId: a.staffId });
+          extra.set(product, t);
+        }
+        return t.c;
+      },
+    };
+    try {
+      const out = await fn(x);
+      for (const t of extra.values()) await t.finish(true);
+      return out;
+    } catch (e) {
+      for (const t of extra.values()) await t.finish(false).catch(() => undefined);
+      throw e;
+    }
+  });
+}
 
 async function lock(x: ApplyCtx) {
   await x.c.query(`select pg_advisory_xact_lock(hashtext($1))`, [`designer:${x.actor.orgId}`]);
@@ -90,9 +122,40 @@ async function row(x: ApplyCtx, id: string, forUpdate = false): Promise<Changese
   return r;
 }
 
+type Issues = ReturnType<typeof validateChangeset>['issues'];
+
+/**
+ * The server blocks' own checks against the school's configuration (e.g. the custom records engine's adapter:
+ * management rights, roles exist). Only ops of products the actor has and whose settings parse are checked.
+ */
+async function serverIssues(x: ApplyCtx, cs: Changeset): Promise<Issues> {
+  const out: Issues = [];
+  const planned = cs.ops.filter((o) => o.op !== 'delete' && o.settings).map((o) => ({ block: o.block, settings: o.settings as Settings }));
+  for (const [i, raw] of cs.ops.entries()) {
+    const block = getBlock(raw.block);
+    const sb = serverBlock(raw.block);
+    if (!block || !sb?.check || raw.op === 'delete' || !raw.settings) continue;
+    if (block.product !== 'core' && !x.actor.products.includes(block.product as 'os')) continue;
+    const p = block.settings.safeParse(raw.settings);
+    if (!p.success) continue;
+    for (const detail of await sb.check(x, p.data as Settings, raw.op, planned)) out.push({ op: i, code: 'block_check', detail: detail.slice(0, 300) });
+  }
+  return out;
+}
+
+/** Holders of the roles an op names, counted in the op's product (role keys are per product). */
+async function peopleIn(x: ApplyCtx, byProduct: Map<string, Set<string>>): Promise<number> {
+  let n = 0;
+  for (const [product, roles] of byProduct) n += await roleHolders(x, [...roles], product);
+  return n;
+}
+
 /** Plain-language preview with who is affected (counts of role holders and families; never names). */
-async function buildPreview(x: ApplyCtx, cs: Changeset, known: KnownConfig): Promise<{ preview: Preview; issues: ReturnType<typeof validateChangeset>['issues']; ok: boolean; scope: string[] }> {
+async function buildPreview(x: ApplyCtx, cs: Changeset, known: KnownConfig): Promise<{ preview: Preview; issues: Issues; ok: boolean; scope: string[] }> {
   const v = validateChangeset(cs, known);
+  const extra = await serverIssues(x, cs);
+  v.issues.push(...extra);
+  v.ok = v.ok && !extra.length;
   const before: Record<string, Settings | null> = {};
   for (const o of v.ops) {
     const sb = serverBlock(o.block);
@@ -101,15 +164,17 @@ async function buildPreview(x: ApplyCtx, cs: Changeset, known: KnownConfig): Pro
   const families = v.ops.some((o) => o.settings && getBlock(o.block)?.reachesFamilies?.(o.settings)) ? await familyCount(x) : 0;
   const ops: Preview['ops'] = [];
   for (const p of previewOps(v.ops, before)) {
-    ops.push({ ...p, text: [en(p.title), ...p.lines.map(en)], people: await roleHolders(x, p.roles), family_count: p.families ? families : 0 });
+    ops.push({ ...p, text: [en(p.title), ...p.lines.map(en)], people: await roleHolders(x, p.roles, p.product), family_count: p.families ? families : 0 });
   }
   const roles = [...new Set(ops.flatMap((o) => o.roles))];
+  const byProduct = new Map<string, Set<string>>();
+  for (const o of ops) for (const r of o.roles) byProduct.set(o.product, (byProduct.get(o.product) ?? new Set()).add(r));
   const preview: Preview = {
     summary: cs.summary,
     ops,
     unsupported: cs.unsupported,
     questions: cs.questions,
-    totals: { ops: ops.length, roles, people: await roleHolders(x, roles), families: ops.some((o) => o.families) ? families : 0 },
+    totals: { ops: ops.length, roles, people: await peopleIn(x, byProduct), families: ops.some((o) => o.families) ? families : 0 },
   };
   return { preview, issues: v.issues, ok: v.ok, scope: [...new Set(v.ops.map((o) => o.product))] };
 }
@@ -140,8 +205,8 @@ async function store(x: ApplyCtx, input: { source: 'prompt' | 'template'; prompt
 // ---------------------------------------------------------------- plan
 export async function plan(a: DesignerActor, input: { prompt: string }) {
   needWrite(a);
-  return asActor(a, async (c) => {
-    const x = ctxOf(c, a);
+  return withActor(a, async (x) => {
+    const c = x.c;
     const known = await knownConfig(x);
     const out = await planWithAi(x, input.prompt, known);
     return store(x, { source: 'prompt', prompt: input.prompt, cs: out.changeset, known, generationId: out.generationId, credits: out.credits });
@@ -159,17 +224,17 @@ export async function planTemplate(a: DesignerActor, key: string, params: Record
   } catch (e) {
     throw new ValidationError('invalid_params', { message: (e as Error).message.slice(0, 300) });
   }
-  return asActor(a, async (c) => {
-    const x = ctxOf(c, a);
+  return withActor(a, async (x) => {
+    const c = x.c;
     return store(x, { source: 'template', prompt: t.title, cs: changesetSchema.parse(cs), known: await knownConfig(x), templateKey: key });
   });
 }
 
 // ---------------------------------------------------------------- read
 export async function history(a: DesignerActor, limit = 50) {
-  return asActor(a, (c) =>
+  return withActor(a, (x) =>
     q(
-      c,
+      x.c,
       `select id, status, version, source, template_key, author_kind, product_scope, created_at, published_at, reverted_at, credits,
               plan->>'summary' as summary, jsonb_array_length(coalesce(plan->'ops', '[]'::jsonb)) as ops, prompt,
               (author_user_id = app.uid()) as mine
@@ -180,8 +245,8 @@ export async function history(a: DesignerActor, limit = 50) {
 }
 
 export async function get(a: DesignerActor, id: string) {
-  return asActor(a, async (c) => {
-    const x = ctxOf(c, a);
+  return withActor(a, async (x) => {
+    const c = x.c;
     const r = await row(x, id);
     const items = await q(c, `select seq, product_key, block_key, op, instance_key, settings, before, after, inverse, applied_at, reverted_at from core.design_changeset_items where changeset_id = $1 order by seq`, [id]);
     return { ...r, items };
@@ -190,8 +255,8 @@ export async function get(a: DesignerActor, id: string) {
 
 export async function discard(a: DesignerActor, id: string) {
   needWrite(a);
-  return asActor(a, async (c) => {
-    const x = ctxOf(c, a);
+  return withActor(a, async (x) => {
+    const c = x.c;
     const r = await row(x, id, true);
     if (!['draft', 'validated'].includes(r.status)) throw new ConflictError(`changeset_${r.status}`);
     await c.query(`update core.design_changesets set status = 'rejected' where id = $1`, [id]);
@@ -213,8 +278,11 @@ interface Applied {
 
 async function applyAll(x: ApplyCtx, r: ChangesetRow): Promise<Applied[]> {
   const known = await knownConfig(x);
-  const v = validateChangeset(changesetSchema.parse(r.plan), known);
-  if (!v.ok) throw new ValidationError('plan_out_of_date', { issues: v.issues });
+  const plan = changesetSchema.parse(r.plan);
+  const v = validateChangeset(plan, known);
+  for (const o of v.ops) if (o.product !== 'core' && !x.actor.products.includes(o.product as 'os')) throw new ForbiddenError('product_not_available');
+  v.issues.push(...(await serverIssues(x, plan)));
+  if (v.issues.length) throw new ValidationError('plan_out_of_date', { issues: v.issues });
   for (const o of v.ops) {
     if (o.product !== 'core' && !x.actor.products.includes(o.product as 'os')) throw new ForbiddenError('product_not_available');
     if (!serverBlock(o.block)) throw new ValidationError('block_not_available', { block: o.block });
@@ -233,8 +301,8 @@ async function applyAll(x: ApplyCtx, r: ChangesetRow): Promise<Applied[]> {
 
 export async function publish(a: DesignerActor, id: string) {
   needWrite(a);
-  return asActor(a, async (c) => {
-    const x = ctxOf(c, a);
+  return withActor(a, async (x) => {
+    const c = x.c;
     await lock(x);
     const r = await row(x, id, true);
     if (r.status !== 'validated') throw new ConflictError(r.status === 'draft' ? 'changeset_has_issues' : `changeset_${r.status}`);
@@ -263,8 +331,8 @@ export async function publish(a: DesignerActor, id: string) {
 /** One-click undo: puts every instance back to its state before publishing, newest item first. */
 export async function revert(a: DesignerActor, id: string) {
   needWrite(a);
-  return asActor(a, async (c) => {
-    const x = ctxOf(c, a);
+  return withActor(a, async (x) => {
+    const c = x.c;
     await lock(x);
     const r = await row(x, id, true);
     if (r.status !== 'published') throw new ConflictError(`changeset_${r.status}`);
@@ -360,8 +428,8 @@ async function samples(x: ApplyCtx, a: Applied): Promise<PreviewLine[]> {
 export async function dryRun(a: DesignerActor, id: string) {
   needWrite(a);
   try {
-    await asActor(a, async (c) => {
-      const x = ctxOf(c, a);
+    await withActor(a, async (x) => {
+      const c = x.c;
       const r = await row(x, id);
       if (!['draft', 'validated'].includes(r.status)) throw new ConflictError(`changeset_${r.status}`);
       const applied = await applyAll(x, r);
@@ -400,8 +468,8 @@ export function templates(a: DesignerActor) {
 }
 
 export async function explain(a: DesignerActor) {
-  return asActor(a, async (c) => {
-    const r = await explainSchool(ctxOf(c, a));
+  return withActor(a, async (x) => {
+    const r = await explainSchool(x);
     return { lines: r.lines, text: r.lines.map(en) };
   });
 }

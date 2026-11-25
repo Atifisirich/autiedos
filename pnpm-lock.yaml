@@ -267,6 +267,9 @@ importers:
 
   packages/server:
     dependencies:
+      '@autoed/crm-server':
+        specifier: workspace:*
+        version: link:../crm-server
       '@autoed/shared':
         specifier: workspace:*
         version: link:../shared

@@ -23,7 +23,7 @@ export type Tx = pg.PoolClient;
 const BASE_URL = () => process.env.DATABASE_URL ?? 'postgres://postgres@localhost:54322/postgres';
 
 /** DATABASE_URL with the login switched to a platform role (unless an explicit URL is configured). */
-export function roleUrl(role: 'os_server' | 'job_runner' | 'platform_admin_server', explicit: string | undefined, password: string | undefined): string {
+export function roleUrl(role: 'os_server' | 'crm_server' | 'erp_server' | 'job_runner' | 'platform_admin_server', explicit: string | undefined, password: string | undefined): string {
   if (explicit) return explicit;
   const u = new URL(BASE_URL());
   u.username = role;
@@ -51,6 +51,17 @@ export const getPool = () => pool('os', () => roleUrl('os_server', process.env.O
 export const getJobPool = () => pool('jobs', () => roleUrl('job_runner', process.env.JOB_DATABASE_URL, process.env.JOB_RUNNER_DB_PASSWORD));
 /** Platform console actions of AutoEd staff (entitlements, billing). */
 export const getAdminPool = () => pool('admin', () => roleUrl('platform_admin_server', process.env.ADMIN_DATABASE_URL, process.env.PLATFORM_ADMIN_DB_PASSWORD));
+/**
+ * The other products' server logins, for work that must run as that product (the AI designer applies CRM blocks as
+ * crm_server and ERP blocks as erp_server, with the signed-in person's claims). CRM_DATABASE_URL / ERP_DATABASE_URL
+ * (or ERP_SERVER_DATABASE_URL), else DATABASE_URL with the login switched (CRM_SERVER_DB_PASSWORD / ERP_SERVER_DB_PASSWORD).
+ */
+export type ProductRole = 'os_server' | 'crm_server' | 'erp_server';
+export function getProductPool(role: ProductRole): pg.Pool {
+  if (role === 'os_server') return getPool();
+  if (role === 'crm_server') return pool('crm', () => roleUrl('crm_server', process.env.CRM_DATABASE_URL, process.env.CRM_SERVER_DB_PASSWORD));
+  return pool('erp', () => roleUrl('erp_server', process.env.ERP_DATABASE_URL ?? process.env.ERP_SERVER_DATABASE_URL, process.env.ERP_SERVER_DB_PASSWORD));
+}
 /** Table owner: migrations, the demo seed and tests ONLY (never a request path). */
 export const getOwnerPool = () => pool('owner', BASE_URL);
 
@@ -95,6 +106,39 @@ export async function setClaims(c: Tx, userId: string, extra: { onBehalfOf?: str
 /** Runs fn as os_server with RLS applied for this user. */
 export function asUser<T>(u: DbUser, fn: (c: Tx) => Promise<T>): Promise<T> {
   return inTx(getPool(), (c) => setClaims(c, u.userId, { device: u.device, staffId: u.staffId }), fn);
+}
+
+/** Runs fn as a product's server login with RLS applied for this user (same claims as asUser). */
+export function asUserIn<T>(role: ProductRole, u: DbUser, fn: (c: Tx) => Promise<T>): Promise<T> {
+  return inTx(getProductPool(role), (c) => setClaims(c, u.userId, { device: u.device, staffId: u.staffId }), fn);
+}
+
+/**
+ * Opens a transaction as a product's server login with this user's claims and leaves it open: the caller commits or
+ * rolls it back (the designer keeps one per product for a publish and finishes them together).
+ */
+export async function openUserTx(role: ProductRole, u: DbUser): Promise<{ c: Tx; finish: (commit: boolean) => Promise<void> }> {
+  const c = await getProductPool(role).connect();
+  try {
+    await c.query('begin');
+    await setClaims(c, u.userId, { device: u.device, staffId: u.staffId });
+  } catch (e) {
+    c.release();
+    throw e;
+  }
+  let done = false;
+  return {
+    c,
+    async finish(commit) {
+      if (done) return;
+      done = true;
+      try {
+        await c.query(commit ? 'commit' : 'rollback');
+      } finally {
+        c.release();
+      }
+    },
+  };
 }
 
 const systemUsers = new Map<string, string>();

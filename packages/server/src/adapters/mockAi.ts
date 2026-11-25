@@ -196,7 +196,13 @@ export function mockGenerate(action: string, c: Ctx): unknown {
     }
     case 'designer_plan':
       // AI school designer: deterministic plans for the standard requests (packages/shared/src/designer/mock.ts)
-      return mockDesignerPlan(String(c.prompt ?? ''), { roles: (c.roles as string[]) ?? [], branch_code: String(c.branch_code ?? '') });
+      return mockDesignerPlan(String(c.prompt ?? ''), {
+        roles: (c.roles as string[]) ?? [],
+        branch_code: String(c.branch_code ?? ''),
+        products: (c.products as string[] | undefined) ?? undefined,
+        product_roles: (c.product_roles as Record<string, string[]> | undefined) ?? undefined,
+        record_roles: (c.record_roles as string[] | undefined) ?? undefined,
+      });
     default:
       return {};
   }
