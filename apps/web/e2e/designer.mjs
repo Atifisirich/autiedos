@@ -222,8 +222,8 @@ async function publishAndUndo(page, card, between) {
   await page.screenshot({ path: `${SHOTS}/designer-register-preview.png`, fullPage: true });
   await publishAndUndo(page, reg, async () => {
     await go('/records');
-    await page.waitForSelector('text=Hostel visitor log');
-    check(true, 'the new register is listed in /records');
+    await page.waitForSelector('[data-object=hostel_visitor_log]');
+    check((await page.locator('[data-object=hostel_visitor_log]').innerText()).includes('Hostel visitor log'), 'the new register is listed in /records');
     await page.screenshot({ path: `${SHOTS}/designer-register-records.png`, fullPage: true });
   });
   await go('/designer');
@@ -234,8 +234,9 @@ async function publishAndUndo(page, card, between) {
   await page.locator('[data-testid=plan-card]').getByRole('button', { name: 'Undo' }).click();
   await page.waitForSelector('[data-testid=plan-card][data-status=reverted]');
   await go('/records');
+  await page.waitForSelector('main, [role=main], h1');
   await page.waitForLoadState('networkidle');
-  check((await page.locator('text=Hostel visitor log').count()) === 0, 'after undo the register is gone from /records');
+  check((await page.locator('[data-object=hostel_visitor_log]').count()) === 0, 'after undo the register is gone from /records');
   await go('/designer');
   await page.getByRole('tab', { name: 'My school' }).click();
   await page.waitForSelector('[data-testid=explain] li');
