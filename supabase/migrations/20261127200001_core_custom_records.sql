@@ -400,8 +400,8 @@ begin
     if new.key <> old.key or new.product_key <> old.product_key or new.org_id <> old.org_id then
       raise exception 'custom_objects: key and owning product cannot change' using errcode = '22023';
     end if;
-    if (new.fields, new.permissions, new.states, new.portal, new.schedule, new.list_columns, new.form_layout, new.title_field)
-       is distinct from (old.fields, old.permissions, old.states, old.portal, old.schedule, old.list_columns, old.form_layout, old.title_field) then
+    -- every change of the definition is a new version (archiving and the clock are not)
+    if (to_jsonb(new) - array['version','updated_at','archived']) is distinct from (to_jsonb(old) - array['version','updated_at','archived']) then
       new.version := old.version + 1;
     else
       new.version := old.version;

@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./db": "./src/db.ts",
     "./api": "./src/api/index.ts",
-    "./platform-admin": "./src/platform-admin/index.ts"
+    "./platform-admin": "./src/platform-admin/index.ts",
+    "./custom-records": "./src/custom-records/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
