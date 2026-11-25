@@ -21,6 +21,7 @@ import * as bot from '../services/bot';
 import * as setup from '../services/setup';
 import * as platform from '../services/platform';
 import * as ai from '../services/ai';
+import * as designer from '../designer';
 import { tick } from '../scheduler';
 import { readLocalFile, verifyLocalSignature, writeLocalFile } from '../adapters/channels';
 import { plansDocx, tableXlsx } from '../exports';
@@ -59,6 +60,10 @@ interface Route {
   public?: PublicHandler;
   superAdmin?: (a: { userId: string; p: Record<string, string>; b: Body; q: Record<string, string> }) => Promise<unknown>;
   aiLimited?: boolean;
+  /** AI school designer: runs as the designer actor (school management, or an AutoEd RM in a support session). */
+  designer?: (a: { actor: designer.DesignerActor; p: Record<string, string>; b: Body; q: Record<string, string> }) => Promise<unknown>;
+  /** Signed-in user, no OS context (works for platform admins without a school). */
+  user?: (a: { userId: string; p: Record<string, string>; b: Body; q: Record<string, string>; req: ApiRequest }) => Promise<unknown>;
 }
 
 const routes: Route[] = [];
@@ -72,6 +77,8 @@ function compile(path: string) {
 const r = (method: string, path: string, handler: Handler, schema?: ZodTypeAny, opts: { aiLimited?: boolean } = {}) => routes.push({ method, ...compile(path), handler, schema, ...opts });
 const pub = (method: string, path: string, h: PublicHandler, schema?: ZodTypeAny) => routes.push({ method, ...compile(path), public: h, schema });
 const sa = (method: string, path: string, h: NonNullable<Route['superAdmin']>, schema?: ZodTypeAny) => routes.push({ method, ...compile(path), superAdmin: h, schema });
+const dz = (method: string, path: string, h: NonNullable<Route['designer']>, schema?: ZodTypeAny, opts: { aiLimited?: boolean } = {}) => routes.push({ method, ...compile(path), designer: h, schema, ...opts });
+const usr = (method: string, path: string, h: NonNullable<Route['user']>, schema?: ZodTypeAny) => routes.push({ method, ...compile(path), user: h, schema });
 const file = (buffer: Buffer, filename: string, contentType: string): ApiResponse => ({ status: 200, binary: { buffer, filename, contentType } });
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -416,6 +423,27 @@ r('POST', '/config/:entity/reset', ({ ctx, p }) => setup.resetConfig(ctx, p.enti
 r('GET', '/config/:entity/history', ({ ctx, p, q }) => setup.configHistory(ctx, p.entity!, q.id));
 r('GET', '/lookups', ({ ctx }) => lookups(ctx));
 
+// ---------------------------------------------------------------- AI school designer (DECISIONS 56-59, docs/designer.md)
+// School management (setup.configure, branch scope or wider) or an AutoEd relationship manager inside a support session
+// (x-view-as). Read-write support sessions are opened here with a reason and a time limit; only these routes accept
+// writes under view-as (every other route stays read-only for support).
+const viewAsHeaders = (req: ApiRequest) => ({ viewAs: req.headers['x-view-as'] ?? null, branchId: req.headers['x-branch-id'] ?? null, lang: req.headers['x-lang'] ?? null });
+usr('GET', '/designer/whoami', ({ userId, req }) => designer.whoami(userId, viewAsHeaders(req)));
+sa('GET', '/designer/clients', ({ userId }) => designer.clientsForRm(userId));
+sa('POST', '/designer/support-session', ({ userId, b }) => designer.openSupportSession(userId, b), z.object({ org_id: S.uuid, reason: z.string().trim().min(10).max(500), minutes: z.number().int().min(5).max(240).default(60) }));
+sa('POST', '/designer/support-session/end', ({ userId }) => designer.endSupportSession(userId));
+dz('GET', '/designer/catalogue', async ({ actor }) => designer.catalogue(actor));
+dz('GET', '/designer/templates', async ({ actor }) => designer.templates(actor));
+dz('GET', '/designer/explain', ({ actor }) => designer.explain(actor));
+dz('GET', '/designer/changesets', ({ actor }) => designer.history(actor));
+dz('GET', '/designer/changesets/:id', ({ actor, p }) => designer.get(actor, S.uuid.parse(p.id)));
+dz('POST', '/designer/plan', ({ actor, b }) => designer.plan(actor, b), z.object({ prompt: z.string().trim().min(3).max(2000) }), { aiLimited: true });
+dz('POST', '/designer/templates/:key/plan', ({ actor, p, b }) => designer.planTemplate(actor, p.key!, b.params ?? {}), z.object({ params: z.record(z.string(), z.any()).default({}) }));
+dz('POST', '/designer/changesets/:id/dry-run', ({ actor, p }) => designer.dryRun(actor, S.uuid.parse(p.id)));
+dz('POST', '/designer/changesets/:id/publish', ({ actor, p }) => designer.publish(actor, S.uuid.parse(p.id)));
+dz('POST', '/designer/changesets/:id/discard', ({ actor, p }) => designer.discard(actor, S.uuid.parse(p.id)));
+dz('POST', '/designer/changesets/:id/revert', ({ actor, p }) => designer.revert(actor, S.uuid.parse(p.id)));
+
 // ---------------------------------------------------------------- super admin (Digivate)
 sa('GET', '/admin/overview', ({ userId }) => platform.adminOverview(userId));
 sa('POST', '/admin/orgs', ({ userId, b }) => platform.createOrganization(userId, b), z.object({ name: z.string().min(2), slug: z.string().regex(/^[a-z0-9-]+$/), preset_key: z.enum(['cbse', 'cambridge', 'dual']), branch_name: z.string().min(2), branch_code: z.string().min(1), admin_name: z.string().min(2), admin_email: z.string().email(), admin_phone: z.string().optional(), plan_key: z.string() }));
@@ -502,6 +530,14 @@ export async function dispatch(req: ApiRequest, existingCtx?: Ctx): Promise<ApiR
     // An admin asked for a new password (or a temporary one was set): nothing but the password routes answer.
     if (!existingCtx && (session as { mustChangePassword?: boolean }).mustChangePassword) return { status: 403, json: { error: 'password_change_required' } };
     if (route.superAdmin) return { status: 200, json: await route.superAdmin({ userId: session.userId, p: params, b: body, q: req.query }) };
+    if (route.user) return { status: 200, json: await route.user({ userId: session.userId, p: params, b: body, q: req.query, req }) };
+    if (route.designer) {
+      if (route.aiLimited && !rateLimit(`ai:${session.userId}`, Number(process.env.AI_RATE_PER_MINUTE ?? 20))) return { status: 429, json: { error: 'rate_limited' } };
+      const actor = existingCtx
+        ? await designer.designerActor(existingCtx.userId, { branchId: existingCtx.branchId, lang: existingCtx.lang })
+        : await designer.designerActor(session.userId, { ...viewAsHeaders(req), device: req.headers['x-device'] ?? req.headers['user-agent']?.slice(0, 120) ?? null });
+      return { status: 200, json: (await route.designer({ actor, p: params, b: body, q: req.query })) ?? { ok: true } };
+    }
     let userId = session.userId;
     // Super admin "view as": an open support session (core.support_sessions, app.start_support_session), read-only,
     // audited and visible to the school; the screens show the school's director view.

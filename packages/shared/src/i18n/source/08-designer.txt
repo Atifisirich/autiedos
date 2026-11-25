@@ -1,0 +1,199 @@
+# key | English | Hindi | Telugu
+# AI school designer (DECISIONS 56-59, docs/designer.md). Hindi and Telugu are a first translation that NEEDS REVIEW BY A
+# NATIVE SPEAKER. Role keys, event keys and channel names inside {placeholders} are configuration values, not translated.
+designer.title | AI school designer | एआई विद्यालय डिज़ाइनर | AI పాఠశాల డిజైనర్
+designer.subtitle | Describe how your school works in plain words. AutoEd turns it into settings, shows you what changes, and nothing is live until you publish. | अपने विद्यालय का काम सरल शब्दों में बताइए। AutoEd उसे सेटिंग में बदलता है, बदलाव दिखाता है, और प्रकाशित करने तक कुछ लागू नहीं होता। | మీ పాఠశాల ఎలా పనిచేయాలో సాధారణ మాటల్లో చెప్పండి. AutoEd దాన్ని సెట్టింగ్‌లుగా మారుస్తుంది, మార్పులు చూపిస్తుంది, మీరు ప్రచురించే వరకు ఏదీ అమలు కాదు.
+designer.nav | AI designer | एआई डिज़ाइनर | AI డిజైనర్
+designer.landing.link | Design how your school works with AI | एआई से तय करें कि आपका विद्यालय कैसे काम करे | AI తో మీ పాఠశాల పని తీరును రూపొందించండి
+designer.prompt.label | What should happen? | क्या होना चाहिए? | ఏమి జరగాలి?
+designer.prompt.placeholder | For example: when a teacher is absent more than 2 days, the coordinator arranges substitution and parents are told | उदाहरण: शिक्षक 2 दिन से ज़्यादा अनुपस्थित हो तो समन्वयक प्रतिस्थापन करे और अभिभावकों को बताया जाए | ఉదాహరణ: ఉపాధ్యాయుడు 2 రోజులకు మించి గైర్హాజరైతే కోఆర్డినేటర్ ప్రత్యామ్నాయం ఏర్పాటు చేయాలి, తల్లిదండ్రులకు తెలియజేయాలి
+designer.prompt.send | Plan it | योजना बनाएँ | ప్లాన్ చేయండి
+designer.prompt.cost | Each plan uses 1 AI credit from your school's wallet. Templates are free. | हर योजना में विद्यालय के वॉलेट से 1 एआई क्रेडिट लगता है। टेम्पलेट मुफ़्त हैं। | ప్రతి ప్లాన్‌కు పాఠశాల వాలెట్ నుండి 1 AI క్రెడిట్ ఖర్చవుతుంది. టెంప్లేట్లు ఉచితం.
+designer.working | Planning… | योजना बन रही है… | ప్లాన్ చేస్తోంది…
+designer.examples.title | Try one of these | इनमें से कोई आज़माएँ | వీటిలో ఒకటి ప్రయత్నించండి
+designer.example.absence | Teacher absent more than 2 days: coordinator arranges substitution, notify parents, principal approves in exam week | शिक्षक 2 दिन से ज़्यादा अनुपस्थित: समन्वयक प्रतिस्थापन करे, अभिभावकों को सूचना, परीक्षा सप्ताह में प्रधानाचार्य स्वीकृति दें | ఉపాధ్యాయుడు 2 రోజులకు మించి గైర్హాజరు: కోఆర్డినేటర్ ప్రత్యామ్నాయం, తల్లిదండ్రులకు సమాచారం, పరీక్ష వారంలో ప్రిన్సిపాల్ ఆమోదం
+designer.example.checklist | Daily opening checklist for housekeeping at 7:30 | हाउसकीपिंग के लिए सुबह 7:30 की रोज़ की खुलने की जाँच सूची | హౌస్‌కీపింగ్ కోసం ఉదయం 7:30కి రోజువారీ ప్రారంభ చెక్‌లిస్ట్
+designer.example.purchase | Purchases above 25,000 need director approval | 25,000 से ऊपर की खरीद के लिए निदेशक की स्वीकृति चाहिए | 25,000 పైబడిన కొనుగోళ్లకు డైరెక్టర్ ఆమోదం కావాలి
+designer.example.fee | Fee concession above 10% needs director approval | 10% से ऊपर की शुल्क छूट के लिए निदेशक की स्वीकृति चाहिए | 10% మించిన ఫీజు రాయితీకి డైరెక్టర్ ఆమోదం కావాలి
+designer.example.enquiry | New enquiry follow-up within 24 hours | नई पूछताछ का 24 घंटे में फ़ॉलो-अप | కొత్త విచారణకు 24 గంటల్లో ఫాలో-అప్
+designer.you | You | आप | మీరు
+designer.autoed | AutoEd | AutoEd | AutoEd
+designer.plan.title | Here is the plan | यह रही योजना | ఇదిగో ప్లాన్
+designer.plan.empty | No settings to change. | बदलने के लिए कोई सेटिंग नहीं। | మార్చడానికి సెట్టింగ్‌లు లేవు.
+designer.plan.affects | Affects {people} staff in these roles: {roles} | इन भूमिकाओं के {people} स्टाफ़ पर असर: {roles} | ఈ పాత్రలలోని {people} మంది సిబ్బందిపై ప్రభావం: {roles}
+designer.plan.families | Messages reach about {n} families | संदेश लगभग {n} परिवारों तक पहुँचेंगे | సందేశాలు సుమారు {n} కుటుంబాలకు చేరతాయి
+designer.plan.credits | Used {n} AI credit(s) | {n} एआई क्रेडिट लगे | {n} AI క్రెడిట్ వాడారు
+designer.unsupported.title | Not possible yet | अभी संभव नहीं | ఇంకా సాధ్యం కాదు
+designer.questions.title | AutoEd needs to know | AutoEd को जानना है | AutoEd తెలుసుకోవాలి
+designer.issues.title | Needs fixing before it can be published | प्रकाशित करने से पहले ठीक करना होगा | ప్రచురించే ముందు సరిచేయాలి
+designer.issue.unknown_block | AutoEd has no building block for this. | AutoEd में इसके लिए कोई ब्लॉक नहीं है। | దీనికి AutoEd లో బిల్డింగ్ బ్లాక్ లేదు.
+designer.issue.block_not_available | This building block is not available yet. | यह ब्लॉक अभी उपलब्ध नहीं है। | ఈ బ్లాక్ ఇంకా అందుబాటులో లేదు.
+designer.issue.op_not_allowed | This change is not allowed for this kind of setting. | इस सेटिंग के लिए यह बदलाव अनुमत नहीं है। | ఈ రకమైన సెట్టింగ్‌కు ఈ మార్పు అనుమతి లేదు.
+designer.issue.product_not_available | Your school does not have this product. | आपके विद्यालय के पास यह उत्पाद नहीं है। | మీ పాఠశాలకు ఈ ఉత్పత్తి లేదు.
+designer.issue.duplicate_op | The same setting is changed twice. | एक ही सेटिंग दो बार बदली गई है। | ఒకే సెట్టింగ్ రెండుసార్లు మార్చబడింది.
+designer.issue.not_found | This setting does not exist. | यह सेटिंग मौजूद नहीं है। | ఈ సెట్టింగ్ లేదు.
+designer.issue.system_item | Built-in settings cannot be removed. | अंतर्निर्मित सेटिंग हटाई नहीं जा सकती। | అంతర్నిర్మిత సెట్టింగ్‌లను తొలగించలేరు.
+designer.issue.missing_settings | Some details are missing. | कुछ विवरण छूट गए हैं। | కొన్ని వివరాలు లేవు.
+designer.issue.invalid_settings | Some details are not valid. | कुछ विवरण सही नहीं हैं। | కొన్ని వివరాలు సరైనవి కావు.
+designer.issue.key_mismatch | The setting's name does not match. | सेटिंग का नाम मेल नहीं खाता। | సెట్టింగ్ పేరు సరిపోలలేదు.
+designer.issue.already_exists | This setting already exists. | यह सेटिंग पहले से है। | ఈ సెట్టింగ్ ఇప్పటికే ఉంది.
+designer.issue.block_check | A rule of the settings screen is not met. | सेटिंग स्क्रीन का एक नियम पूरा नहीं होता। | సెట్టింగ్‌ల స్క్రీన్ నియమం పాటించలేదు.
+designer.issue.unknown_role | This role does not exist in your school. | यह भूमिका आपके विद्यालय में नहीं है। | ఈ పాత్ర మీ పాఠశాలలో లేదు.
+designer.issue.unknown_branch | This branch does not exist. | यह शाखा मौजूद नहीं है। | ఈ శాఖ లేదు.
+designer.issue.no_changes | Nothing to change. | बदलने के लिए कुछ नहीं। | మార్చడానికి ఏమీ లేదు.
+designer.action.dryRun | Try on sample data | नमूना डेटा पर आज़माएँ | నమూనా డేటాపై ప్రయత్నించండి
+designer.action.publish | Publish | प्रकाशित करें | ప్రచురించండి
+designer.action.discard | Discard | रद्द करें | విస్మరించండి
+designer.action.undo | Undo | पूर्ववत करें | రద్దు చేయండి
+designer.action.open | Open | खोलें | తెరవండి
+designer.dryRun.title | Sample run (nothing was saved) | नमूना रन (कुछ सहेजा नहीं गया) | నమూనా రన్ (ఏదీ సేవ్ చేయలేదు)
+designer.dryRun.failed | The sample run stopped: {error} | नमूना रन रुक गया: {error} | నమూనా రన్ ఆగిపోయింది: {error}
+designer.published | Published as version {version}. It is live now. | संस्करण {version} के रूप में प्रकाशित। अब लागू है। | వెర్షన్ {version}గా ప్రచురించారు. ఇప్పుడు అమలులో ఉంది.
+designer.reverted | Undone. The settings are back to how they were. | पूर्ववत। सेटिंग पहले जैसी हो गईं। | రద్దు చేశారు. సెట్టింగ్‌లు ముందున్నట్లే ఉన్నాయి.
+designer.discarded | Discarded. Nothing was changed. | रद्द। कुछ नहीं बदला। | విస్మరించారు. ఏదీ మారలేదు.
+designer.history.title | History | इतिहास | చరిత్ర
+designer.history.empty | No plans yet. | अभी कोई योजना नहीं। | ఇంకా ప్లాన్‌లు లేవు.
+designer.history.version | Version {n} | संस्करण {n} | వెర్షన్ {n}
+designer.templates.title | Start from a template | टेम्पलेट से शुरू करें | టెంప్లేట్‌తో మొదలుపెట్టండి
+designer.templates.use | Use this template | यह टेम्पलेट लें | ఈ టెంప్లేట్ వాడండి
+designer.templates.unavailable | Not in your plan | आपकी योजना में नहीं | మీ ప్లాన్‌లో లేదు
+designer.explain.title | Explain my school | मेरे विद्यालय को समझाएँ | నా పాఠశాలను వివరించండి
+designer.tab.design | Design | डिज़ाइन | డిజైన్
+designer.tab.templates | Templates | टेम्पलेट | టెంప్లేట్లు
+designer.tab.history | History | इतिहास | చరిత్ర
+designer.tab.explain | My school | मेरा विद्यालय | నా పాఠశాల
+designer.denied | Only the school's management can use the AI designer. | एआई डिज़ाइनर केवल विद्यालय प्रबंधन उपयोग कर सकता है। | AI డిజైనర్‌ను పాఠశాల యాజమాన్యం మాత్రమే వాడగలదు.
+designer.readOnly | This support session is read-only: you can look but not change anything. | यह सहायता सत्र केवल पढ़ने के लिए है: आप देख सकते हैं, बदल नहीं सकते। | ఈ సపోర్ట్ సెషన్ చదవడానికి మాత్రమే: మీరు చూడవచ్చు, మార్చలేరు.
+designer.status.draft | Needs fixing | सुधार चाहिए | సరిచేయాలి
+designer.status.validated | Ready to publish | प्रकाशन के लिए तैयार | ప్రచురణకు సిద్ధం
+designer.status.published | Live | लागू | అమలులో ఉంది
+designer.status.reverted | Undone | पूर्ववत | రద్దు చేశారు
+designer.status.rejected | Discarded | रद्द | విస్మరించారు
+designer.author.org_admin | School management | विद्यालय प्रबंधन | పాఠశాల యాజమాన్యం
+designer.author.relationship_manager | AutoEd relationship manager | AutoEd रिलेशनशिप मैनेजर | AutoEd రిలేషన్‌షిప్ మేనేజర్
+designer.opShort.create | New | नया | కొత్తది
+designer.opShort.update | Change | बदलाव | మార్పు
+designer.opShort.delete | Remove | हटाएँ | తొలగింపు
+designer.rm.title | Open a designer session for a school | किसी विद्यालय के लिए डिज़ाइनर सत्र खोलें | పాఠశాల కోసం డిజైనర్ సెషన్ తెరవండి
+designer.rm.body | AutoEd staff reach a school only through a time-limited support session with a reason. The school sees the session and every change is recorded under your name. | AutoEd स्टाफ़ किसी विद्यालय तक केवल कारण सहित, सीमित समय के सहायता सत्र से पहुँचता है। विद्यालय सत्र देखता है और हर बदलाव आपके नाम से दर्ज होता है। | AutoEd సిబ్బంది కారణంతో, పరిమిత సమయపు సపోర్ట్ సెషన్ ద్వారానే పాఠశాలను చేరుతారు. పాఠశాల సెషన్‌ను చూస్తుంది, ప్రతి మార్పు మీ పేరుతో నమోదవుతుంది.
+designer.rm.client | School | विद्यालय | పాఠశాల
+designer.rm.reason | Reason (shown to the school, at least 10 characters) | कारण (विद्यालय को दिखेगा, कम से कम 10 अक्षर) | కారణం (పాఠశాలకు కనిపిస్తుంది, కనీసం 10 అక్షరాలు)
+designer.rm.minutes | Minutes | मिनट | నిమిషాలు
+designer.rm.start | Start session | सत्र शुरू करें | సెషన్ ప్రారంభించండి
+designer.rm.banner | AutoEd support session for {org}: changes are recorded under your name. | {org} के लिए AutoEd सहायता सत्र: बदलाव आपके नाम से दर्ज होते हैं। | {org} కోసం AutoEd సపోర్ట్ సెషన్: మార్పులు మీ పేరుతో నమోదవుతాయి.
+designer.rm.end | End session | सत्र समाप्त करें | సెషన్ ముగించండి
+designer.op.create | New {what}: {name} | नया {what}: {name} | కొత్త {what}: {name}
+designer.op.update | Change {what}: {name} | बदलाव {what}: {name} | మార్పు {what}: {name}
+designer.op.delete | Remove {what}: {name} | हटाएँ {what}: {name} | తొలగించు {what}: {name}
+designer.preview.approval.fields | The form asks for: {fields} | फ़ॉर्म में पूछा जाएगा: {fields} | ఫారమ్ అడిగేవి: {fields}
+designer.preview.approval.step | Step {seq}: {who} approves (within {hours} hours) | चरण {seq}: {who} स्वीकृत करें ({hours} घंटे में) | దశ {seq}: {who} ఆమోదిస్తారు ({hours} గంటల్లో)
+designer.preview.approval.stepIf | Step {seq}: {who} approves when {field} {cmp} {value} (within {hours} hours) | चरण {seq}: जब {field} {cmp} {value} हो तब {who} स्वीकृत करें ({hours} घंटे में) | దశ {seq}: {field} {cmp} {value} అయితే {who} ఆమోదిస్తారు ({hours} గంటల్లో)
+designer.preview.approval.task | When approved: task "{title}" for {who} (after {days} days) | स्वीकृति पर: {who} के लिए कार्य "{title}" ({days} दिन बाद) | ఆమోదం తర్వాత: {who} కోసం పని "{title}" ({days} రోజుల తర్వాత)
+designer.preview.checklist.daily | Every day at {time}, filled in by {role} | हर दिन {time} बजे, {role} भरेंगे | ప్రతి రోజు {time}కి, {role} నింపుతారు
+designer.preview.checklist.weekly | Every week on {days} at {time}, filled in by {role} | हर सप्ताह {days} को {time} बजे, {role} भरेंगे | ప్రతి వారం {days} రోజున {time}కి, {role} నింపుతారు
+designer.preview.checklist.monthly | Every month on day {day} at {time}, filled in by {role} | हर महीने {day} तारीख को {time} बजे, {role} भरेंगे | ప్రతి నెల {day}వ తేదీన {time}కి, {role} నింపుతారు
+designer.preview.checklist.items | {n} items: {items} | {n} बिंदु: {items} | {n} అంశాలు: {items}
+designer.preview.taskCategory | Proof when done: {proof}; assigner verifies: {verify}; escalation: {rule} | पूरा होने पर प्रमाण: {proof}; सौंपने वाला जाँचे: {verify}; एस्केलेशन: {rule} | పూర్తయినప్పుడు రుజువు: {proof}; అప్పగించినవారు ధృవీకరిస్తారు: {verify}; ఎస్కలేషన్: {rule}
+designer.preview.recurring.daily | A task for every {role}, every day, due {time} | हर {role} के लिए रोज़ एक कार्य, {time} तक | ప్రతి {role}కి రోజూ ఒక పని, {time}లోగా
+designer.preview.recurring.weekly | A task for every {role}, every week on {days}, due {time} | हर {role} के लिए हर सप्ताह {days} को एक कार्य, {time} तक | ప్రతి {role}కి ప్రతి వారం {days} రోజున ఒక పని, {time}లోగా
+designer.preview.recurring.monthly | A task for every {role} on day {day} of each month, due {time} | हर {role} के लिए हर महीने {day} तारीख को एक कार्य, {time} तक | ప్రతి {role}కి ప్రతి నెల {day}వ తేదీన ఒక పని, {time}లోగా
+designer.preview.escalation | Reminder {before} minutes before due; the assigner is told after {assigner} working minutes; the manager after {manager} working days | नियत समय से {before} मिनट पहले याद; {assigner} कार्य-मिनट बाद सौंपने वाले को; {manager} कार्य-दिवस बाद प्रबंधक को सूचना | గడువుకు {before} నిమిషాల ముందు గుర్తు; {assigner} పని నిమిషాల తర్వాత అప్పగించినవారికి; {manager} పని రోజుల తర్వాత మేనేజర్‌కు సమాచారం
+designer.preview.assignment.assign | {from} can assign tasks to {to} | {from} {to} को कार्य सौंप सकते हैं | {from} {to}కు పనులు అప్పగించవచ్చు
+designer.preview.assignment.request | {from} can request tasks from {to} (they accept first) | {from} {to} से कार्य का अनुरोध कर सकते हैं (वे पहले स्वीकारें) | {from} {to}ను పని అడగవచ్చు (వారు ముందు అంగీకరించాలి)
+designer.preview.assignment.none | {from} cannot give tasks to {to} | {from} {to} को कार्य नहीं दे सकते | {from} {to}కు పనులు ఇవ్వలేరు
+designer.preview.notify.family | When {event} happens, parents are told by {channels} | {event} होने पर अभिभावकों को {channels} से सूचना | {event} జరిగినప్పుడు తల్లిదండ్రులకు {channels} ద్వారా సమాచారం
+designer.preview.notify.staff | When {event} happens, {roles} are told by {channels} | {event} होने पर {roles} को {channels} से सूचना | {event} జరిగినప్పుడు {roles}కు {channels} ద్వారా సమాచారం
+designer.preview.notify.message | Message: {text} | संदेश: {text} | సందేశం: {text}
+designer.preview.notify.off | This notification is switched off | यह सूचना बंद है | ఈ నోటిఫికేషన్ ఆఫ్‌లో ఉంది
+designer.preview.leave | {quota} {unit}(s) a year, accrued {accrual}, {notice} day(s) notice | साल में {quota} {unit}, {accrual} जमा, {notice} दिन पहले सूचना | సంవత్సరానికి {quota} {unit}, {accrual} జమ, {notice} రోజుల ముందు సమాచారం
+designer.preview.leave.carry | Unused leave carries forward (up to {max}) | बची छुट्टी आगे जाती है ({max} तक) | మిగిలిన సెలవు ముందుకు వెళ్తుంది ({max} వరకు)
+designer.preview.leave.doc | A document is needed after {days} day(s) | {days} दिन के बाद दस्तावेज़ चाहिए | {days} రోజుల తర్వాత పత్రం కావాలి
+designer.preview.leave.unpaid | Unpaid leave | अवैतनिक छुट्टी | జీతం లేని సెలవు
+designer.preview.attendance | For {who}: late after {grace} minutes, half day after {half} minutes late | {who} के लिए: {grace} मिनट बाद देर, {half} मिनट देर पर आधा दिन | {who} కోసం: {grace} నిమిషాల తర్వాత ఆలస్యం, {half} నిమిషాల ఆలస్యానికి అర్ధ దినం
+designer.preview.module.on | {module} is switched ON at branch {branch} | शाखा {branch} में {module} चालू | శాఖ {branch}లో {module} ఆన్
+designer.preview.module.off | {module} is switched OFF at branch {branch} | शाखा {branch} में {module} बंद | శాఖ {branch}లో {module} ఆఫ్
+designer.preview.role.copy | Starts with the permissions of {from} | {from} की अनुमतियों से शुरू | {from} అనుమతులతో మొదలవుతుంది
+designer.preview.role.empty | Starts with no permissions | बिना अनुमतियों के शुरू | అనుమతులు లేకుండా మొదలవుతుంది
+designer.preview.permission | {role} may {action} in {module} ({scope} scope) | {role} {module} में {action} कर सकते हैं ({scope} दायरा) | {role} {module}లో {action} చేయవచ్చు ({scope} పరిధి)
+designer.preview.field | Extra {type} field on {entity} forms (required: {required}) | {entity} फ़ॉर्म पर अतिरिक्त {type} फ़ील्ड (आवश्यक: {required}) | {entity} ఫారమ్‌లపై అదనపు {type} ఫీల్డ్ (తప్పనిసరి: {required})
+designer.preview.report | {report} sent {frequency} at {time} to {roles} ({channel}) | {report} {frequency} {time} बजे {roles} को ({channel}) | {report} {frequency} {time}కి {roles}కు ({channel})
+designer.preview.event.task | Task "{title}" for {role}, {days} days before | {role} के लिए कार्य "{title}", {days} दिन पहले | {role} కోసం పని "{title}", {days} రోజుల ముందు
+designer.preview.event.committees | Committees: {list} | समितियाँ: {list} | కమిటీలు: {list}
+designer.preview.duty | {from} to {to}, {n} staff, on {days} | {from} से {to}, {n} स्टाफ़, {days} को | {from} నుండి {to}, {n} మంది సిబ్బంది, {days} రోజుల్లో
+designer.preview.planReview | {level} plans due {days} day(s) before at {time}; reviewed by {chain} | {level} योजनाएँ {days} दिन पहले {time} तक; समीक्षा: {chain} | {level} ప్లాన్‌లు {days} రోజుల ముందు {time}లోగా; సమీక్ష: {chain}
+designer.preview.stub | Not available yet | अभी उपलब्ध नहीं | ఇంకా అందుబాటులో లేదు
+designer.sample.removed | Will be removed. | हटा दिया जाएगा। | తొలగించబడుతుంది.
+designer.sample.approval | A request with {data} goes to: {chain} | {data} वाला अनुरोध जाएगा: {chain} | {data}తో అభ్యర్థన వెళ్తుంది: {chain}
+designer.sample.schedule | Next runs: {dates} at {time}, for {people} {role} | अगली बार: {dates} को {time} बजे, {people} {role} के लिए | తదుపరి: {dates} తేదీల్లో {time}కి, {people} మంది {role} కోసం
+designer.sample.notify | On {event}: {people} staff and {families} families would be told | {event} पर: {people} स्टाफ़ और {families} परिवारों को सूचना जाएगी | {event}పై: {people} మంది సిబ్బందికి, {families} కుటుంబాలకు సమాచారం వెళ్తుంది
+designer.sample.saved | Saved and accepted by the same checks as the settings screen. | सेटिंग स्क्रीन जैसी जाँच से सहेजा और स्वीकार किया गया। | సెట్టింగ్‌ల స్క్రీన్ తనిఖీలతో సేవ్ చేసి అంగీకరించారు.
+designer.explain.org | {org} uses {products} across {branches} branch(es). | {org} {branches} शाखाओं में {products} उपयोग करता है। | {org} {branches} శాఖల్లో {products} వాడుతోంది.
+designer.explain.people | {staff} active staff in {roles} roles: {list}. | {roles} भूमिकाओं में {staff} सक्रिय स्टाफ़: {list}। | {roles} పాత్రల్లో {staff} మంది సిబ్బంది: {list}.
+designer.explain.approvals | {n} approval types: {list}. | {n} अनुमोदन प्रकार: {list}। | {n} ఆమోద రకాలు: {list}.
+designer.explain.checklists | {n} checklists: {list}. | {n} जाँच सूचियाँ: {list}। | {n} చెక్‌లిస్ట్‌లు: {list}.
+designer.explain.leave | {n} leave types: {list}. | {n} छुट्टी प्रकार: {list}। | {n} సెలవు రకాలు: {list}.
+designer.explain.recurring | {n} recurring tasks: {list}. | {n} आवर्ती कार्य: {list}। | {n} పునరావృత పనులు: {list}.
+designer.explain.taskCategories | {n} task categories: {list}. | {n} कार्य श्रेणियाँ: {list}। | {n} పని వర్గాలు: {list}.
+designer.explain.duties | {n} duty types: {list}. | {n} ड्यूटी प्रकार: {list}। | {n} డ్యూటీ రకాలు: {list}.
+designer.explain.events | {n} event templates: {list}. | {n} कार्यक्रम टेम्पलेट: {list}। | {n} కార్యక్రమ టెంప్లేట్లు: {list}.
+designer.explain.planReview | {n} lesson plan rules: {list}. | {n} पाठ योजना नियम: {list}। | {n} పాఠ ప్రణాళిక నియమాలు: {list}.
+designer.explain.notifications | {n} notification rules decide who hears about what. | {n} सूचना नियम तय करते हैं कि किसे क्या बताया जाए। | {n} నోటిఫికేషన్ నియమాలు ఎవరికి ఏమి తెలియాలో నిర్ణయిస్తాయి.
+designer.explain.modulesOff | Switched off: {list}. | बंद: {list}। | ఆఫ్‌లో ఉన్నవి: {list}.
+designer.explain.modulesOn | Every OS module is switched on. | सभी OS मॉड्यूल चालू हैं। | అన్ని OS మాడ్యూళ్లు ఆన్‌లో ఉన్నాయి.
+designer.explain.changes | {n} change(s) published with the designer so far. | अब तक डिज़ाइनर से {n} बदलाव प्रकाशित। | ఇప్పటివరకు డిజైనర్‌తో {n} మార్పులు ప్రచురించారు.
+designer.explain.productLater | {product} settings will be added to the designer later. | {product} सेटिंग बाद में डिज़ाइनर में जोड़ी जाएँगी। | {product} సెట్టింగ్‌లు తర్వాత డిజైనర్‌లో చేరతాయి.
+designer.template.standard_leave_policy.title | Standard leave policy | मानक छुट्टी नीति | ప్రామాణిక సెలవు విధానం
+designer.template.standard_leave_policy.description | Casual, sick and earned leave with AutoEd's default quotas, notice and carry-forward rules. | AutoEd के डिफ़ॉल्ट कोटा, सूचना और आगे ले जाने के नियमों के साथ आकस्मिक, चिकित्सा और अर्जित अवकाश। | AutoEd డిఫాల్ట్ కోటా, ముందస్తు సమాచారం, ముందుకు తీసుకెళ్లే నియమాలతో క్యాజువల్, అనారోగ్య, ఆర్జిత సెలవులు.
+designer.template.substitution_workflow.title | Teacher absence and substitution | शिक्षक अनुपस्थिति और प्रतिस्थापन | ఉపాధ్యాయ గైర్హాజరు, ప్రత్యామ్నాయం
+designer.template.substitution_workflow.description | A long absence is approved by the coordinator (and the principal in exam week), the coordinator arranges substitution, and parents are told. | लंबी अनुपस्थिति को समन्वयक (और परीक्षा सप्ताह में प्रधानाचार्य) स्वीकृत करते हैं, समन्वयक प्रतिस्थापन करता है, अभिभावकों को बताया जाता है। | దీర్ఘ గైర్హాజరును కోఆర్డినేటర్ (పరీక్ష వారంలో ప్రిన్సిపాల్ కూడా) ఆమోదిస్తారు, కోఆర్డినేటర్ ప్రత్యామ్నాయం ఏర్పాటు చేస్తారు, తల్లిదండ్రులకు తెలియజేస్తారు.
+designer.template.daily_housekeeping_checklist.title | Daily opening checklist (housekeeping) | रोज़ की खुलने की जाँच सूची (हाउसकीपिंग) | రోజువారీ ప్రారంభ చెక్‌లిస్ట్ (హౌస్‌కీపింగ్)
+designer.template.daily_housekeeping_checklist.description | Gates, classrooms, drinking water and power checked every morning; failures raise a ticket or a task. | गेट, कक्षाएँ, पीने का पानी और बिजली हर सुबह जाँची जाती है; कमी पर टिकट या कार्य बनता है। | గేట్లు, తరగతి గదులు, తాగునీరు, విద్యుత్ ప్రతి ఉదయం తనిఖీ; లోపం ఉంటే టికెట్ లేదా పని.
+designer.template.lesson_plan_review_chain.title | Lesson plan review chain | पाठ योजना समीक्षा क्रम | పాఠ ప్రణాళిక సమీక్ష క్రమం
+designer.template.lesson_plan_review_chain.description | Daily lesson plans are due the day before and reviewed by the HOD, then the academic coordinator. | दैनिक पाठ योजनाएँ एक दिन पहले जमा, पहले विभागाध्यक्ष फिर शैक्षणिक समन्वयक समीक्षा करते हैं। | రోజువారీ పాఠ ప్రణాళికలు ముందు రోజే ఇవ్వాలి, ముందు విభాగాధిపతి, తర్వాత అకడమిక్ కోఆర్డినేటర్ సమీక్షిస్తారు.
+designer.template.exam_week_duty_roster.title | Exam-week duty roster | परीक्षा सप्ताह ड्यूटी रोस्टर | పరీక్ష వారం డ్యూటీ రోస్టర్
+designer.template.exam_week_duty_roster.description | Exam relief and corridor duties for exam week, with a reminder to the people on duty. | परीक्षा सप्ताह के लिए परीक्षा राहत और गलियारा ड्यूटी, ड्यूटी वालों को याद दिलाने के साथ। | పరీక్ష వారానికి రిలీఫ్, కారిడార్ డ్యూటీలు, డ్యూటీలో ఉన్నవారికి గుర్తు చేయడంతో.
+designer.template.parent_absence_alerts.title | Parent absence alerts | अभिभावक अनुपस्थिति सूचना | తల్లిదండ్రులకు గైర్హాజరు హెచ్చరికలు
+designer.template.parent_absence_alerts.description | Parents get a WhatsApp and app message when their child is marked absent; class teachers are reminded to mark attendance. | बच्चे के अनुपस्थित होने पर अभिभावकों को व्हाट्सऐप और ऐप संदेश; कक्षा अध्यापकों को उपस्थिति लगाने की याद। | పిల్లవాడు గైర్హాజరైతే తల్లిదండ్రులకు వాట్సాప్, యాప్ సందేశం; హాజరు వేయమని క్లాస్ టీచర్లకు గుర్తు.
+designer.param.casual_days | Casual leave days a year | साल में आकस्मिक अवकाश दिन | సంవత్సరానికి క్యాజువల్ సెలవు రోజులు
+designer.param.sick_days | Sick leave days a year | साल में चिकित्सा अवकाश दिन | సంవత్సరానికి అనారోగ్య సెలవు రోజులు
+designer.param.earned_days | Earned leave days a year | साल में अर्जित अवकाश दिन | సంవత్సరానికి ఆర్జిత సెలవు రోజులు
+designer.param.min_days | Absence longer than (days) | इससे लंबी अनुपस्थिति (दिन) | దీనికంటే ఎక్కువ గైర్హాజరు (రోజులు)
+designer.param.arranger_role | Who arranges substitution (role key) | प्रतिस्थापन कौन करे (भूमिका कुंजी) | ప్రత్యామ్నాయం ఎవరు ఏర్పాటు చేస్తారు (పాత్ర కీ)
+designer.param.exam_week_role | Who approves in exam week (role key) | परीक्षा सप्ताह में कौन स्वीकृत करे (भूमिका कुंजी) | పరీక్ష వారంలో ఎవరు ఆమోదిస్తారు (పాత్ర కీ)
+designer.param.notify_parents | Tell parents | अभिभावकों को बताएँ | తల్లిదండ్రులకు తెలియజేయండి
+designer.param.time | Time | समय | సమయం
+designer.param.role | Who fills it (role key) | कौन भरे (भूमिका कुंजी) | ఎవరు నింపుతారు (పాత్ర కీ)
+designer.param.due_time | Due time | नियत समय | గడువు సమయం
+designer.param.days_before | Days before | कितने दिन पहले | ఎన్ని రోజుల ముందు
+designer.param.relief_staff | Staff on exam relief | परीक्षा राहत पर स्टाफ़ | పరీక్ష రిలీఫ్‌లో సిబ్బంది
+designer.param.starts_at | Starts at | शुरू | ప్రారంభం
+designer.param.ends_at | Ends at | समाप्त | ముగింపు
+designer.param.whatsapp | Also on WhatsApp | व्हाट्सऐप पर भी | వాట్సాప్‌లో కూడా
+designer.block.os.approval_type.title | Approval type | अनुमोदन प्रकार | ఆమోద రకం
+designer.block.os.checklist.title | Checklist | जाँच सूची | చెక్‌లిస్ట్
+designer.block.os.task_category.title | Task template | कार्य टेम्पलेट | పని టెంప్లేట్
+designer.block.os.recurring_task.title | Recurring task | आवर्ती कार्य | పునరావృత పని
+designer.block.os.escalation_rule.title | Escalation rule | एस्केलेशन नियम | ఎస్కలేషన్ నియమం
+designer.block.os.assignment_rule.title | Assignment rule | कार्य सौंपने का नियम | పని అప్పగింపు నియమం
+designer.block.os.notification_rule.title | Notification | सूचना | నోటిఫికేషన్
+designer.block.os.leave_type.title | Leave type | छुट्टी प्रकार | సెలవు రకం
+designer.block.os.attendance_rule.title | Attendance rule | उपस्थिति नियम | హాజరు నియమం
+designer.block.os.module_flag.title | Module on or off | मॉड्यूल चालू या बंद | మాడ్యూల్ ఆన్ లేదా ఆఫ్
+designer.block.os.role.title | Role | भूमिका | పాత్ర
+designer.block.os.role_permission.title | Permission | अनुमति | అనుమతి
+designer.block.os.custom_field.title | Custom field | अतिरिक्त फ़ील्ड | అదనపు ఫీల్డ్
+designer.block.os.report_schedule.title | Report schedule | रिपोर्ट समय-सारणी | రిపోర్ట్ షెడ్యూల్
+designer.block.os.event_template.title | Event template | कार्यक्रम टेम्पलेट | కార్యక్రమ టెంప్లేట్
+designer.block.os.duty_type.title | Duty type | ड्यूटी प्रकार | డ్యూటీ రకం
+designer.block.os.plan_review_chain.title | Lesson plan review | पाठ योजना समीक्षा | పాఠ ప్రణాళిక సమీక్ష
+designer.block.core.custom_object.title | Custom record type | कस्टम रिकॉर्ड प्रकार | కస్టమ్ రికార్డ్ రకం
+error.designer_management_only | Only the school's management can use the AI designer. | एआई डिज़ाइनर केवल विद्यालय प्रबंधन उपयोग कर सकता है। | AI డిజైనర్‌ను పాఠశాల యాజమాన్యం మాత్రమే వాడగలదు.
+error.support_session_required | Open a support session for the school first. | पहले विद्यालय के लिए सहायता सत्र खोलें। | ముందుగా పాఠశాల కోసం సపోర్ట్ సెషన్ తెరవండి.
+error.support_session_not_current | This support session is not your current one. | यह आपका वर्तमान सहायता सत्र नहीं है। | ఇది మీ ప్రస్తుత సపోర్ట్ సెషన్ కాదు.
+error.changeset_has_issues | Fix the issues before publishing. | प्रकाशित करने से पहले समस्याएँ ठीक करें। | ప్రచురించే ముందు సమస్యలు సరిచేయండి.
+error.changeset_published | This plan is already live. | यह योजना पहले से लागू है। | ఈ ప్లాన్ ఇప్పటికే అమలులో ఉంది.
+error.changeset_reverted | This plan was already undone. | यह योजना पहले ही पूर्ववत हो चुकी है। | ఈ ప్లాన్ ఇప్పటికే రద్దయింది.
+error.changeset_rejected | This plan was discarded. | यह योजना रद्द की गई थी। | ఈ ప్లాన్ విస్మరించబడింది.
+error.changed_since_publish | These settings were changed after publishing, so undo would overwrite someone's work. Change them on the settings screen instead. | प्रकाशन के बाद ये सेटिंग बदली गईं, इसलिए पूर्ववत करना किसी का काम मिटा देगा। सेटिंग स्क्रीन पर बदलें। | ప్రచురించిన తర్వాత ఈ సెట్టింగ్‌లు మారాయి, రద్దు చేస్తే ఒకరి పని పోతుంది. సెట్టింగ్‌ల స్క్రీన్‌లో మార్చండి.
+error.undo_newer_first | A newer published plan changes the same settings: undo that one first. | एक नई प्रकाशित योजना यही सेटिंग बदलती है: पहले उसे पूर्ववत करें। | కొత్తగా ప్రచురించిన ప్లాన్ అవే సెట్టింగ్‌లను మారుస్తుంది: ముందు దాన్ని రద్దు చేయండి.
+error.plan_out_of_date | The school's settings changed since this plan was made. Plan it again. | योजना बनने के बाद विद्यालय की सेटिंग बदल गईं। फिर से योजना बनाएँ। | ఈ ప్లాన్ చేసిన తర్వాత పాఠశాల సెట్టింగ్‌లు మారాయి. మళ్లీ ప్లాన్ చేయండి.

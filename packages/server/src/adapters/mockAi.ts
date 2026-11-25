@@ -3,6 +3,8 @@
  * output in the same shape the real model is asked for, built from curriculum context,
  * so every screen and flow can be exercised end to end.
  */
+import { mockDesignerPlan } from '@autoed/shared';
+
 type Ctx = Record<string, unknown>;
 type Outcome = { code: string; text: string };
 
@@ -192,6 +194,9 @@ export function mockGenerate(action: string, c: Ctx): unknown {
         .slice(0, 6);
       return { answerable: true, steps, screen: top.screen };
     }
+    case 'designer_plan':
+      // AI school designer: deterministic plans for the standard requests (packages/shared/src/designer/mock.ts)
+      return mockDesignerPlan(String(c.prompt ?? ''), { roles: (c.roles as string[]) ?? [], branch_code: String(c.branch_code ?? '') });
     default:
       return {};
   }

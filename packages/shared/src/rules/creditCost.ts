@@ -12,6 +12,7 @@ export const AI_ACTIONS = [
   'weekly_insight',
   'ask_question',
   'help_bot',
+  'designer_plan',
 ] as const;
 export type AiAction = (typeof AI_ACTIONS)[number];
 
@@ -33,6 +34,7 @@ export const DEFAULT_COSTS: CostRow[] = [
   { action: 'weekly_insight', credits: 0, included: true, dailyFairUse: null },
   { action: 'ask_question', credits: 0, included: true, dailyFairUse: 30 },
   { action: 'help_bot', credits: 0, included: true, dailyFairUse: 50 },
+  { action: 'designer_plan', credits: 1, included: false, dailyFairUse: null },
 ];
 
 /** Credits for an action. `units` multiplies per-unit actions (e.g. paper sets, periods in a double plan count once). */
