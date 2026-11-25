@@ -72,7 +72,8 @@ export function defineBlock<S extends ZodTypeAny>(def: BlockDef<S>): BlockDef<S>
 }
 
 /** Adds blocks to the catalogue. A key registered twice replaces the earlier one (a stub replaced by the real block). */
-export function registerBlocks(defs: readonly BlockDef[]): void {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- blocks carry different settings schemas
+export function registerBlocks(defs: readonly BlockDef<any>[]): void {
   for (const d of defs) registry.set(d.key, d);
 }
 
