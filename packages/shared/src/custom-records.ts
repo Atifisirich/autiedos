@@ -106,7 +106,7 @@ export type RecordStates = z.infer<typeof recordStatesSchema>;
 
 export const recordObjectSchema = z
   .object({
-    key: z.string().regex(/^[a-z][a-z0-9_]{1,39}$/, 'use lower-case letters, digits and _ (2-40 characters)'),
+    key: z.string().regex(/^[a-z][a-z0-9_]{1,39}$/, 'use lower-case letters, digits and _ (2-40 characters)').refine((k) => k !== 'new' && k !== 'approvals', 'this key is reserved'),
     product_key: z.enum(RECORD_OWNING_PRODUCTS).default('core'),
     label_singular: z.string().trim().min(1).max(80),
     label_plural: z.string().trim().min(1).max(80),

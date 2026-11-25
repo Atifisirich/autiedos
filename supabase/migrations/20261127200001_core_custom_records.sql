@@ -29,7 +29,7 @@ create table core.custom_objects (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references core.organizations(id) on delete cascade,
   product_key text not null default 'core' check (product_key in ('core','crm','os','erp')),
-  key text not null check (key ~ '^[a-z][a-z0-9_]{1,39}$'),
+  key text not null check (key ~ '^[a-z][a-z0-9_]{1,39}$' and key not in ('new','approvals')),   -- /records/<key> in the web app
   label_singular text not null check (length(btrim(label_singular)) between 1 and 80),
   label_plural text not null check (length(btrim(label_plural)) between 1 and 80),
   labels_i18n jsonb not null default '{}',          -- {"hi": {"singular": "...", "plural": "..."}, "te": {...}}

@@ -65,6 +65,14 @@ export default function ProductLanding() {
         ))}
       </ul>
 
+      {products.length > 0 && (
+        <p className="mt-6 text-sm">
+          <Link href="/records" data-testid="landing-records" className="text-brand-700 underline">
+            {t('shell.landing.records')}
+          </Link>
+        </p>
+      )}
+
       {session.is_platform_admin && (
         <p className="mt-8 text-sm">
           <Link href="/admin" className="text-purple-700 underline">

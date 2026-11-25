@@ -67,7 +67,10 @@ export function ProductSwitcher({ current, lang, className }: { current?: Produc
               ))}
             </ul>
           </nav>
-          <Link href="/" onClick={() => setOpen(false)} className="mt-1 flex min-h-[36px] items-center border-t border-slate-100 px-2 text-xs text-slate-600 hover:bg-slate-50">
+          <Link href="/records" onClick={() => setOpen(false)} data-testid="switcher-records" className="mt-1 flex min-h-[36px] items-center border-t border-slate-100 px-2 text-xs text-slate-600 hover:bg-slate-50">
+            {t('shell.switcher.records')}
+          </Link>
+          <Link href="/" onClick={() => setOpen(false)} className="flex min-h-[36px] items-center border-t border-slate-100 px-2 text-xs text-slate-600 hover:bg-slate-50">
             {t('shell.switcher.allProducts')}
           </Link>
         </div>
