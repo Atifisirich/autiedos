@@ -3,7 +3,7 @@
 // Applies supabase/local/shim.sql (local only) then every file in supabase/migrations in order,
 // tracking applied files in public._migrations. In production use `supabase db push`.
 // --platform-only applies the platform, core master data and product-stream migrations (*_platform_*, *_core_master_*,
-// *_os_*, *_crm_*, *_erp_*, *_compliance*) without the demo seed. Used by the isolation harness.
+// *_os_*, *_crm_*, *_erp_*, *_compliance*, *_core_custom_*) without the demo seed. Used by the isolation harness.
 // Login roles (os_server, job_runner, platform_admin_server, ...) are created by the migrations without passwords;
 // when OS_SERVER_DB_PASSWORD / JOB_RUNNER_DB_PASSWORD / PLATFORM_ADMIN_DB_PASSWORD are set, this script sets them
 // (local / CI only; on Supabase set them out of band). The local cluster trusts these logins.
@@ -38,7 +38,7 @@ async function main() {
   await client.query('alter table public._migrations enable row level security');
   const done = new Set((await client.query('select name from public._migrations')).rows.map((r) => r.name));
   const files = readdirSync(join(root, 'supabase/migrations')).filter((f) => f.endsWith('.sql'))
-    .filter((f) => !platformOnly || new RegExp(process.env.MIGRATION_FILTER || '_platform_|_core_master_|_compliance|_crm_|_erp_|_os_').test(f)).sort();
+    .filter((f) => !platformOnly || new RegExp(process.env.MIGRATION_FILTER || '_platform_|_core_master_|_core_custom_|_compliance|_crm_|_erp_|_os_').test(f)).sort();
   for (const f of files) {
     if (done.has(f)) continue;
     if (cmd === 'status') { console.log('pending', f); continue; }
