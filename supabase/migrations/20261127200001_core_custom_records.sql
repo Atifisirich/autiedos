@@ -252,10 +252,10 @@ declare
   v_type text;
 begin
   if jsonb_typeof(o.fields) <> 'array' then return array['fields must be a list']; end if;
-  if jsonb_array_length(o.fields) = 0 then p := p || 'add at least one field'; end if;
-  if jsonb_array_length(o.fields) > 100 then p := p || 'at most 100 fields'; end if;
+  if jsonb_array_length(o.fields) = 0 then p := p || text 'add at least one field'; end if;
+  if jsonb_array_length(o.fields) > 100 then p := p || text 'at most 100 fields'; end if;
   for f in select x from jsonb_array_elements(o.fields) x loop
-    if jsonb_typeof(f) <> 'object' then p := p || 'each field must be an object'; continue; end if;
+    if jsonb_typeof(f) <> 'object' then p := p || text 'each field must be an object'; continue; end if;
     k := f->>'key';
     v_type := f->>'type';
     if k is null or k !~ '^[a-z][a-z0-9_]{0,39}$' then p := p || format('field key %s: use lower-case letters, digits and _', coalesce(k, '(empty)')); continue; end if;
@@ -299,10 +299,10 @@ begin
     if not (k = any(keys) or k in ('state','created_at','updated_at','owner')) then p := p || format('list column %s is not a field', k); end if;
   end loop;
   if o.form_layout is not null and o.form_layout <> 'null'::jsonb then
-    if jsonb_typeof(o.form_layout) <> 'array' then p := p || 'form layout must be a list of sections';
+    if jsonb_typeof(o.form_layout) <> 'array' then p := p || text 'form layout must be a list of sections';
     else
       for r in select x from jsonb_array_elements(o.form_layout) x loop
-        if jsonb_typeof(r->'fields') is distinct from 'array' then p := p || 'each form section needs a list of fields'; continue; end if;
+        if jsonb_typeof(r->'fields') is distinct from 'array' then p := p || text 'each form section needs a list of fields'; continue; end if;
         for k in select x #>> '{}' from jsonb_array_elements(r->'fields') x loop
           if not (k = any(keys)) then p := p || format('form layout: %s is not a field', k); end if;
         end loop;
@@ -310,12 +310,12 @@ begin
     end if;
   end if;
 
-  if jsonb_typeof(o.permissions) <> 'array' then p := p || 'permissions must be a list';
+  if jsonb_typeof(o.permissions) <> 'array' then p := p || text 'permissions must be a list';
   else
     for r in select x from jsonb_array_elements(o.permissions) x loop
-      if r->>'who' not in ('all_staff','role') then p := p || 'permission: who must be all_staff or role'; continue; end if;
+      if r->>'who' not in ('all_staff','role') then p := p || text 'permission: who must be all_staff or role'; continue; end if;
       if r->>'who' = 'role' and (coalesce(r->>'product', '') not in ('crm','os','erp') or coalesce(r->>'role', '') !~ '^[a-z][a-z0-9_]*$') then
-        p := p || 'permission: a role rule needs a product (crm, os, erp) and a role key';
+        p := p || text 'permission: a role rule needs a product (crm, os, erp) and a role key';
       end if;
       if r->>'who' = 'role' and o.product_key <> 'core' and r->>'product' <> o.product_key then
         p := p || format('permission: role %s:%s is not a role of the owning product %s', r->>'product', r->>'role', o.product_key);
@@ -331,7 +331,7 @@ begin
 
   if o.states is not null and o.states <> 'null'::jsonb then
     if jsonb_typeof(o.states->'list') is distinct from 'array' or jsonb_array_length(o.states->'list') < 2 then
-      p := p || 'a workflow needs at least two states';
+      p := p || text 'a workflow needs at least two states';
     else
       for r in select x from jsonb_array_elements(o.states->'list') x loop
         k := r->>'key';
@@ -340,36 +340,36 @@ begin
         if coalesce(btrim(r->>'label'), '') = '' then p := p || format('state %s needs a label', k); end if;
         states := states || k;
       end loop;
-      if not (coalesce(o.states->>'initial', '') = any(states)) then p := p || 'the first state must be one of the states'; end if;
-      if o.states ? 'transitions' and jsonb_typeof(o.states->'transitions') <> 'array' then p := p || 'transitions must be a list';
+      if not (coalesce(o.states->>'initial', '') = any(states)) then p := p || text 'the first state must be one of the states'; end if;
+      if o.states ? 'transitions' and jsonb_typeof(o.states->'transitions') <> 'array' then p := p || text 'transitions must be a list';
       else
         for t in select x from jsonb_array_elements(coalesce(o.states->'transitions', '[]')) x loop
           if not (coalesce(t->>'from', '') = any(states)) or not (coalesce(t->>'to', '') = any(states)) or t->>'from' = t->>'to' then
             p := p || format('transition %s -> %s: both must be different states', coalesce(t->>'from', '?'), coalesce(t->>'to', '?'));
           end if;
-          if t ? 'approval' and jsonb_typeof(t->'approval') <> 'boolean' then p := p || 'transition approval must be true or false'; end if;
+          if t ? 'approval' and jsonb_typeof(t->'approval') <> 'boolean' then p := p || text 'transition approval must be true or false'; end if;
           if t ? 'approver_roles' and (jsonb_typeof(t->'approver_roles') <> 'array'
               or exists (select 1 from jsonb_array_elements_text(t->'approver_roles') a where a !~ '^(crm|os|erp):[a-z][a-z0-9_]*$')) then
-            p := p || 'approver roles look like os:os_principal';
+            p := p || text 'approver roles look like os:os_principal';
           end if;
         end loop;
       end if;
     end if;
   end if;
 
-  if jsonb_typeof(o.portal) <> 'object' then p := p || 'portal settings must be an object';
+  if jsonb_typeof(o.portal) <> 'object' then p := p || text 'portal settings must be an object';
   elsif o.portal->'enabled' = 'true'::jsonb then
     if not exists (select 1 from jsonb_array_elements(o.fields) x where x->>'key' = o.portal->>'learner_field' and x->>'type' = 'learner') then
-      p := p || 'families can see records only through a learner field: choose one';
+      p := p || text 'families can see records only through a learner field: choose one';
     end if;
   end if;
 
   if o.schedule is not null and o.schedule <> 'null'::jsonb and o.schedule ? 'reminder' and o.schedule->'reminder' <> 'null'::jsonb then
     if not exists (select 1 from jsonb_array_elements(o.fields) x where x->>'key' = o.schedule->'reminder'->>'date_field' and x->>'type' in ('date','datetime')) then
-      p := p || 'a reminder needs a date field';
+      p := p || text 'a reminder needs a date field';
     end if;
     if jsonb_typeof(o.schedule->'reminder'->'days_before') is distinct from 'number' or (o.schedule->'reminder'->>'days_before')::numeric not between 0 and 365 then
-      p := p || 'reminder days before must be 0..365';
+      p := p || text 'reminder days before must be 0..365';
     end if;
   end if;
   return p;
@@ -901,6 +901,10 @@ grant execute on function app.custom_records_is_request(), app.custom_records_us
   app.custom_records_timestamp(text), core.custom_record_transition(uuid, text, text), app.custom_record_can_decide(core.approval_requests),
   core.custom_record_decide(uuid, boolean, text), core.custom_record_approvals(), core.custom_records_log_export(uuid, integer, text)
   to authenticated, crm_server, os_server, erp_server, service_role;
+-- the platform console reads these tables (support "view as"): the policy helpers must be callable by it too
+grant execute on function app.custom_records_is_request(), app.custom_records_user_has(uuid, text), app.custom_records_can_manage(uuid, text),
+  app.custom_record_level_of(core.custom_objects, text), app.custom_record_level(uuid, text), app.custom_record_can(uuid, text, uuid, uuid, jsonb),
+  app.custom_object_visible(core.custom_objects), app.custom_record_event_visible(uuid, uuid) to platform_admin_server;
 grant execute on function app.custom_records_enqueue_reminders(), private.claim_record_jobs(text, integer), app.custom_records_deliver_reminder(uuid)
   to job_runner, service_role;
 

@@ -17,6 +17,7 @@ import { seedCompliance } from './fixture-compliance';
 import { seedErp } from './fixture-erp';
 import { seedCrm } from './fixture-crm';
 import { seedOs } from './fixture-os';
+import { seedRecords } from './fixture-records';
 import { resetPlatformDatabase } from './global-setup';
 
 export type World = Awaited<ReturnType<typeof buildWorld>>;
@@ -136,6 +137,10 @@ async function build(c: pg.PoolClient) {
   // a student login linked to itself only (its sibling in the same household is not linked)
   await q(`insert into core.learner_links (org_id, user_id, learner_id, relation) values ($1, $2, $3, 'self')`, [A.id, u.aStudent, learnerA]);
 
+  // custom records (20261127200001): objects, records (a portal-visible one per org) and their history for A and B
+  const recA = await seedRecords(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, learner: learnerA, other: coreA.other, staff: coreA.adminStaff });
+  const recB = await seedRecords(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, learner: learnerB, other: coreB.other, staff: coreB.adminStaff });
+
   // ERP rows (20261118000001..9): one row per erp table for A and B, receipts through erp.post_receipts, ERP roles in A
   const erpA = await seedErp(q, { org: A.id, branch: A.branches.a1!, admin: u.aAdmin, guardian: u.aGuardian, core: coreA, roles: true });
   const erpB = await seedErp(q, { org: B.id, branch: B.branches.b1!, admin: u.bAdmin, guardian: u.bGuardian, core: coreB });
@@ -184,5 +189,5 @@ async function build(c: pg.PoolClient) {
     await q(`insert into billing.usage (org_id, product_key, metric, quantity, period_start, period_end) values ($1, 'os', 'ai_credits', 12.5, date_trunc('month', current_date), current_date)`, [o.id]);
   }
 
-  return { A, B, C, D, u, learnerA, learnerB, coreA, coreB, erpA, erpB, crmA, crmB };
+  return { A, B, C, D, u, learnerA, learnerB, coreA, coreB, erpA, erpB, crmA, crmB, recA, recB };
 }
