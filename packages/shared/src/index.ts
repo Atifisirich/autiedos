@@ -9,3 +9,4 @@ export * from './presets';
 export * from './billing';
 export * from './auth';
 export * from './designer';
+export * from './custom-records';

@@ -1,0 +1,151 @@
+# key | English | Hindi | Telugu
+# Custom records (docs/custom-records.md): registers the school defines itself (object builder, list, form, history,
+# approvals). English is the source text; Hindi and Telugu are a first translation that NEEDS REVIEW BY A NATIVE SPEAKER.
+shell.switcher.records | Custom registers | कस्टम रजिस्टर | కస్టమ్ రిజిస్టర్లు
+shell.landing.records | Custom registers made for your school | आपके स्कूल के लिए बनाए गए कस्टम रजिस्टर | మీ పాఠశాల కోసం రూపొందించిన కస్టమ్ రిజిస్టర్లు
+records.title | Custom registers | कस्टम रजिस्टर | కస్టమ్ రిజిస్టర్లు
+records.subtitle | Logs, checklists and registers made for your school. | आपके स्कूल के लिए बनाए गए लॉग, चेकलिस्ट और रजिस्टर। | మీ పాఠశాల కోసం రూపొందించిన లాగ్‌లు, చెక్‌లిస్టులు మరియు రిజిస్టర్లు.
+records.nav.label | Custom registers menu | कस्टम रजिस्टर मेनू | కస్టమ్ రిజిస్టర్ల మెనూ
+records.empty | No registers are shared with you yet. | अभी तक कोई रजिस्टर आपके साथ साझा नहीं किया गया है। | ఇంకా ఏ రిజిస్టర్ మీతో పంచుకోబడలేదు.
+records.emptyManage | No registers yet. Create the first one, for example a hostel visitor log. | अभी कोई रजिस्टर नहीं है। पहला बनाएँ, जैसे हॉस्टल आगंतुक लॉग। | ఇంకా రిజిస్టర్లు లేవు. మొదటిది సృష్టించండి, ఉదా. హాస్టల్ సందర్శకుల లాగ్.
+records.showArchived | Show archived | संग्रहीत दिखाएँ | ఆర్కైవ్ చేసినవి చూపించు
+records.archived | Archived | संग्रहीत | ఆర్కైవ్ చేయబడింది
+records.fieldCount | {n} fields | {n} फ़ील्ड | {n} ఫీల్డ్‌లు
+records.access.ownOnly | Your entries only | केवल आपकी प्रविष्टियाँ | మీ నమోదులు మాత్రమే
+records.product.core | All products | सभी उत्पाद | అన్ని ఉత్పత్తులు
+records.product.os | OS | OS | OS
+records.product.erp | ERP | ERP | ERP
+records.product.crm | CRM | CRM | CRM
+records.object.new | New register | नया रजिस्टर | కొత్త రిజిస్టర్
+records.object.edit | Change register | रजिस्टर बदलें | రిజిస్టర్ మార్చండి
+records.object.editTitle | Change "{name}" | "{name}" बदलें | "{name}" మార్చండి
+records.object.version | Version {n} | संस्करण {n} | వెర్షన్ {n}
+records.object.archive | Archive | संग्रहीत करें | ఆర్కైవ్ చేయండి
+records.object.unarchive | Bring back | वापस लाएँ | తిరిగి తీసుకురండి
+records.add | Add {name} | {name} जोड़ें | {name} జోడించండి
+records.exportCsv | Export CSV | CSV निर्यात करें | CSV ఎగుమతి
+records.search | Search | खोजें | వెతకండి
+records.allStates | All states | सभी स्थितियाँ | అన్ని స్థితులు
+records.filterAll | {name}: all | {name}: सभी | {name}: అన్నీ
+records.mineOnly | Only mine | केवल मेरी | నావి మాత్రమే
+records.total | {n} entries | {n} प्रविष्टियाँ | {n} నమోదులు
+records.untitled | (no title) | (कोई शीर्षक नहीं) | (శీర్షిక లేదు)
+records.paging | Pages | पृष्ठ | పేజీలు
+records.pageOf | Page {page} of {pages} | पृष्ठ {page} / {pages} | పేజీ {page} / {pages}
+records.state | State | स्थिति | స్థితి
+records.saving | Saving… | सहेजा जा रहा है… | సేవ్ అవుతోంది…
+records.saved | Saved. | सहेजा गया। | సేవ్ చేయబడింది.
+records.change | Change | बदलें | మార్చండి
+records.clear | Clear | हटाएँ | తీసివేయండి
+records.noMatches | No matches | कोई मिलान नहीं | సరిపోలినవి లేవు
+records.history | History | इतिहास | చరిత్ర
+records.changedField | {field} changed | {field} बदला गया | {field} మార్చబడింది
+records.note | Note (optional) | टिप्पणी (वैकल्पिक) | గమనిక (ఐచ్ఛికం)
+records.nextStep | Next step | अगला चरण | తదుపరి దశ
+records.needsApproval | needs approval | अनुमोदन आवश्यक | ఆమోదం అవసరం
+records.sentForApproval | Sent for approval. | अनुमोदन के लिए भेजा गया। | ఆమోదం కోసం పంపబడింది.
+records.waitingApproval | Waiting for approval: {state} | अनुमोदन की प्रतीक्षा: {state} | ఆమోదం కోసం వేచి ఉంది: {state}
+records.deleted | Deleted | हटाया गया | తొలగించబడింది
+records.confirmDelete | Delete this entry? | यह प्रविष्टि हटाएँ? | ఈ నమోదును తొలగించాలా?
+records.restore | Restore | पुनर्स्थापित करें | పునరుద్ధరించండి
+records.restored | Restored. | पुनर्स्थापित किया गया। | పునరుద్ధరించబడింది.
+records.event.created | Created | बनाया गया | సృష్టించబడింది
+records.event.updated | Changed | बदला गया | మార్చబడింది
+records.event.state | {from} → {to} | {from} → {to} | {from} → {to}
+records.event.approval_requested | Approval asked: {from} → {to} | अनुमोदन माँगा गया: {from} → {to} | ఆమోదం కోరబడింది: {from} → {to}
+records.event.approved | Approved: {from} → {to} | अनुमोदित: {from} → {to} | ఆమోదించబడింది: {from} → {to}
+records.event.rejected | Rejected: {from} → {to} | अस्वीकृत: {from} → {to} | తిరస్కరించబడింది: {from} → {to}
+records.event.deleted | Deleted | हटाया गया | తొలగించబడింది
+records.event.restored | Restored | पुनर्स्थापित | పునరుద్ధరించబడింది
+records.event.exported | Exported | निर्यात किया गया | ఎగుమతి చేయబడింది
+records.approvals.title | Approvals | अनुमोदन | ఆమోదాలు
+records.approvals.none | Nothing is waiting for you. | आपके लिए कुछ भी लंबित नहीं है। | మీ కోసం ఏదీ వేచి లేదు.
+records.approvals.approve | Approve | स्वीकृत करें | ఆమోదించండి
+records.approvals.reject | Reject | अस्वीकार करें | తిరస్కరించండి
+records.error.forbidden | You do not have permission for this. | आपको इसकी अनुमति नहीं है। | దీనికి మీకు అనుమతి లేదు.
+records.error.notFound | Not found, or not shared with you. | नहीं मिला, या आपके साथ साझा नहीं किया गया। | కనబడలేదు, లేదా మీతో పంచుకోబడలేదు.
+records.error.conflict | Something with this name already exists. | इस नाम से पहले से मौजूद है। | ఈ పేరుతో ఇప్పటికే ఉంది.
+records.error.hasRecords | This register has entries: archive it instead. | इस रजिस्टर में प्रविष्टियाँ हैं: इसे संग्रहीत करें। | ఈ రిజిస్టర్‌లో నమోదులు ఉన్నాయి: బదులుగా ఆర్కైవ్ చేయండి.
+records.error.invalid | Please check: | कृपया जाँचें: | దయచేసి తనిఖీ చేయండి:
+records.scope.none | none | कोई नहीं | ఏదీ లేదు
+records.scope.own | own | अपनी | తమవి
+records.scope.all | all | सभी | అన్నీ
+records.action.view | See | देखें | చూడండి
+records.action.create | Add | जोड़ें | జోడించండి
+records.action.edit | Edit | संपादित करें | సవరించండి
+records.action.delete | Delete | हटाएँ | తొలగించండి
+records.action.export | Export | निर्यात | ఎగుమతి
+records.type.text | Short text | छोटा पाठ | చిన్న వచనం
+records.type.long_text | Long text | लंबा पाठ | పొడవైన వచనం
+records.type.number | Number | संख्या | సంఖ్య
+records.type.money | Amount (₹) | राशि (₹) | మొత్తం (₹)
+records.type.date | Date | तारीख | తేదీ
+records.type.datetime | Date and time | तारीख और समय | తేదీ మరియు సమయం
+records.type.yes_no | Yes / no | हाँ / नहीं | అవును / కాదు
+records.type.choice | One choice | एक विकल्प | ఒక ఎంపిక
+records.type.multi_choice | Several choices | कई विकल्प | అనేక ఎంపికలు
+records.type.person | Staff member | स्टाफ़ सदस्य | సిబ్బంది సభ్యుడు
+records.type.learner | Student | छात्र | విద్యార్థి
+records.type.section | Class / section | कक्षा / सेक्शन | తరగతి / సెక్షన్
+records.type.branch | Branch | शाखा | శాఖ
+records.type.file | File | फ़ाइल | ఫైల్
+records.type.phone | Phone number | फ़ोन नंबर | ఫోన్ నంబర్
+records.type.email | E-mail | ई-मेल | ఇ-మెయిల్
+records.type.url | Web link | वेब लिंक | వెబ్ లింక్
+records.builder.intro | Describe what the register records. Nothing changes for others until you save. | बताएँ कि रजिस्टर में क्या दर्ज होगा। सहेजने तक दूसरों के लिए कुछ नहीं बदलता। | రిజిస్టర్‌లో ఏమి నమోదు అవుతుందో వివరించండి. మీరు సేవ్ చేసే వరకు ఇతరులకు ఏమీ మారదు.
+records.builder.basics | Name | नाम | పేరు
+records.builder.basicsHint | How the register is called on screens. | स्क्रीन पर रजिस्टर का नाम। | స్క్రీన్‌లపై రిజిస్టర్ పేరు.
+records.builder.labelPlural | Register name (e.g. Hostel visitor log) | रजिस्टर का नाम (जैसे हॉस्टल आगंतुक लॉग) | రిజిస్టర్ పేరు (ఉదా. హాస్టల్ సందర్శకుల లాగ్)
+records.builder.labelSingular | One entry is a… (e.g. Visitor) | एक प्रविष्टि है… (जैसे आगंतुक) | ఒక నమోదు అంటే… (ఉదా. సందర్శకుడు)
+records.builder.product | Belongs to | किसका हिस्सा | దేనికి చెందినది
+records.builder.key | Short code | छोटा कोड | చిన్న కోడ్
+records.builder.fields | Fields | फ़ील्ड | ఫీల్డ్‌లు
+records.builder.fieldsHint | What is written down for each entry. | हर प्रविष्टि में क्या लिखा जाएगा। | ప్రతి నమోదులో ఏమి రాయాలి.
+records.builder.fieldLabel | Field name | फ़ील्ड का नाम | ఫీల్డ్ పేరు
+records.builder.fieldType | Type | प्रकार | రకం
+records.builder.required | Required | आवश्यक | తప్పనిసరి
+records.builder.unique | No duplicates | दोहराव नहीं | నకిలీలు వద్దు
+records.builder.defaultToday | Today by default | डिफ़ॉल्ट रूप से आज | డిఫాల్ట్‌గా ఈ రోజు
+records.builder.defaultNow | Now by default | डिफ़ॉल्ट रूप से अभी | డిఫాల్ట్‌గా ఇప్పుడు
+records.builder.defaultMe | Me by default | डिफ़ॉल्ट रूप से मैं | డిఫాల్ట్‌గా నేను
+records.builder.options | Choices (one per line) | विकल्प (हर पंक्ति में एक) | ఎంపికలు (ఒక్కో లైన్‌కు ఒకటి)
+records.builder.addField | Add field | फ़ील्ड जोड़ें | ఫీల్డ్ జోడించండి
+records.builder.removeField | Remove field | फ़ील्ड हटाएँ | ఫీల్డ్ తీసివేయండి
+records.builder.moveUp | Move up | ऊपर ले जाएँ | పైకి జరపండి
+records.builder.moveDown | Move down | नीचे ले जाएँ | కిందికి జరపండి
+records.builder.titleField | Title of each entry | हर प्रविष्टि का शीर्षक | ప్రతి నమోదు శీర్షిక
+records.builder.listColumns | Columns in the list | सूची में कॉलम | జాబితాలో కాలమ్‌లు
+records.builder.permissions | Who can do what | कौन क्या कर सकता है | ఎవరు ఏమి చేయగలరు
+records.builder.permissionsHint | Give roles access. Without a rule only management sees the entries. | भूमिकाओं को पहुँच दें। नियम के बिना केवल प्रबंधन प्रविष्टियाँ देखता है। | పాత్రలకు ప్రవేశం ఇవ్వండి. నియమం లేకుంటే యాజమాన్యం మాత్రమే నమోదులను చూస్తుంది.
+records.builder.who | Who | कौन | ఎవరు
+records.builder.allStaff | All staff | सभी स्टाफ़ | సిబ్బంది అందరూ
+records.builder.addRule | Add rule | नियम जोड़ें | నియమం జోడించండి
+records.builder.removeRule | Remove rule | नियम हटाएँ | నియమం తీసివేయండి
+records.builder.managementNote | Management always has full access. | प्रबंधन के पास हमेशा पूरी पहुँच होती है। | యాజమాన్యానికి ఎల్లప్పుడూ పూర్తి ప్రవేశం ఉంటుంది.
+records.builder.workflow | Workflow | कार्यप्रवाह | వర్క్‌ఫ్లో
+records.builder.workflowHint | Optional steps an entry moves through, with approval where needed. | वैकल्पिक चरण जिनसे प्रविष्टि गुज़रती है, ज़रूरत पर अनुमोदन के साथ। | నమోదు దాటే ఐచ్ఛిక దశలు, అవసరమైన చోట ఆమోదంతో.
+records.builder.useStates | Use steps (e.g. Open → Approved → Closed) | चरणों का उपयोग करें (जैसे खुला → स्वीकृत → बंद) | దశలను ఉపయోగించండి (ఉదా. తెరిచినది → ఆమోదించినది → మూసినది)
+records.builder.stateOpen | Open | खुला | తెరిచినది
+records.builder.stateClosed | Closed | बंद | మూసినది
+records.builder.stateLabel | Step name | चरण का नाम | దశ పేరు
+records.builder.final | Final | अंतिम | చివరిది
+records.builder.addState | Add step | चरण जोड़ें | దశ జోడించండి
+records.builder.removeState | Remove step | चरण हटाएँ | దశ తీసివేయండి
+records.builder.initial | New entries start as | नई प्रविष्टियाँ इस चरण से शुरू होंगी | కొత్త నమోదులు ఈ దశతో మొదలవుతాయి
+records.builder.transitions | Allowed moves | अनुमत बदलाव | అనుమతించిన మార్పులు
+records.builder.from | From | से | నుండి
+records.builder.to | To | तक | వరకు
+records.builder.buttonLabel | Button text | बटन का पाठ | బటన్ వచనం
+records.builder.needsApproval | Needs approval | अनुमोदन आवश्यक | ఆమోదం అవసరం
+records.builder.approvers | Approved by | द्वारा अनुमोदित | ఆమోదించేవారు
+records.builder.addTransition | Add move | बदलाव जोड़ें | మార్పు జోడించండి
+records.builder.removeTransition | Remove move | बदलाव हटाएँ | మార్పు తీసివేయండి
+records.builder.more | Families and reminders | परिवार और रिमाइंडर | కుటుంబాలు మరియు రిమైండర్లు
+records.builder.portal | Parents and students may see entries about their own child | माता-पिता और छात्र अपने बच्चे की प्रविष्टियाँ देख सकते हैं | తల్లిదండ్రులు మరియు విద్యార్థులు తమ పిల్లల నమోదులను చూడవచ్చు
+records.builder.portalField | Child field | बच्चे का फ़ील्ड | పిల్లల ఫీల్డ్
+records.builder.portalHint | Off by default. Needs a Student field. | डिफ़ॉल्ट रूप से बंद। छात्र फ़ील्ड चाहिए। | డిఫాల్ట్‌గా ఆఫ్. విద్యార్థి ఫీల్డ్ అవసరం.
+records.builder.reminder | Remind the person who added the entry | प्रविष्टि जोड़ने वाले को याद दिलाएँ | నమోదు జోడించిన వ్యక్తికి గుర్తు చేయండి
+records.builder.reminderField | Date field | तारीख फ़ील्ड | తేదీ ఫీల్డ్
+records.builder.daysBefore | Days before | कितने दिन पहले | ఎన్ని రోజుల ముందు
+records.builder.create | Create register | रजिस्टर बनाएँ | రిజిస్టర్ సృష్టించండి
+records.builder.saveChanges | Save changes | बदलाव सहेजें | మార్పులను సేవ్ చేయండి
