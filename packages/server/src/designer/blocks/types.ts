@@ -8,11 +8,23 @@ import { ValidationError, maybe, q, type Tx } from '../../db';
 import type { DesignerActor } from '../actor';
 
 export interface ApplyCtx {
+  /** The designer's own transaction: the actor's home product login (os_server when the org has the OS). */
   c: Tx;
   actor: DesignerActor;
+  /**
+   * The transaction of a product's own server login with the actor's claims (crm_server for CRM blocks, erp_server for
+   * ERP blocks; the home product gets c). Opened on first use, committed or rolled back together with c.
+   */
+  tx(product: 'os' | 'crm' | 'erp'): Promise<Tx>;
 }
 
 export type Settings = Record<string, unknown>;
+
+/** The other create / update ops of the same plan (a check may accept what an earlier op of the plan creates). */
+export interface PlannedOp {
+  block: string;
+  settings: Settings;
+}
 
 export interface ServerBlock {
   key: string;
@@ -24,6 +36,11 @@ export interface ServerBlock {
   write(x: ApplyCtx, key: string, settings: Settings): Promise<void>;
   /** Remove the instance (soft delete where the table has deleted_at). */
   remove(x: ApplyCtx, key: string): Promise<void>;
+  /**
+   * Checks against the school's configuration beyond the shared schema (the settings screen's own validation, e.g. the
+   * custom records engine's adapter). Issue details; empty = fine. Run when a plan is previewed and again on publish.
+   */
+  check?(x: ApplyCtx, settings: Settings, op: 'create' | 'update', plan: PlannedOp[]): Promise<string[]>;
   /**
    * Exact state for undo when read() does not capture everything (e.g. report recipients kept as staff ids). Default:
    * read(). restore(capture) must put the instance back exactly; default: write / remove.

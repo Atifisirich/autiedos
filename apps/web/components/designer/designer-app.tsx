@@ -16,7 +16,16 @@ import { Badge, Button, Card, Field, Input, Select, Tabs, Textarea } from '@/com
 import { PlanCard, errorText } from './plan-card';
 import type { Changeset, HistoryRow, Line, TemplateView, Who } from './types';
 
-const EXAMPLES = ['designer.example.absence', 'designer.example.checklist', 'designer.example.purchase', 'designer.example.fee', 'designer.example.enquiry'] as const;
+/** Example requests, offered for the products the school has (core = every school: a custom register). */
+const EXAMPLES: [string, string][] = [
+  ['os', 'designer.example.absence'],
+  ['os', 'designer.example.checklist'],
+  ['os', 'designer.example.purchase'],
+  ['crm', 'designer.example.followup'],
+  ['erp', 'designer.example.fee'],
+  ['erp', 'designer.example.feeReminder'],
+  ['core', 'designer.example.register'],
+];
 
 type Turn = { kind: 'user'; text: string } | { kind: 'plan'; cs: Changeset };
 
@@ -127,7 +136,7 @@ export function DesignerApp() {
             { value: 'explain', label: t('designer.tab.explain') },
           ]}
         />
-        {tab === 'design' && <DesignTab t={t} readOnly={readOnly} />}
+        {tab === 'design' && <DesignTab t={t} readOnly={readOnly} products={who.products} />}
         {tab === 'templates' && <TemplatesTab t={t} readOnly={readOnly} onPlanned={() => setTab('design')} />}
         {tab === 'history' && <HistoryTab t={t} readOnly={readOnly} />}
         {tab === 'explain' && <ExplainTab t={t} />}
@@ -162,7 +171,7 @@ function useThread() {
   return thread;
 }
 
-function DesignTab({ t, readOnly }: { t: T; readOnly: boolean }) {
+function DesignTab({ t, readOnly, products }: { t: T; readOnly: boolean; products?: string[] }) {
   const turns = useThread();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -247,7 +256,7 @@ function DesignTab({ t, readOnly }: { t: T; readOnly: boolean }) {
             <div>
               <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">{t('designer.examples.title')}</p>
               <div className="flex flex-wrap gap-2">
-                {EXAMPLES.map((k) => (
+                {EXAMPLES.filter(([p]) => p === 'core' || !products || products.includes(p)).map(([, k]) => (
                   <button key={k} type="button" onClick={() => setText(t(k))} className="min-h-[36px] rounded-full border border-slate-300 bg-white px-3 py-1 text-left text-xs text-slate-700 hover:border-brand-500 hover:text-brand-700">
                     {t(k)}
                   </button>
@@ -293,7 +302,7 @@ function TemplatesTab({ t, readOnly, onPlanned }: { t: T; readOnly: boolean; onP
         </p>
       )}
       <ul className="grid gap-3 md:grid-cols-2">
-        {(list ?? []).map((tpl) => (
+        {(list ?? []).filter((tpl) => tpl.available !== false).map((tpl) => (
           <li key={tpl.key} className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="template">
             <div className="flex items-start gap-2">
               <h3 className="flex-1 text-sm font-semibold text-slate-900">{t(`designer.template.${tpl.key}.title`)}</h3>

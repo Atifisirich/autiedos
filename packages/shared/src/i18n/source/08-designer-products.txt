@@ -1,0 +1,133 @@
+# key | English | Hindi | Telugu
+# AI school designer: CRM, ERP and custom-register blocks (docs/designer.md). Hindi and Telugu are a first translation that
+# NEEDS REVIEW BY A NATIVE SPEAKER. Role keys, stage / template names, triggers and channels inside {placeholders} are
+# configuration values, not translated.
+designer.example.followup | New enquiry follow-up within 24h else escalate to admission head | नई पूछताछ का 24 घंटे में फ़ॉलो-अप, नहीं तो प्रवेश प्रमुख को सूचना | కొత్త విచారణకు 24 గంటల్లో ఫాలో-అప్, లేకపోతే అడ్మిషన్ హెడ్‌కు తెలియజేయాలి
+designer.example.feeReminder | Remind parents 3 days before fee due, then on due date, then weekly | शुल्क की नियत तिथि से 3 दिन पहले, नियत दिन, फिर हर सप्ताह अभिभावकों को याद दिलाएँ | ఫీజు గడువుకు 3 రోజుల ముందు, గడువు రోజున, ఆ తర్వాత ప్రతి వారం తల్లిదండ్రులకు గుర్తు చేయండి
+designer.example.register | Make a hostel visitor log with visitor name, student, time in/out, approved by warden | छात्रावास आगंतुक रजिस्टर बनाएँ: आगंतुक का नाम, छात्र, आने/जाने का समय, वार्डन की स्वीकृति | హాస్టల్ సందర్శకుల రిజిస్టర్ చేయండి: సందర్శకుడి పేరు, విద్యార్థి, వచ్చిన/వెళ్లిన సమయం, వార్డెన్ ఆమోదం
+designer.explain.crm | CRM: {stages} pipeline stages, {sources} lead sources, {rules} routing rules, {workflows} live workflows, {templates} message templates, {forms} enquiry forms. | CRM: {stages} पाइपलाइन चरण, {sources} लीड स्रोत, {rules} रूटिंग नियम, {workflows} चालू वर्कफ़्लो, {templates} संदेश टेम्पलेट, {forms} पूछताछ फ़ॉर्म। | CRM: {stages} పైప్‌లైన్ దశలు, {sources} లీడ్ మూలాలు, {rules} రూటింగ్ నియమాలు, {workflows} అమల్లో ఉన్న వర్క్‌ఫ్లోలు, {templates} సందేశ టెంప్లేట్లు, {forms} విచారణ ఫారాలు.
+designer.explain.crmSla | CRM: new enquiries must get a first response within {time}; quiet hours {from}:00 to {to}:00, at most {n} automated messages a day. | CRM: नई पूछताछ का पहला जवाब {time} में; शांत समय {from}:00 से {to}:00, दिन में अधिकतम {n} स्वचालित संदेश। | CRM: కొత్త విచారణకు {time} లోపు మొదటి స్పందన; నిశ్శబ్ద సమయం {from}:00 నుండి {to}:00, రోజుకు గరిష్టంగా {n} ఆటోమేటిక్ సందేశాలు.
+designer.explain.crmRoles | CRM roles: {list}. | CRM भूमिकाएँ: {list}। | CRM పాత్రలు: {list}.
+designer.explain.erp | ERP: {heads} fee heads, {plans} fee plans, {concessions} concession types, {rules} approval rules, {automations} automations, {templates} message templates. | ERP: {heads} शुल्क मद, {plans} शुल्क योजनाएँ, {concessions} छूट प्रकार, {rules} स्वीकृति नियम, {automations} स्वचालन, {templates} संदेश टेम्पलेट। | ERP: {heads} ఫీజు శీర్షికలు, {plans} ఫీజు ప్రణాళికలు, {concessions} రాయితీ రకాలు, {rules} ఆమోద నియమాలు, {automations} ఆటోమేషన్లు, {templates} సందేశ టెంప్లేట్లు.
+designer.explain.erpFees | ERP: late fee {late}; {scales} grading scales and {schemes} assessment schemes; modules switched off: {off}. | ERP: विलंब शुल्क {late}; {scales} ग्रेडिंग पैमाने और {schemes} मूल्यांकन योजनाएँ; बंद मॉड्यूल: {off}। | ERP: ఆలస్య రుసుము {late}; {scales} గ్రేడింగ్ స్కేళ్లు, {schemes} మూల్యాంకన పథకాలు; ఆఫ్‌లో ఉన్న మాడ్యూళ్లు: {off}.
+designer.explain.erpRoles | ERP roles: {list}. | ERP भूमिकाएँ: {list}। | ERP పాత్రలు: {list}.
+designer.explain.records | {n} custom registers: {list}. | {n} कस्टम रजिस्टर: {list}। | {n} కస్టమ్ రిజిస్టర్లు: {list}.
+designer.explain.none | none | कोई नहीं | ఏదీ లేదు
+designer.block.crm.stage.title | Pipeline stage | पाइपलाइन चरण | పైప్‌లైన్ దశ
+designer.block.crm.lead_source.title | Lead source | लीड स्रोत | లీడ్ మూలం
+designer.block.crm.assignment_rule.title | Lead routing rule | लीड रूटिंग नियम | లీడ్ రూటింగ్ నియమం
+designer.block.crm.follow_up_sla.title | First follow-up time (SLA) | पहले फ़ॉलो-अप का समय (SLA) | మొదటి ఫాలో-అప్ సమయం (SLA)
+designer.block.crm.workflow.title | CRM workflow (automation) | CRM वर्कफ़्लो (स्वचालन) | CRM వర్క్‌ఫ్లో (ఆటోమేషన్)
+designer.block.crm.message_template.title | CRM message template | CRM संदेश टेम्पलेट | CRM సందేశ టెంప్లేట్
+designer.block.crm.enquiry_form.title | Enquiry form | पूछताछ फ़ॉर्म | విచారణ ఫారం
+designer.block.crm.messaging_limits.title | Quiet hours and daily message cap | शांत समय और दैनिक संदेश सीमा | నిశ్శబ్ద సమయం, రోజువారీ సందేశ పరిమితి
+designer.block.crm.scoring.title | Lead scoring rules | लीड स्कोरिंग नियम | లీడ్ స్కోరింగ్ నియమాలు
+designer.block.crm.role.title | CRM role | CRM भूमिका | CRM పాత్ర
+designer.block.crm.role_permission.title | CRM role permission | CRM भूमिका अनुमति | CRM పాత్ర అనుమతి
+designer.block.erp.fee_head.title | Fee head | शुल्क मद | ఫీజు శీర్షిక
+designer.block.erp.fee_plan.title | Fee plan (structure) | शुल्क योजना (संरचना) | ఫీజు ప్రణాళిక (నిర్మాణం)
+designer.block.erp.late_fee_rule.title | Late fee rule | विलंब शुल्क नियम | ఆలస్య రుసుము నియమం
+designer.block.erp.concession_type.title | Concession type | छूट प्रकार | రాయితీ రకం
+designer.block.erp.approval_rule.title | ERP approval rule | ERP स्वीकृति नियम | ERP ఆమోద నియమం
+designer.block.erp.automation.title | ERP automation (recipe) | ERP स्वचालन (रेसिपी) | ERP ఆటోమేషన్ (రెసిపీ)
+designer.block.erp.message_template.title | ERP message template | ERP संदेश टेम्पलेट | ERP సందేశ టెంప్లేట్
+designer.block.erp.leave_type.title | Staff leave type (ERP HR) | स्टाफ़ अवकाश प्रकार (ERP HR) | సిబ్బంది సెలవు రకం (ERP HR)
+designer.block.erp.doc_template.title | Document / certificate template | दस्तावेज़ / प्रमाणपत्र टेम्पलेट | పత్రం / సర్టిఫికెట్ టెంప్లేట్
+designer.block.erp.campus_settings.title | Campus settings | परिसर सेटिंग | క్యాంపస్ సెట్టింగ్‌లు
+designer.block.erp.grading_scale.title | Grading scale | ग्रेडिंग पैमाना | గ్రేడింగ్ స్కేల్
+designer.block.erp.assessment_scheme.title | Assessment scheme | मूल्यांकन योजना | మూల్యాంకన పథకం
+designer.block.erp.role_permission.title | ERP role permission | ERP भूमिका अनुमति | ERP పాత్ర అనుమతి
+designer.block.erp.module_flag.title | ERP module on or off | ERP मॉड्यूल चालू या बंद | ERP మాడ్యూల్ ఆన్ లేదా ఆఫ్
+designer.preview.crm.stage | In the {phase} phase, admission chance {probability}% | {phase} चरण-समूह में, प्रवेश की संभावना {probability}% | {phase} దశలో, ప్రవేశ అవకాశం {probability}%
+designer.preview.crm.stage.sla | Overdue after {hours} hour(s) in this stage | इस चरण में {hours} घंटे के बाद विलंबित | ఈ దశలో {hours} గంటల తర్వాత గడువు దాటినట్టు
+designer.preview.crm.stage.required | Needs before entering: {fields} | प्रवेश से पहले ज़रूरी: {fields} | ప్రవేశానికి ముందు అవసరం: {fields}
+designer.preview.crm.source | Channel {channel}, cost {cost} a month | चैनल {channel}, लागत {cost} प्रति माह | ఛానెల్ {channel}, ఖర్చు నెలకు {cost}
+designer.preview.crm.routing.round_robin | New enquiries go to the {role}s in turn | नई पूछताछ बारी-बारी से {role} को जाती है | కొత్త విచారణలు వరుసగా {role} లకు వెళ్తాయి
+designer.preview.crm.routing.least_load | New enquiries go to the {role} with the fewest open enquiries | नई पूछताछ सबसे कम खुली पूछताछ वाले {role} को जाती है | కొత్త విచారణలు తక్కువ తెరిచిన విచారణలు ఉన్న {role} కు వెళ్తాయి
+designer.preview.crm.routing.when | Only for branch {branch}, channel {channel}, grades {grades} | केवल शाखा {branch}, चैनल {channel}, कक्षाएँ {grades} के लिए | శాఖ {branch}, ఛానెల్ {channel}, తరగతులు {grades} కు మాత్రమే
+designer.preview.crm.routing.capacity | At most {n} new enquiries per person a day | प्रति व्यक्ति दिन में अधिकतम {n} नई पूछताछ | ఒక్కొక్కరికి రోజుకు గరిష్టంగా {n} కొత్త విచారణలు
+designer.preview.crm.sla | Every new enquiry needs a first response within {time} | हर नई पूछताछ का पहला जवाब {time} में चाहिए | ప్రతి కొత్త విచారణకు {time} లోపు మొదటి స్పందన కావాలి
+designer.preview.crm.workflow | When: {trigger} ({status}) | कब: {trigger} ({status}) | ఎప్పుడు: {trigger} ({status})
+designer.preview.crm.workflow.stops | Stops when the parent replies: {reply}; when the record changes stage: {stage} | अभिभावक के जवाब देने पर रुकता है: {reply}; चरण बदलने पर: {stage} | తల్లిదండ్రులు స్పందిస్తే ఆగుతుంది: {reply}; దశ మారితే: {stage}
+designer.preview.crm.workflow.nostop | Runs to the end even if the parent replies or the stage changes | अभिभावक जवाब दें या चरण बदले, तब भी अंत तक चलता है | తల్లిదండ్రులు స్పందించినా, దశ మారినా చివరి వరకు నడుస్తుంది
+designer.preview.crm.step.send | {n}. Send "{template}" on {channel} | {n}. {channel} पर "{template}" भेजें | {n}. {channel} లో "{template}" పంపండి
+designer.preview.crm.step.task | {n}. Task "{title}", due in {due} | {n}. कार्य "{title}", {due} में | {n}. పని "{title}", {due} లోపు
+designer.preview.crm.step.wait | {n}. Wait {time} | {n}. {time} प्रतीक्षा करें | {n}. {time} వేచి ఉండండి
+designer.preview.crm.step.notify | {n}. Alert {who}: "{title}" | {n}. {who} को सूचना: "{title}" | {n}. {who} కు హెచ్చరిక: "{title}"
+designer.preview.crm.step.stage | {n}. Move to the stage "{stage}" | {n}. चरण "{stage}" में ले जाएँ | {n}. "{stage}" దశకు మార్చండి
+designer.preview.crm.step.tag | {n}. Add the tag "{tag}" | {n}. टैग "{tag}" जोड़ें | {n}. "{tag}" ట్యాగ్ జోడించండి
+designer.preview.crm.step.reassign | {n}. Reassign to the next available counsellor | {n}. अगले उपलब्ध परामर्शदाता को सौंपें | {n}. తదుపరి అందుబాటులో ఉన్న కౌన్సిలర్‌కు అప్పగించండి
+designer.preview.crm.template | {channel} ({language}): "{body}" | {channel} ({language}): "{body}" | {channel} ({language}): "{body}"
+designer.preview.crm.form | Public form asking for {fields}; source {source} | सार्वजनिक फ़ॉर्म, पूछे: {fields}; स्रोत {source} | పబ్లిక్ ఫారం, అడిగేవి: {fields}; మూలం {source}
+designer.preview.crm.limits | No automated messages from {from} to {to}; at most {n} a day per family | {from} से {to} तक कोई स्वचालित संदेश नहीं; प्रति परिवार दिन में अधिकतम {n} | {from} నుండి {to} వరకు ఆటోమేటిక్ సందేశాలు లేవు; కుటుంబానికి రోజుకు గరిష్టంగా {n}
+designer.preview.crm.scoring | Hot from {hot} points, warm from {warm} | {hot} अंकों से गर्म, {warm} से गुनगुना | {hot} పాయింట్ల నుండి హాట్, {warm} నుండి వార్మ్
+designer.preview.crm.scoring.weights | Points: {list} | अंक: {list} | పాయింట్లు: {list}
+designer.preview.crm.role | Starts with the permissions of {from} | {from} की अनुमतियों से शुरू | {from} అనుమతులతో మొదలవుతుంది
+designer.preview.crm.permission | {role} gets level {level} on {capability} | {role} को {capability} पर स्तर {level} | {role} కు {capability} పై స్థాయి {level}
+designer.preview.erp.feeHead | Type {type}, GST {gst}% | प्रकार {type}, जीएसटी {gst}% | రకం {type}, జీఎస్టీ {gst}%
+designer.preview.erp.feePlan | For {programme}: {n} item(s), total Rs {total} | {programme} के लिए: {n} मद, कुल रु {total} | {programme} కోసం: {n} అంశాలు, మొత్తం రూ {total}
+designer.preview.erp.feePlan.item | {head} · {instalment}: Rs {amount}, due {due} | {head} · {instalment}: रु {amount}, देय {due} | {head} · {instalment}: రూ {amount}, గడువు {due}
+designer.preview.erp.lateFee.none | No late fee | कोई विलंब शुल्क नहीं | ఆలస్య రుసుము లేదు
+designer.preview.erp.lateFee.flat | Late fee Rs {amount} once, after {grace} grace day(s) | {grace} दिन की छूट के बाद एक बार रु {amount} विलंब शुल्क | {grace} రోజుల మినహాయింపు తర్వాత ఒకసారి రూ {amount} ఆలస్య రుసుము
+designer.preview.erp.lateFee.per_day | Late fee Rs {amount} a day after {grace} grace day(s), at most Rs {cap} | {grace} दिन की छूट के बाद प्रतिदिन रु {amount}, अधिकतम रु {cap} | {grace} రోజుల మినహాయింపు తర్వాత రోజుకు రూ {amount}, గరిష్టంగా రూ {cap}
+designer.preview.erp.lateFee.slab | Late fee in slabs ({slabs}) after {grace} grace day(s) | {grace} दिन की छूट के बाद स्लैब में विलंब शुल्क ({slabs}) | {grace} రోజుల మినహాయింపు తర్వాత స్లాబుల్లో ఆలస్య రుసుము ({slabs})
+designer.preview.erp.concession.percent | {value}% off {head} fees; automatic rule {rule}; at most Rs {max} | {head} शुल्क पर {value}% छूट; स्वचालित नियम {rule}; अधिकतम रु {max} | {head} ఫీజుపై {value}% రాయితీ; ఆటోమేటిక్ నియమం {rule}; గరిష్టంగా రూ {max}
+designer.preview.erp.concession.fixed | Rs {value} off {head} fees; automatic rule {rule} | {head} शुल्क पर रु {value} छूट; स्वचालित नियम {rule} | {head} ఫీజుపై రూ {value} రాయితీ; ఆటోమేటిక్ నియమం {rule}
+designer.preview.erp.approvalRule | {type} requests are approved by: {chain} | {type} अनुरोध इनकी स्वीकृति से: {chain} | {type} అభ్యర్థనలను ఆమోదించేవారు: {chain}
+designer.preview.erp.approvalRule.amount | Only when the amount is above Rs {amount} | केवल जब राशि रु {amount} से अधिक हो | మొత్తం రూ {amount} కంటే ఎక్కువైనప్పుడు మాత్రమే
+designer.preview.erp.approvalRule.percent | Only when the concession is above {percent}% | केवल जब छूट {percent}% से अधिक हो | రాయితీ {percent}% కంటే ఎక్కువైనప్పుడు మాత్రమే
+designer.preview.erp.automation | When: {trigger}; does: {actions} | कब: {trigger}; करता है: {actions} | ఎప్పుడు: {trigger}; చేసేది: {actions}
+designer.preview.erp.automation.days | Reminder days: {days} | याद दिलाने के दिन: {days} | గుర్తు చేసే రోజులు: {days}
+designer.preview.erp.automation.repeat | Then every {n} days until paid | फिर भुगतान तक हर {n} दिन | ఆ తర్వాత చెల్లించే వరకు ప్రతి {n} రోజులకు
+designer.preview.erp.automation.test | In test mode: nothing is sent | परीक्षण मोड में: कुछ नहीं भेजा जाता | పరీక్ష మోడ్‌లో: ఏదీ పంపబడదు
+designer.preview.erp.automation.off | Paused | रुका हुआ | నిలిపివేయబడింది
+designer.preview.erp.template | {channel}, event {event}: "{body}" | {channel}, घटना {event}: "{body}" | {channel}, ఈవెంట్ {event}: "{body}"
+designer.preview.erp.docTemplate | {type} template ({length} characters) | {type} टेम्पलेट ({length} अक्षर) | {type} టెంప్లేట్ ({length} అక్షరాలు)
+designer.preview.erp.campus.library | Library fine Rs {n} a day | पुस्तकालय जुर्माना रु {n} प्रतिदिन | గ్రంథాలయ జరిమానా రోజుకు రూ {n}
+designer.preview.erp.campus.homeworkOn | Homework is checked before families see it | परिवारों के देखने से पहले गृहकार्य जाँचा जाता है | కుటుంబాలు చూసే ముందు హోంవర్క్ తనిఖీ చేయబడుతుంది
+designer.preview.erp.campus.homeworkOff | Homework goes to families without a check | गृहकार्य बिना जाँच के परिवारों को जाता है | హోంవర్క్ తనిఖీ లేకుండా కుటుంబాలకు వెళ్తుంది
+designer.preview.erp.campus.quiet | No parent messages from {from} to {to} | {from} से {to} तक अभिभावकों को कोई संदेश नहीं | {from} నుండి {to} వరకు తల్లిదండ్రులకు సందేశాలు లేవు
+designer.preview.erp.scale | Bands: {bands} | बैंड: {bands} | బ్యాండ్లు: {bands}
+designer.preview.erp.scheme | {pack} pack, scale {scale}, for {programme}, pass at {pass}% | {pack} पैक, पैमाना {scale}, {programme} के लिए, उत्तीर्ण {pass}% | {pack} ప్యాక్, స్కేల్ {scale}, {programme} కోసం, ఉత్తీర్ణత {pass}%
+designer.preview.erp.permission | {role} gets level {level} on {capability} | {role} को {capability} पर स्तर {level} | {role} కు {capability} పై స్థాయి {level}
+designer.preview.erp.module.on | {module} is switched on for {branch} | {branch} के लिए {module} चालू | {branch} కు {module} ఆన్
+designer.preview.erp.module.off | {module} is switched off for {branch} | {branch} के लिए {module} बंद | {branch} కు {module} ఆఫ్
+designer.preview.record.fields | A register with {n} field(s): {list} | {n} फ़ील्ड वाला रजिस्टर: {list} | {n} ఫీల్డ్‌లతో రిజిస్టర్: {list}
+designer.preview.record.permission | {who}: see {view} entries, add entries {create}, edit {edit} entries | {who}: {view} प्रविष्टियाँ देखें, प्रविष्टि जोड़ें {create}, {edit} प्रविष्टियाँ बदलें | {who}: {view} ఎంట్రీలు చూడండి, ఎంట్రీ జోడించండి {create}, {edit} ఎంట్రీలు మార్చండి
+designer.preview.record.workflow | Steps: {states} | चरण: {states} | దశలు: {states}
+designer.preview.record.approval | {from} → {to} needs approval by {roles} | {from} → {to} के लिए {roles} की स्वीकृति | {from} → {to} కు {roles} ఆమోదం కావాలి
+designer.preview.record.portal | Parents and students see entries about their own child (read only) | अभिभावक और छात्र अपने बच्चे की प्रविष्टियाँ देखते हैं (केवल पढ़ने के लिए) | తల్లిదండ్రులు, విద్యార్థులు తమ పిల్లల ఎంట్రీలు చూస్తారు (చదవడానికి మాత్రమే)
+designer.preview.record.reminder | Reminder {days} day(s) before {field} | {field} से {days} दिन पहले याद दिलाना | {field} కు {days} రోజుల ముందు గుర్తు
+designer.template.crm_enquiry_follow_up.title | Enquiry follow-up time and escalation | पूछताछ फ़ॉलो-अप समय और एस्केलेशन | విచారణ ఫాలో-అప్ సమయం, ఎస్కలేషన్
+designer.template.crm_enquiry_follow_up.description | Every new enquiry gets a first call within the response time; if not, the owner is reminded, then a role is alerted and the enquiry is reassigned. | हर नई पूछताछ को तय समय में पहला कॉल; नहीं तो मालिक को याद, फिर किसी भूमिका को सूचना और पूछताछ दूसरे को। | ప్రతి కొత్త విచారణకు నిర్ణీత సమయంలో మొదటి కాల్; లేకపోతే బాధ్యుడికి గుర్తు, ఆ తర్వాత ఒక పాత్రకు హెచ్చరిక, విచారణ మరొకరికి.
+designer.template.crm_first_contact.title | First contact pack | पहला संपर्क पैक | మొదటి సంప్రదింపు ప్యాక్
+designer.template.crm_first_contact.description | Instant welcome with a call task, out-of-hours acknowledgement, missed-call rescue and the no-contact ladder. | तुरंत स्वागत और कॉल कार्य, समय के बाद पावती, छूटी कॉल बचाव और संपर्क न होने पर सीढ़ी। | తక్షణ స్వాగతం, కాల్ పని, పని వేళల తర్వాత రసీదు, మిస్డ్ కాల్ రక్షణ, సంప్రదింపు లేని నిచ్చెన.
+designer.template.crm_visit_application_nurture.title | Visit and application nurture | विज़िट और आवेदन पोषण | సందర్శన, దరఖాస్తు పోషణ
+designer.template.crm_visit_application_nurture.description | Visit confirmations, no-show recovery, post-visit nurture, abandoned-application nudges and the document chase. | विज़िट पुष्टि, न आने पर वापसी, विज़िट के बाद पोषण, अधूरे आवेदन पर याद और दस्तावेज़ पीछा। | సందర్శన నిర్ధారణ, రాని వారికి మళ్లీ ప్రయత్నం, సందర్శన తర్వాత పోషణ, అసంపూర్తి దరఖాస్తు గుర్తులు, పత్రాల వెంబడింపు.
+designer.template.crm_quiet_hours.title | Quiet hours and message cap | शांत समय और संदेश सीमा | నిశ్శబ్ద సమయం, సందేశ పరిమితి
+designer.template.crm_quiet_hours.description | No automated parent messages at night and a daily cap per family. | रात में अभिभावकों को कोई स्वचालित संदेश नहीं और प्रति परिवार दैनिक सीमा। | రాత్రి తల్లిదండ్రులకు ఆటోమేటిక్ సందేశాలు లేవు, కుటుంబానికి రోజువారీ పరిమితి.
+designer.template.erp_fee_reminder_ladder.title | Fee reminder ladder | शुल्क अनुस्मारक सीढ़ी | ఫీజు రిమైండర్ నిచ్చెన
+designer.template.erp_fee_reminder_ladder.description | Parents are reminded before the due date, on the due date and then every week until the fee is paid. | नियत तिथि से पहले, नियत दिन और फिर भुगतान तक हर सप्ताह अभिभावकों को याद दिलाया जाता है। | గడువుకు ముందు, గడువు రోజున, ఆ తర్వాత ఫీజు చెల్లించే వరకు ప్రతి వారం తల్లిదండ్రులకు గుర్తు చేస్తారు.
+designer.template.erp_concession_approval.title | Concession approval above a limit | सीमा से ऊपर छूट की स्वीकृति | పరిమితికి మించిన రాయితీ ఆమోదం
+designer.template.erp_concession_approval.description | Fee concessions above a percentage need a senior approver; smaller ones follow the usual approval. | एक प्रतिशत से ऊपर की शुल्क छूट के लिए वरिष्ठ स्वीकृति; छोटी छूट सामान्य स्वीकृति से। | ఒక శాతానికి మించిన ఫీజు రాయితీకి సీనియర్ ఆమోదం; చిన్నవి సాధారణ ఆమోదంతో.
+designer.template.erp_absence_alerts.title | Absence alerts to parents | अभिभावकों को अनुपस्थिति सूचना | తల్లిదండ్రులకు గైర్హాజరు హెచ్చరికలు
+designer.template.erp_absence_alerts.description | Parents of absent students get a message after roll call; after several days in a row the class teacher follows up. | हाज़िरी के बाद अनुपस्थित छात्रों के अभिभावकों को संदेश; लगातार कई दिन होने पर कक्षा शिक्षक संपर्क करें। | హాజరు తర్వాత గైర్హాజరైన విద్యార్థుల తల్లిదండ్రులకు సందేశం; వరుసగా కొన్ని రోజులైతే క్లాస్ టీచర్ సంప్రదిస్తారు.
+designer.template.erp_cbse_board_pack.title | CBSE grading and assessment | CBSE ग्रेडिंग और मूल्यांकन | CBSE గ్రేడింగ్, మూల్యాంకనం
+designer.template.erp_cbse_board_pack.description | The CBSE A1-E grading scale and the CBSE assessment scheme. | CBSE A1-E ग्रेडिंग पैमाना और CBSE मूल्यांकन योजना। | CBSE A1-E గ్రేడింగ్ స్కేల్, CBSE మూల్యాంకన పథకం.
+designer.template.erp_late_fee.title | Late fee per day | प्रतिदिन विलंब शुल्क | రోజువారీ ఆలస్య రుసుము
+designer.template.erp_late_fee.description | A late fee per day after a grace period, capped per instalment. | छूट अवधि के बाद प्रतिदिन विलंब शुल्क, प्रति किस्त सीमा के साथ। | మినహాయింపు తర్వాత రోజువారీ ఆలస్య రుసుము, ప్రతి వాయిదాకు పరిమితితో.
+designer.param.hours | First response within (hours) | पहला जवाब (घंटों में) | మొదటి స్పందన (గంటల్లో)
+designer.param.escalate_role | Who is alerted (role key) | किसे सूचना (भूमिका कुंजी) | ఎవరికి హెచ్చరిక (పాత్ర కీ)
+designer.param.reassign | Reassign if still untouched | फिर भी न छुई हो तो दूसरे को सौंपें | ఇంకా ముట్టుకోకపోతే మరొకరికి అప్పగించండి
+designer.param.quiet_from | Quiet from (hour) | शांत समय से (घंटा) | నిశ్శబ్దం మొదలు (గంట)
+designer.param.quiet_to | Quiet until (hour) | शांत समय तक (घंटा) | నిశ్శబ్దం వరకు (గంట)
+designer.param.max_per_day | Automated messages a day per family | प्रति परिवार दिन में स्वचालित संदेश | కుటుంబానికి రోజుకు ఆటోమేటిక్ సందేశాలు
+designer.param.on_due_date | Also on the due date | नियत दिन भी | గడువు రోజున కూడా
+designer.param.repeat_every_days | Then every (days) | फिर हर (दिन) | ఆ తర్వాత ప్రతి (రోజులు)
+designer.param.percent | Above (percent) | इससे ऊपर (प्रतिशत) | దీనికి మించి (శాతం)
+designer.param.approver_role | Who approves (ERP role key) | कौन स्वीकृत करे (ERP भूमिका कुंजी) | ఎవరు ఆమోదిస్తారు (ERP పాత్ర కీ)
+designer.param.after_consecutive | Class teacher follows up after (days in a row) | लगातार इतने दिन बाद कक्षा शिक्षक | వరుసగా ఇన్ని రోజుల తర్వాత క్లాస్ టీచర్
+designer.param.amount | Amount a day (Rs) | प्रतिदिन राशि (रु) | రోజుకు మొత్తం (రూ)
+designer.param.grace_days | Grace days | छूट के दिन | మినహాయింపు రోజులు
+designer.param.cap | At most per instalment (Rs) | प्रति किस्त अधिकतम (रु) | ప్రతి వాయిదాకు గరిష్టం (రూ)
+designer.issue.plan_needs_check | A rule of the register builder is not met. | रजिस्टर बनाने का एक नियम पूरा नहीं होता। | రిజిస్టర్ నిర్మాణ నియమం ఒకటి నెరవేరలేదు.

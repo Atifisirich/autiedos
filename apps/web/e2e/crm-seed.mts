@@ -27,6 +27,8 @@ async function main() {
   await owner.query(`insert into core.subscriptions (org_id, product_key, status, plan_key) values ($1, 'crm', 'active', 'crm_monthly')`, [orgId]);
   const { roles } = await seedStarterPack(orgId, { branchId: main, pack: 'cbse_day', formSlug: 'greenfield-enquiry', wallet: 2000 });
   await owner.query(`update crm.settings set settings = settings || '{"brand_color":"#0f6e6e","privacy_notice":"We use these details only to respond to your admission enquiry."}'::jsonb where org_id = $1`, [orgId]);
+  // the school's AI wallet (the AI school designer books its plans here: 1 credit each)
+  await owner.query(`insert into billing.ai_allowances (org_id, monthly_credits) values ($1, 500)`, [orgId]);
 
   const people: [string, string, string, string[]][] = [
     ['Aisha Admin', 'admin@demo.test', 'Group Admin', []],

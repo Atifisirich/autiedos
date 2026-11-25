@@ -9,7 +9,7 @@ export type Step =
   | { type: 'send'; channel: 'whatsapp' | 'sms' | 'email'; template: string; fallback?: ('sms' | 'email')[] }
   | { type: 'task'; title: string; taskType?: string; dueMins: number; priority?: string }
   | { type: 'wait'; mins: number }
-  | { type: 'notify'; who: 'owner' | 'head'; title: string }
+  | { type: 'notify'; who: 'owner' | 'head' | 'role'; role_key?: string; title: string }
   | { type: 'stage'; stage: string }
   | { type: 'tag'; tag: string }
   | { type: 'reassign' };
@@ -157,9 +157,9 @@ export async function runSteps(db: Db, run: Row, wf: Row, from: number) {
           await addTask(db, { enquiryId: e.id, title: s.title, type: s.taskType, dueAt: new Date(Date.now() + s.dueMins * 60000), priority: s.priority });
           say(i, `Created task "${s.title}" for ${e.owner_name}.`);
         } else if (s.type === 'notify') {
-          const targets = s.who === 'owner' ? [{ id: e.owner_id, name: e.owner_name }] : await headsFor(db, e.branch_id);
+          const targets = s.who === 'owner' ? [{ id: e.owner_id, name: e.owner_name }] : s.who === 'role' ? await roleHolders(db, String(s.role_key ?? ''), e.branch_id) : await headsFor(db, e.branch_id);
           if (test) { say(i, `Would notify ${targets.map((t) => t.name).join(', ') || 'nobody (no head set)'}: "${s.title}".`); continue; }
-          for (const t of targets) await notify(db, t.id, s.who === 'head' ? 'escalation' : 'assigned', `${s.title}: ${e.student_name}`, `/households/${e.household_id}?e=${e.id}`);
+          for (const t of targets) await notify(db, t.id, s.who === 'owner' ? 'assigned' : 'escalation', `${s.title}: ${e.student_name}`, `/households/${e.household_id}?e=${e.id}`);
           say(i, `Notified ${targets.map((t) => t.name).join(', ') || 'nobody'}.`);
         } else if (s.type === 'stage') {
           const st = await stageByName(db, s.stage);
@@ -196,6 +196,15 @@ export async function runSteps(db: Db, run: Row, wf: Row, from: number) {
     outcome = 'error';
   }
   await finish(db, run, outcome, log);
+}
+
+/** Active holders of a CRM role who work in the branch (an escalation step "notify the admission head"). */
+export async function roleHolders(db: Db, roleKey: string, branchId: string): Promise<Row[]> {
+  return db.q(
+    `select u.id, u.name from crm.staff_v u
+      where u.org_id = $1 and u.active and u.role_key = $2 and (u.branch_ids = '[]'::jsonb or u.branch_ids @> to_jsonb($3::text))`,
+    [db.requireOrg(), roleKey, branchId],
+  );
 }
 
 const fmtMins = (m: number) => (m >= DAY ? `${Math.round(m / DAY)} day${m >= 2 * DAY ? 's' : ''}` : m >= 60 ? `${Math.round(m / 60)} hour${m >= 120 ? 's' : ''}` : `${m} minutes`);

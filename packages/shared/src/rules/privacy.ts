@@ -3,7 +3,10 @@
  * the provider. This removes phone numbers, emails and known personal names, and replaces
  * student names with roster tokens that are restored on screen.
  */
-const PHONE = /(?:\+?91[\s-]?)?(?<!\d)[6-9]\d{4}[\s-]?\d{5}(?!\d)/g;
+// Indian mobile numbers: 10 digits starting 6-9, optionally written with +91 / 91 / 0091 in front, with or without a space or
+// dash after the prefix and in the middle ("+919876543210", "+91 98765-43210", "09876543210"). The look-behind sits before the
+// optional prefix, so a prefix glued to the number ("+919876543210") is matched too (it was missed before).
+const PHONE = /(?<!\d)(?:(?:\+|00)?91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}(?!\d)/g;
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 
 function escapeRe(s: string) {

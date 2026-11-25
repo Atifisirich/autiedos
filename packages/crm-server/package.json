@@ -9,7 +9,10 @@
     ".": "./src/index.ts",
     "./db": "./src/db.ts",
     "./api": "./src/api/index.ts",
-    "./perm": "./src/perm.ts"
+    "./perm": "./src/perm.ts",
+    "./core": "./src/core.ts",
+    "./workflows": "./src/workflows.ts",
+    "./provision": "./src/provision.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

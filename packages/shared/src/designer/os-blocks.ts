@@ -408,23 +408,6 @@ export const planReviewBlock = defineBlock({
   examples: [{ prompt: 'Daily plans are reviewed by the HOD then the coordinator, due the day before at 4 pm', settings: { name: 'Daily plans', level: 'daily', due_time: '16:00', days_before: 1, review_steps: ['hod', 'academic_coordinator'], active: true } }],
 });
 
-// ---------------------------------------------------------------- stub for the custom records stream
-/**
- * STUB. The generic custom records engine (core.custom_objects, packages/server/src/custom-records/**) is built by
- * another stream, which replaces this definition with the real block (same key) and its server side.
- */
-export const customObjectBlock = defineBlock({
-  key: 'core.custom_object',
-  product: 'core',
-  title: 'Custom record type',
-  description: 'A new kind of record the school keeps (e.g. visitor log, asset register) with its own fields. Not available yet.',
-  settings: z.object({ key: keySchema, name: z.string().min(2).max(120), fields: z.array(z.record(z.string(), z.unknown())).max(50).default([]) }),
-  keyOf: (s) => s.key,
-  describe: () => [L('designer.preview.stub')],
-  stub: true,
-  examples: [],
-});
-
 export const OS_BLOCKS: BlockDef[] = [
   approvalTypeBlock,
   checklistBlock,
@@ -445,4 +428,3 @@ export const OS_BLOCKS: BlockDef[] = [
   planReviewBlock,
 ] as unknown as BlockDef[];
 
-export const CORE_BLOCKS: BlockDef[] = [customObjectBlock] as unknown as BlockDef[];

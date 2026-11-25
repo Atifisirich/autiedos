@@ -186,7 +186,7 @@ designer.block.os.report_schedule.title | Report schedule | रिपोर्�
 designer.block.os.event_template.title | Event template | कार्यक्रम टेम्पलेट | కార్యక్రమ టెంప్లేట్
 designer.block.os.duty_type.title | Duty type | ड्यूटी प्रकार | డ్యూటీ రకం
 designer.block.os.plan_review_chain.title | Lesson plan review | पाठ योजना समीक्षा | పాఠ ప్రణాళిక సమీక్ష
-designer.block.core.custom_object.title | Custom record type | कस्टम रिकॉर्ड प्रकार | కస్టమ్ రికార్డ్ రకం
+designer.block.core.custom_object.title | Custom register or form | कस्टम रिकॉर्ड प्रकार | కస్టమ్ రికార్డ్ రకం
 error.designer_management_only | Only the school's management can use the AI designer. | एआई डिज़ाइनर केवल विद्यालय प्रबंधन उपयोग कर सकता है। | AI డిజైనర్‌ను పాఠశాల యాజమాన్యం మాత్రమే వాడగలదు.
 error.support_session_required | Open a support session for the school first. | पहले विद्यालय के लिए सहायता सत्र खोलें। | ముందుగా పాఠశాల కోసం సపోర్ట్ సెషన్ తెరవండి.
 error.support_session_not_current | This support session is not your current one. | यह आपका वर्तमान सहायता सत्र नहीं है। | ఇది మీ ప్రస్తుత సపోర్ట్ సెషన్ కాదు.

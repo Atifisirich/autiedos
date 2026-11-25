@@ -68,6 +68,40 @@ describe('designer tables: who reads and writes', () => {
     expect(await count('os_server', w.u.platform, CS)).toBe(0);
   });
 
+  it('CRM-only management (org C) writes a changeset as crm_server and reads it back; it never sees A or B', async () => {
+    // insert ... returning needs the read rule too (it failed for CRM management before 20261127300001)
+    const back = await tx('crm_server', w.u.cAdmin, async (c) => {
+      const r = await c.query(`${insertCs(w.u.cAdmin, 'org_admin', null)} returning id`);
+      return (await c.query(`${CS} where id = $1`, [r.rows[0].id])).rowCount;
+    });
+    expect(back).toBe(1);
+    expect(await count('crm_server', w.u.cAdmin, `${CS} where org_id <> app.current_org_id()`)).toBe(0);
+    expect(await count('erp_server', w.u.aAdmin, `${CS} where org_id = $1`, [w.C.id])).toBe(0);
+  });
+
+  it('an AutoEd relationship manager passes product permission checks (app.can, crm.scope_of) only inside a read-write session for that org', async () => {
+    const can = (u: string) => count('crm_server', u, `select 1 where app.can('crm', 'admin', 'configure', app.current_org_id()) and crm.scope_of('workflows', 'edit') = 'org'`);
+    expect(await can(w.u.platform)).toBe(0);
+    await openSession(true);
+    expect(await can(w.u.platform)).toBe(0); // read-only: view only
+    expect(await count('crm_server', w.u.platform, `select 1 where app.can('crm', 'admin', 'view', app.current_org_id())`)).toBe(1);
+    const rw = await openSession(false);
+    expect(await can(w.u.platform)).toBe(1);
+    await ownerQuery(`update core.support_sessions set ended_at = now() where id = $1`, [rw]);
+    expect(await can(w.u.platform)).toBe(0);
+    // the school's own staff are unchanged: management yes, a teacher no
+    expect(await count('crm_server', w.u.aAdmin, `select 1 where app.can('crm', 'admin', 'configure', app.current_org_id())`)).toBe(1);
+    expect(await count('os_server', w.u.aTeacher, `select 1 where app.can('crm', 'admin', 'configure', app.current_org_id())`)).toBe(0);
+  });
+
+  it('app.designer_log_generation books only designer plans of management in their own org', async () => {
+    const row = (action: string) => `select app.designer_log_generation('{"action":"${action}","product_key":"crm","model":"mock","provider":"mock","status":"ok","credits":1}'::jsonb)`;
+    expect(await errorCode('crm_server', w.u.cAdmin, row('designer_plan'))).toBe('');
+    expect(await errorCode('crm_server', w.u.cAdmin, row('daily_plan'))).toBe('42501');
+    expect(await errorCode('os_server', w.u.aTeacher, row('designer_plan'))).toBe('42501');
+    expect(await errorCode('authenticated', w.u.cAdmin, row('designer_plan'))).toBe('42501'); // not granted to API users
+  });
+
   it('app.designer_allowed mirrors the rule and is not callable by anon', async () => {
     const allowed = (u: string, write: boolean) => count('authenticated', u, `select 1 where app.designer_allowed(app.current_org_id(), ${write})`);
     expect(await allowed(w.u.aAdmin, true)).toBe(1);

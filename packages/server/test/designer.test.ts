@@ -73,7 +73,9 @@ describe('designer: plan, preview, dry run, publish, undo (school management)', 
     expect(who.kind).toBe('org_admin');
     const cat = await ok(CHAIRMAN, 'GET', '/designer/catalogue');
     expect(cat.find((b: any) => b.key === 'os.approval_type').available).toBe(true);
-    expect(cat.find((b: any) => b.key === 'core.custom_object')).toMatchObject({ stub: true, available: false });
+    expect(cat.find((b: any) => b.key === 'core.custom_object')).toMatchObject({ stub: false, available: true }); // the custom records engine
+    // an OS-only school is offered no CRM or ERP block
+    expect(cat.filter((b: any) => b.available && (b.key.startsWith('crm.') || b.key.startsWith('erp.')))).toEqual([]);
 
     const cs = await ok(CHAIRMAN, 'POST', '/designer/plan', { prompt: ABSENCE });
     csId = cs.id;
@@ -155,7 +157,7 @@ describe('designer: plan, preview, dry run, publish, undo (school management)', 
     expect(r.json.error).toBe('changed_since_publish');
   });
 
-  it('CRM and ERP requests come back as "not supported yet" notes and cannot be published', async () => {
+  it('CRM and ERP requests of an OS-only school come back as "not in your plan" notes and cannot be published', async () => {
     const fee = await ok(CHAIRMAN, 'POST', '/designer/plan', { prompt: 'fee concession above 10% needs director approval' });
     expect(fee.plan.ops).toEqual([]);
     expect(fee.plan.unsupported[0].product).toBe('erp');

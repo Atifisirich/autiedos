@@ -36,16 +36,24 @@ const known: KnownConfig = {
   branches: ['GACH'],
 };
 const cs = (ops: Changeset['ops']): Changeset => ({ summary: 'x', ops, unsupported: [], questions: [] });
+const allProducts: KnownConfig = {
+  ...known,
+  products: ['os', 'crm', 'erp', 'core'],
+  roles: { ...known.roles, crm: ['group_admin', 'admission_head', 'counsellor', 'branch_admin'], erp: ['group_admin', 'principal', 'accounts', 'warden', 'class_teacher'] },
+};
 
 describe('block catalogue', () => {
-  it('has the OS blocks the settings screens make configurable, plus the custom_object stub', () => {
+  it('has the OS, CRM and ERP blocks the settings screens make configurable, and the custom records engine', () => {
     const keys = listBlocks().map((b) => b.key);
     for (const k of ['os.approval_type', 'os.checklist', 'os.task_category', 'os.recurring_task', 'os.escalation_rule', 'os.assignment_rule', 'os.notification_rule', 'os.leave_type', 'os.attendance_rule', 'os.module_flag', 'os.role', 'os.role_permission', 'os.custom_field', 'os.report_schedule', 'os.event_template', 'os.duty_type', 'os.plan_review_chain']) {
       expect(keys).toContain(k);
     }
-    expect(keys).not.toContain('core.custom_object'); // stubs are hidden from the planner
-    expect(getBlock('core.custom_object')?.stub).toBe(true);
-    expect(listBlocks({ includeStubs: true }).map((b) => b.key)).toContain('core.custom_object');
+    expect(listBlocks({ product: 'crm' }).map((b) => b.key)).toEqual(['crm.assignment_rule', 'crm.enquiry_form', 'crm.follow_up_sla', 'crm.lead_source', 'crm.message_template', 'crm.messaging_limits', 'crm.role', 'crm.role_permission', 'crm.scoring', 'crm.stage', 'crm.workflow']);
+    expect(listBlocks({ product: 'erp' }).length).toBe(14);
+    // the custom_object stub is replaced by the real block (the custom records engine)
+    expect(keys).toContain('core.custom_object');
+    expect(getBlock('core.custom_object')?.stub).toBeUndefined();
+    expect(listBlocks({ includeStubs: true }).filter((b) => b.stub)).toEqual([]);
   });
 
   it('every example is valid, has a stable key and a translated preview; every block has a UI title', () => {
@@ -100,11 +108,13 @@ describe('changeset validation and repair', () => {
         { op: 'delete', block: 'os.approval_type', key: 'leave' },
         { op: 'update', block: 'os.role_permission', key: 'principal__setup__configure', settings: { role_key: 'principal', module: 'setup', action: 'configure', scope: 'group' } },
         { op: 'create', block: 'core.custom_object', key: 'visitors', settings: { key: 'visitors', name: 'Visitors' } },
+        { op: 'create', block: 'erp.fee_head', key: 'bus_fee', settings: { name: 'Bus fee', type: 'transport' } },
       ]),
       known,
     );
     const codes = v.issues.map((i) => `${i.op}:${i.code}`);
-    expect(codes).toEqual(expect.arrayContaining(['0:unknown_block', '1:invalid_settings', '2:key_mismatch', '3:unknown_role', '5:duplicate_op', '6:not_found', '7:system_item', '8:block_check', '9:block_not_available']));
+    // custom registers use the records engine's own schema (fields are required); an ERP block needs the ERP
+    expect(codes).toEqual(expect.arrayContaining(['0:unknown_block', '1:invalid_settings', '2:key_mismatch', '3:unknown_role', '5:duplicate_op', '6:not_found', '7:system_item', '8:block_check', '9:invalid_settings', '10:product_not_available']));
     expect(v.ok).toBe(false);
     expect(validateChangeset(cs([]), known).issues).toEqual([{ op: null, code: 'no_changes' }]);
   });
@@ -114,12 +124,13 @@ describe('changeset validation and repair', () => {
       cs([
         { op: 'create', block: 'os.leave_type', key: 'whatever', settings: { key: 'casual', name: 'Casual' } },
         { op: 'update', block: 'os.checklist', key: 'daily_opening', settings: checklist },
-        { op: 'create', block: 'core.custom_object', key: 'visitors', settings: { key: 'visitors', name: 'Visitors' }, reason: 'Visitor log' },
+        { op: 'create', block: 'crm.lead_source', key: 'x', settings: { channel: 'Offline', name: 'Newspaper' }, reason: 'Newspaper enquiries' },
       ]),
       known,
     );
     expect(r.ops.map((o) => `${o.op}:${o.key}`)).toEqual(['update:casual', 'create:daily_opening']);
-    expect(r.unsupported).toEqual([{ product: 'core', request: 'Visitor log', note: 'stub_block' }]);
+    // a block of a product the school does not have moves to "unsupported" (a CRM block for an OS-only school)
+    expect(r.unsupported).toEqual([{ product: 'crm', request: 'Newspaper enquiries', note: 'product_not_in_plan' }]);
     expect(validateChangeset(r, known).ok).toBe(true);
   });
 
@@ -174,17 +185,25 @@ describe('JSON schema for constrained AI output', () => {
     expect(variants.length).toBe(listBlocks().length + 1);
     expect(variants.flatMap((v) => v.properties.block.enum)).toEqual(expect.arrayContaining(['os.approval_type', 'os.checklist']));
     expect(s.required).toEqual(['summary', 'ops', 'unsupported', 'questions']);
-    expect(JSON.stringify(s)).not.toContain('custom_object');
+    expect(JSON.stringify(s)).toContain('core.custom_object');
+    // a CRM-only planner gets only CRM (and core) variants
+    const crmOnly = JSON.stringify(changesetJsonSchema(listBlocks().filter((b) => b.product === 'crm' || b.product === 'core')));
+    expect(crmOnly).toContain('crm.workflow');
+    expect(crmOnly).not.toContain('erp.approval_rule');
+    expect(crmOnly).not.toContain('os.checklist');
   });
 });
 
 describe('templates (starter library from presets)', () => {
   it('every template builds a valid changeset with defaults, has UI strings, and accepts parameters', () => {
-    expect(listTemplates().map((t) => t.key).sort()).toEqual(['daily_housekeeping_checklist', 'exam_week_duty_roster', 'lesson_plan_review_chain', 'parent_absence_alerts', 'standard_leave_policy', 'substitution_workflow']);
+    expect(listTemplates('os').map((t) => t.key).sort()).toEqual(['daily_housekeeping_checklist', 'exam_week_duty_roster', 'lesson_plan_review_chain', 'parent_absence_alerts', 'standard_leave_policy', 'substitution_workflow']);
+    expect(listTemplates('crm').map((t) => t.key).sort()).toEqual(['crm_enquiry_follow_up', 'crm_first_contact', 'crm_quiet_hours', 'crm_visit_application_nurture']);
+    expect(listTemplates('erp').map((t) => t.key).sort()).toEqual(['erp_absence_alerts', 'erp_cbse_board_pack', 'erp_concession_approval', 'erp_fee_reminder_ladder', 'erp_late_fee']);
     for (const t of listTemplates()) {
-      const v = validateChangeset(buildTemplate(t.key), known);
+      const v = validateChangeset(buildTemplate(t.key), allProducts);
       expect(v.issues.filter((i) => i.code !== 'already_exists'), t.key).toEqual([]);
-      expect(en[`designer.template.${t.key}.title`]).toBeTruthy();
+      expect(en[`designer.template.${t.key}.title`], t.key).toBeTruthy();
+      expect(en[`designer.template.${t.key}.description`], t.key).toBeTruthy();
       for (const p of t.params) expect(en[p.labelKey], p.labelKey).toBeTruthy();
     }
     const leave = buildTemplate('standard_leave_policy', { casual_days: 20 });
@@ -216,12 +235,58 @@ describe('mock planner (demo without Gemini)', () => {
     for (const x of [c, p, r]) expect(validateChangeset(x, known).ok).toBe(true);
   });
 
-  it('ERP and CRM requests are honest "not supported yet" notes; unclear ones get a question', () => {
-    const fee = plan('fee concession above 10% needs director approval');
+  it('ERP and CRM requests of a school without that product are honest "not in your plan" notes; unclear ones get a question', () => {
+    const osOnly = (p: string) => changesetSchema.parse(mockDesignerPlan(p, { roles: known.roles.os, products: ['os'] }));
+    const fee = osOnly('fee concession above 10% needs director approval');
     expect(fee.ops).toEqual([]);
     expect(fee.unsupported[0]!.product).toBe('erp');
-    expect(plan('new enquiry follow-up within 24h').unsupported[0]!.product).toBe('crm');
+    expect(osOnly('new enquiry follow-up within 24h').unsupported[0]!.product).toBe('crm');
     expect(plan('make it nicer').questions.length).toBe(1);
+    // and a CRM-only school cannot get ERP blocks, nor an ERP-only school CRM blocks
+    expect(changesetSchema.parse(mockDesignerPlan('remind parents 3 days before fee due', { products: ['crm'] })).unsupported[0]!.product).toBe('erp');
+    expect(changesetSchema.parse(mockDesignerPlan('new enquiry follow-up within 24h', { products: ['erp'] })).unsupported[0]!.product).toBe('crm');
+  });
+
+  const full = (p: string) => changesetSchema.parse(mockDesignerPlan(p, { roles: known.roles.os, products: ['os', 'crm', 'erp'], product_roles: allProducts.roles, record_roles: ['erp:warden', 'os:os_principal'] }));
+
+  it('CRM: enquiry follow-up within 24h else escalate to the admission head', () => {
+    const r = full('new enquiry follow-up within 24h else escalate to admission head');
+    expect(r.template_key).toBe('crm_enquiry_follow_up');
+    expect(r.ops.map((o) => `${o.block}:${o.key}`)).toEqual(['crm.follow_up_sla:first_response', 'crm.workflow:untouched']);
+    expect(r.ops[0]!.settings).toEqual({ first_response_hours: 24 });
+    const wf = r.ops[1]!.settings as { trigger: string; steps: { type: string; who?: string; role_key?: string }[] };
+    expect(wf.trigger).toBe('sla_breach');
+    expect(wf.steps.find((st) => st.who === 'role')!.role_key).toBe('admission_head');
+    expect(validateChangeset(r, allProducts).ok).toBe(true);
+    expect(full('No automatic messages after 9 pm or before 7 am, at most 3 messages a day').ops[0]!.settings).toEqual({ quiet_from: 21, quiet_to: 7, max_auto_per_day: 3 });
+    expect(full('Give new website enquiries to the counsellors in turn, at most 20 a day').ops[0]!.settings).toMatchObject({ method: 'round_robin', role_key: 'counsellor', daily_capacity: 20 });
+  });
+
+  it('ERP: concession above 10% needs director approval; fee reminders before, on and after the due date', () => {
+    const c = full('fee concession above 10% needs director approval');
+    expect(c.ops[0]).toMatchObject({ block: 'erp.approval_rule', settings: { approval_type: 'concession', min_percent: 10, steps: ['group_admin'] } });
+    // with a director role in the ERP, the director approves
+    const d = changesetSchema.parse(mockDesignerPlan('fee concession above 10% needs director approval', { products: ['erp'], product_roles: { erp: ['director', 'principal'] } }));
+    expect((d.ops[0]!.settings as { steps: string[] }).steps).toEqual(['director']);
+    const f = full('remind parents 3 days before fee due, then on due date, then weekly');
+    expect(f.ops[0]).toMatchObject({ block: 'erp.automation', key: 'fee_reminder_ladder', settings: { trigger: 'fee.due_date', conditions: { days: [-3, 0, 7], repeat_every_days: 7 } } });
+    expect(full('Late fee of 50 rupees per day after 7 days, at most 1000').ops[0]!.settings).toEqual({ type: 'per_day', amount: 50, grace_days: 7, cap: 1000 });
+    for (const x of [c, f]) expect(validateChangeset(x, allProducts).ok).toBe(true);
+  });
+
+  it('custom register: a hostel visitor log with an approval by the warden', () => {
+    const r = full('make a hostel visitor log with visitor name, student, time in/out, approved by warden');
+    expect(r.ops).toHaveLength(1);
+    const s = r.ops[0]!.settings as { key: string; fields: { key: string; type: string }[]; states: { transitions: { approval?: boolean; approver_roles?: string[] }[] } };
+    expect(r.ops[0]!.block).toBe('core.custom_object');
+    expect(s.key).toBe('hostel_visitor_log');
+    expect(s.fields.map((f) => `${f.key}:${f.type}`)).toEqual(['visitor_name:text', 'student:learner', 'time_in:datetime', 'time_out:datetime']);
+    expect(s.states.transitions[0]).toMatchObject({ approval: true, approver_roles: ['erp:warden'] });
+    expect(validateChangeset(r, allProducts).ok).toBe(true);
+    // without a warden role, management approves and the plan says so
+    const m = changesetSchema.parse(mockDesignerPlan('make a hostel visitor log with visitor name, student, time in/out, approved by warden', { products: ['os'], record_roles: ['os:os_principal'] }));
+    expect((m.ops[0]!.settings as { states: { transitions: { approver_roles?: string[] }[] } }).states.transitions[0]!.approver_roles).toBeUndefined();
+    expect(m.questions.length).toBe(1);
   });
 
   it('reads times the way people write them', () => {

@@ -45,11 +45,13 @@ export async function handleJob(db: Db, j: ClaimedJob): Promise<string> {
     }
     const e = await getEnquiry(db, run.enquiry_id);
     const replied = await db.one("select 1 from crm.messages where org_id = $1 and household_id = $2 and direction = 'in' and created_at > $3", [db.requireOrg(), e?.household_id, run.created_at]);
-    if (!e || e.stage_id !== run.entry_stage_id) {
+    // Stop rules of the workflow (crm.workflows.stop_rules; both on unless the workflow turns one off).
+    const stop = { on_reply: wf.stop_rules?.on_reply !== false, on_stage_change: wf.stop_rules?.on_stage_change !== false };
+    if (!e || (stop.on_stage_change && e.stage_id !== run.entry_stage_id)) {
       await finish(db, run, 'cancelled', [...run.log, { text: `Cancelled: the record moved out of the stage it entered in${e ? ` (now "${e.stage_name}")` : ''}.` }]);
       return 'cancelled';
     }
-    if (replied && wf.trigger !== 'sla_breach') {
+    if (replied && stop.on_reply && wf.trigger !== 'sla_breach') {
       await finish(db, run, 'cancelled', [...run.log, { text: 'Cancelled: the parent replied, so automated follow-ups stopped.' }]);
       return 'cancelled';
     }

@@ -12,8 +12,8 @@
  * rule in app.designer_allowed() (RLS on core.design_changesets).
  */
 import { isLang, makeT, type Lang } from '@autoed/shared';
-import { asUser, ForbiddenError, maybe, q, type Tx } from '../db';
-import { loadCtx, rank, UnauthorizedError, type ProductKey } from '../core';
+import { asUser, asUserIn, ForbiddenError, maybe, q, type ProductRole, type Tx } from '../db';
+import { UnauthorizedError, type ProductKey } from '../core';
 
 export type AuthorKind = 'org_admin' | 'relationship_manager';
 
@@ -31,6 +31,8 @@ export interface DesignerActor {
   /** A read-only support session may look but not plan, publish or undo. */
   readOnly: boolean;
   products: ProductKey[];
+  /** The product whose server login runs the designer's own transaction (designer tables, OS blocks when present). */
+  homeProduct: ProductKey;
   lang: Lang;
   t: ReturnType<typeof makeT>;
 }
@@ -50,29 +52,50 @@ async function isPlatformAdmin(userId: string): Promise<boolean> {
 export async function designerActor(userId: string, opts: ActorOptions = {}): Promise<DesignerActor> {
   if (opts.viewAs) return relationshipManager(userId, opts.viewAs, opts);
   if (await isPlatformAdmin(userId)) throw new ForbiddenError('support_session_required');
-  const ctx = await loadCtx(userId, { branchId: opts.branchId ?? null, device: opts.device ?? null, lang: opts.lang ?? null });
-  if (rank(ctx, 'setup', 'configure') < 5) throw new ForbiddenError('designer_management_only');
-  return asUser({ userId, staffId: ctx.staffId }, async (c) => {
-    if (!(await allowedInDb(c, ctx.orgId, true))) throw new ForbiddenError('designer_management_only');
-    const org = await maybe<{ name: string }>(c, `select name from core.organizations where id = $1`, [ctx.orgId]);
-    const branches = await q<{ id: string; code: string; name: string }>(c, `select id, code, name from core.branches where id = any($1) order by name`, [ctx.branchIds]);
-    return {
+  // School management of ANY product (OS, CRM or ERP): the database rule app.designer_allowed decides (a role holding
+  // setup.configure at branch scope or wider in a product the org has), exactly like the RLS of the designer tables.
+  return asUser({ userId }, async (c) => {
+    const staff = await maybe<{ id: string; org_id: string; branch_id: string | null; language: string | null }>(
+      c,
+      `select id, org_id, branch_id, language from core.staff where user_id = $1 and org_id = app.current_org_id() and deleted_at is null and status in ('active', 'invited', 'on_notice')`,
+      [userId],
+    );
+    if (!staff) throw new ForbiddenError('designer_management_only');
+    if (!(await allowedInDb(c, staff.org_id, true))) throw new ForbiddenError('designer_management_only');
+    const products = (await q<{ key: ProductKey }>(c, `select p.key from core.products p where app.user_has_product($1, p.key) order by p.key`, [staff.org_id])).map((r) => r.key);
+    if (!products.length) throw new ForbiddenError('designer_management_only');
+    const org = await maybe<{ name: string }>(c, `select name from core.organizations where id = $1`, [staff.org_id]);
+    const branches = await q<{ id: string; code: string; name: string }>(c, `select id, code, name from core.branches where org_id = $1 and id = any(app.user_branch_ids()) order by name`, [staff.org_id]);
+    if (!branches.length) throw new ForbiddenError('no_branch');
+    const branch = branches.find((b) => b.id === opts.branchId) ?? branches.find((b) => b.id === staff.branch_id) ?? branches[0]!;
+    const lang: Lang = isLang(opts.lang) ? opts.lang : isLang(staff.language) ? staff.language : 'en';
+    const actor: DesignerActor = {
       kind: 'org_admin',
       userId,
-      orgId: ctx.orgId,
+      orgId: staff.org_id,
       orgName: org?.name ?? '',
-      branchId: ctx.branchId,
-      branchCode: branches.find((b) => b.id === ctx.branchId)?.code ?? '',
+      branchId: branch.id,
+      branchCode: branch.code,
       branches,
-      staffId: ctx.staffId,
+      staffId: staff.id,
       supportSessionId: null,
       readOnly: false,
-      products: ctx.products,
-      lang: ctx.lang,
-      t: ctx.t,
+      products,
+      homeProduct: homeProductOf(products),
+      lang,
+      t: makeT(lang),
     };
+    return actor;
   });
 }
+
+/** The product whose server login runs the designer's own transaction (OS first, then CRM, then ERP). */
+export function homeProductOf(products: ProductKey[]): ProductKey {
+  return (['os', 'crm', 'erp'] as const).find((p) => products.includes(p)) ?? 'os';
+}
+
+/** The database login of a product. */
+export const ROLE_OF: Record<ProductKey, ProductRole> = { os: 'os_server', crm: 'crm_server', erp: 'erp_server' };
 
 async function allowedInDb(c: Tx, orgId: string, write: boolean): Promise<boolean> {
   return !!(await maybe<{ ok: boolean }>(c, `select app.designer_allowed($1, $2) as ok`, [orgId, write]))?.ok;
@@ -109,6 +132,7 @@ async function relationshipManager(userId: string, sessionId: string, opts: Acto
       supportSessionId: s.id,
       readOnly: s.read_only,
       products,
+      homeProduct: homeProductOf(products),
       lang,
       t: makeT(lang),
     };
@@ -117,7 +141,7 @@ async function relationshipManager(userId: string, sessionId: string, opts: Acto
 
 /** Runs fn in one transaction as the actor (RLS + audit as that person, support session included). */
 export function asActor<T>(a: DesignerActor, fn: (c: Tx) => Promise<T>): Promise<T> {
-  return asUser({ userId: a.userId, staffId: a.staffId }, fn);
+  return asUserIn(ROLE_OF[a.homeProduct], { userId: a.userId, staffId: a.staffId }, fn);
 }
 
 export function needWrite(a: DesignerActor) {

@@ -116,7 +116,7 @@ export function validateChangeset(cs: Changeset, known?: KnownConfig): Validatio
     if (known) {
       const roles = known.roles[block.product === 'core' ? 'os' : block.product] ?? [];
       for (const r of block.roles?.(settings) ?? []) if (!roles.includes(r)) issues.push({ op: i, code: 'unknown_role', detail: r });
-      if (block.key === 'os.module_flag' && known.branches && !known.branches.includes(String(settings.branch_code))) issues.push({ op: i, code: 'unknown_branch', detail: String(settings.branch_code) });
+      if (typeof settings.branch_code === 'string' && known.branches && !known.branches.includes(settings.branch_code)) issues.push({ op: i, code: 'unknown_branch', detail: settings.branch_code });
     }
     ops.push({ op: raw.op, block: block.key, product: block.product, key, settings, reason: raw.reason });
   });
@@ -201,7 +201,7 @@ export function previewOps(ops: ValidatedOp[], before: Record<string, Record<str
   return ops.map((o) => {
     const block = getBlock(o.block) as BlockDef;
     const s = (o.op === 'delete' ? before[`${o.block}:${o.key}`] : o.settings) ?? null;
-    const name = s ? String(s.name ?? s.title ?? s.label ?? o.key) : o.key;
+    const name = s ? String(s.name ?? s.title ?? s.label ?? s.label_plural ?? o.key) : o.key;
     return {
       op: o.op,
       block: o.block,

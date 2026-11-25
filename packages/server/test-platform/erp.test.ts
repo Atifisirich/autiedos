@@ -42,9 +42,9 @@ const asOwner = async (sql: string, params: unknown[] = []) => ownerQuery(sql, p
 // ---------------------------------------------------------------------------------------------- catalogue
 describe('erp catalogue', () => {
   it('has the 126 generated tables of MAP-TABLES (+ the harness probe) and a private OTP table', async () => {
-    expect(erpTables.length).toBe(127); // 126 generated + erp.substitutions
+    expect(erpTables.length).toBe(128); // 126 generated + erp.substitutions + erp.approval_rules
     const all = await asOwner(`select count(*)::int as n from pg_tables where schemaname = 'erp'`);
-    expect(all[0]!.n).toBe(128); // +1: erp.substitutions (20261118100002_erp_ui_substitutions.sql)
+    expect(all[0]!.n).toBe(129); // +1: erp.substitutions (20261118100002_erp_ui_substitutions.sql), +1: erp.approval_rules (20261127300001_crm_erp_designer.sql)
     expect((await asOwner(`select count(*)::int as n from pg_tables where schemaname = 'private' and tablename = 'gate_pass_otps'`))[0]!.n).toBe(1);
   });
 

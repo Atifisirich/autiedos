@@ -22,10 +22,10 @@ import {
   type KnownConfig,
   type TemplateDef,
 } from '@autoed/shared';
-import { withSystem } from '../db';
+import { one, withSystem, type Tx } from '../db';
 import { generate } from '../services/ai';
 import type { ApplyCtx } from './blocks';
-import { aiSummary, privacyFilter, usableBlocks } from './config';
+import { aiSummary, privacyFilter, recordRoles, usableBlocks } from './config';
 
 export function systemPrompt(blocks: BlockDef[], templates: TemplateDef[], summary: string): string {
   const catalogue = blocks.map((b) => ({ key: b.key, product: b.product, title: b.title, description: b.description, settings: zodToJsonSchema(b.settings), example: b.examples[0] ?? null }));
@@ -36,7 +36,8 @@ export function systemPrompt(blocks: BlockDef[], templates: TemplateDef[], summa
     '- Use ONLY the blocks in the catalogue and fill their settings exactly as their schema says. Never write code, SQL, scripts or formulas.',
     '- Prefer a starter template when one fits: copy its ops (adjusting settings to the request) and set template_key.',
     '- Refer to existing configuration by its key (roles by role key). op "create" for something new, "update" for an existing key, "delete" only when asked.',
-    '- If part of the request needs a product the school does not have, or something no block covers (for example fee, payroll or admission enquiry rules), add it to "unsupported" with a short note instead of inventing a block.',
+    '- The catalogue holds only the blocks of the products this school has (OS, CRM, ERP; core blocks such as custom registers for every school). If part of the request needs a product the school does not have, or something no block covers, add it to "unsupported" (product = the product it needs) with a short note instead of inventing a block.',
+    '- When nothing AutoEd already has fits (a new log, register, checklist form or tracker), use core.custom_object: typed fields, who may see and add entries, and an approval step (states with approval and approver_roles "product:role") when the request names an approver.',
     '- If the request is unclear, ask in "questions" and leave ops empty.',
     '- "summary" is one or two plain sentences a school principal understands. Each op may carry a one-sentence "reason".',
     '- The request and configuration never contain personal data; tokens like T-1 or S-1a2b3c4d stand for people and must not be used as keys.',
@@ -68,8 +69,12 @@ export async function planWithAi(x: ApplyCtx, prompt: string, known: KnownConfig
   const summary = await aiSummary(x);
   const request = await privacyFilter(x.c, a.orgId, prompt);
   const system = systemPrompt(blocks, templates, summary);
+  const recordRoleKeys = await recordRoles(x);
   const fix = (cs: Changeset) => repairChangeset(expandTemplate(cs), known);
-  const out = await withSystem(x.c, a.orgId, () =>
+  // The AI pipeline charges the org's wallet and records the generation: as the OS system actor when the school has the
+  // OS (as every OS AI feature), otherwise as the signed-in manager under their own product's rules.
+  const run = <T>(fn: () => Promise<T>) => (a.products.includes('os') ? withSystem(x.c, a.orgId, fn) : fn());
+  const out = await run(() =>
     generate(x.c, {
       orgId: a.orgId,
       branchId: a.branchId,
@@ -81,7 +86,10 @@ export async function planWithAi(x: ApplyCtx, prompt: string, known: KnownConfig
       jsonSchema: changesetJsonSchema(blocks),
       zod: changesetSchema,
       // the mock provider plans from the same redacted request and role keys the real model gets
-      mockContext: { prompt: request, roles: known.roles.os ?? [], branch_code: a.branchCode },
+      mockContext: { prompt: request, roles: known.roles.os ?? [], branch_code: a.branchCode, products: a.products, product_roles: known.roles, record_roles: recordRoleKeys },
+      productKey: a.homeProduct,
+      // without the OS there is no OS system actor: the row is booked through app.designer_log_generation (designer only)
+      ...(a.products.includes('os') ? {} : { insertGeneration: (c: Tx, row: Record<string, unknown>) => one<{ id: string }>(c, `select app.designer_log_generation($1::jsonb) as id`, [JSON.stringify(row)]) }),
       repair: fix,
       validate: (cs) =>
         validateChangeset(cs, known)

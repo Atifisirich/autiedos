@@ -1,7 +1,7 @@
 /**
  * Server registry of designer blocks: block key -> read / write / remove. The shared catalogue
  * (@autoed/shared designer) says WHAT a block is; this says HOW it is applied. A catalogue block without a server
- * block cannot be published (the stub 'core.custom_object' until the custom records stream registers it here).
+ * block cannot be published.
  *
  * Adding a block: implement ServerBlock in blocks/<product>/<area>.ts and call registerServerBlocks([...]) below
  * (or from your product's module at import time).
@@ -12,6 +12,9 @@ import { assignmentRuleServer, escalationRuleServer, recurringTaskServer, taskCa
 import { notificationRuleServer, reportScheduleServer } from './os/notifications';
 import { attendanceRuleServer, customFieldServer, leaveTypeServer, moduleFlagServer, rolePermissionServer, roleServer } from './os/people';
 import { dutyTypeServer, eventTemplateServer, planReviewServer } from './os/planning';
+import { customObjectServer } from './core/custom-object';
+import { CRM_SERVER_BLOCKS } from './crm';
+import { ERP_SERVER_BLOCKS } from './erp';
 import type { ServerBlock } from './types';
 
 export * from './types';
@@ -49,3 +52,7 @@ registerServerBlocks([
   dutyTypeServer,
   planReviewServer,
 ]);
+// CRM blocks run as crm_server, ERP blocks as erp_server (x.tx(product)); the custom records engine in the designer's own transaction.
+registerServerBlocks(CRM_SERVER_BLOCKS);
+registerServerBlocks(ERP_SERVER_BLOCKS);
+registerServerBlocks([customObjectServer]);
