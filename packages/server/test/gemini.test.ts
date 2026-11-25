@@ -108,6 +108,9 @@ describe('gemini configuration', () => {
     expect(() => geminiFromEnv({ NODE_ENV: 'production', GEMINI_API_KEY: 'k' })).toThrow(/GEMINI_TIER=paid/);
     expect(() => geminiFromEnv({ NODE_ENV: 'production', GEMINI_API_KEY: 'k', GEMINI_TIER: 'free' })).toThrow(/GEMINI_TIER=paid/);
     expect(geminiFromEnv({ NODE_ENV: 'production', GEMINI_API_KEY: 'k', GEMINI_TIER: 'paid' }).name).toBe('gemini');
+    // decision 60: free tier only with the explicit owner acknowledgement
+    expect(() => geminiFromEnv({ NODE_ENV: 'production', GEMINI_API_KEY: 'k', GEMINI_TIER: 'free', GEMINI_FREE_TIER_ACK: 'yes' })).toThrow(/GEMINI_TIER=paid/);
+    expect(geminiFromEnv({ NODE_ENV: 'production', GEMINI_API_KEY: 'k', GEMINI_TIER: 'free', GEMINI_FREE_TIER_ACK: 'owner-accepted' }).name).toBe('gemini');
   });
 
   it('getAiProvider: mock in development and tests, Gemini in production or with a key', () => {

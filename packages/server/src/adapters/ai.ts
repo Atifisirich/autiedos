@@ -205,11 +205,16 @@ export class GeminiProvider implements AiProvider {
  * Builds the Gemini provider from the environment. In production it refuses unless the key is set
  * and GEMINI_TIER=paid (free-tier prompts may be used by Google to improve models).
  */
+let warnedFreeTier = false;
 export function geminiFromEnv(env: Record<string, string | undefined> = process.env): GeminiProvider {
   const key = env.GEMINI_API_KEY?.trim();
   if (env.NODE_ENV === 'production') {
     if (!key) throw new Error('GEMINI_API_KEY is required in production');
-    if (env.GEMINI_TIER !== 'paid') throw new Error('GEMINI_TIER=paid is required in production: the free Gemini tier may use prompts to improve Google models');
+    // Decision 60: the owner accepted the free tier for now. It must be stated explicitly (two variables), and is
+    // logged, because free-tier prompts may be used by Google to improve its models. Personal data is still stripped.
+    const freeAccepted = env.GEMINI_TIER === 'free' && env.GEMINI_FREE_TIER_ACK === 'owner-accepted';
+    if (env.GEMINI_TIER !== 'paid' && !freeAccepted) throw new Error('GEMINI_TIER=paid is required in production (or GEMINI_TIER=free with GEMINI_FREE_TIER_ACK=owner-accepted): the free Gemini tier may use prompts to improve Google models');
+    if (freeAccepted && !warnedFreeTier) { warnedFreeTier = true; console.warn('[ai] Gemini FREE tier in use (decision 60): prompts may be used by Google; switch to a paid key before real school data.'); }
   }
   return new GeminiProvider({ apiKey: key ?? '' });
 }
