@@ -178,7 +178,7 @@ export function RecordForm({ object, initial, labels, onSubmit, submitLabel, bus
       }}
     >
       {formSections(object).map((sec, i) => (
-        <fieldset key={i} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+        <fieldset key={i} className="min-w-0 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
           {sec.title && <legend className="px-1 text-sm font-semibold text-slate-700">{sec.title}</legend>}
           {sec.fields.map((f) => (
             <div key={f.key}>

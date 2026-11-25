@@ -16,7 +16,7 @@ type StateDraft = { key: string; label: string; final?: boolean; _new: boolean }
 type TransitionDraft = { from: string; to: string; label?: string; approval?: boolean; approver_roles?: string[] };
 
 const input = 'min-h-[40px] w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200';
-const small = 'min-h-[36px] rounded-md border border-slate-300 bg-white px-2 text-sm';
+const small = 'min-h-[36px] max-w-full rounded-md border border-slate-300 bg-white px-2 text-sm';
 const btn = 'min-h-[36px] rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50';
 let seq = 0;
 
@@ -29,7 +29,7 @@ function uniqueKey(base: string, taken: string[]): string {
 
 function Section({ title, hint, children, id }: { title: string; hint?: string; children: React.ReactNode; id: string }) {
   return (
-    <fieldset className="rounded-xl border border-slate-200 bg-white p-4" aria-labelledby={id}>
+    <fieldset className="min-w-0 rounded-xl border border-slate-200 bg-white p-4" aria-labelledby={id}>
       <legend id={id} className="px-1 text-base font-semibold text-slate-800">
         {title}
       </legend>
